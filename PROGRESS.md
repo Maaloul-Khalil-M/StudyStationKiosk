@@ -32,11 +32,35 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 - [x] Discreet secondary progress line (`SUBJECT · X / Y MIN`) rendered underneath clock in calm muted grey (`#8A8A8E`).
 - [x] Unit test suite (`tests/test_engine.py`) covering all schedule engine operations.
 
+### Milestone 2.5: Modern UI Redesign & Calm Discipline `[COMPLETED]`
+- [x] Authentic Fliqlo-inspired split-flap flip cards with uniform panel gaps and mechanical side notch cutouts.
+- [x] Snappy 3D-folding flip animation (~200ms) on minute/second transitions.
+- [x] Calm, low-contrast Date line at top (`WEDNESDAY, OCT 14`, font size 13px, `#71717A`) that never competes with the clock.
+- [x] Auto-hiding Action Bar: hidden by default for maximum calm; fades in smoothly on mouse movement/key press, fades out after 3.5s of inactivity.
+- [x] Single primary focus action: `[ ▶ Start Focus ]` plus a quiet `[ ⚙ Customize ]` button.
+- [x] Cursor auto-hide when idle in fullscreen.
+- [x] Single discreet progress line: `SUBJECT · XX / YY MIN ▾` with dropdown subject selector on click.
+- [x] Normalized French spelling typography (e.g. `ACCÈS`, `CONTRÔLE`).
+- [x] Modernized Focus screen:
+  - Subject in white (`#F4F4F5`), gracefully truncated.
+  - State label in readable medium gray (`#9CA3AF`).
+  - Large tabular countdown timer.
+  - Cycle progress indicator (`XX / YY MIN (CYCLE)`).
+  - Visual session progress bar along the bottom of the card.
+  - Harmonized pill buttons: primary filled `Pause`, outline `+5 Min`, outline red `End Session` with hover/pressed states.
+  - Quiet shortcuts hint line (`Space to pause · + for 5m · Esc to end`).
+- [x] Modern Customization Modal (`CustomizationDialog`):
+  - 12h vs 24h toggle
+  - Optional seconds flip card
+  - Emphasize date toggle & format
+  - Color palettes (Classic Noir, Midnight Slate, Warm Espresso)
+  - Animation toggle (Smooth flip vs Instant)
+
 ### Milestone 3: Focus Timer & Completion Screens `[COMPLETED]`
 - [x] Screen management with `QStackedWidget` (Ambient Clock ↔ Focus ↔ Completion).
 - [x] Focus Timer engine (`FocusTimer`) using timestamp-based target ends (`target_end_time`) for suspend/resume resilience.
 - [x] Flexible micro-session durations (5, 10, 15, 25 minutes).
-- [x] Low-friction session start from ambient screen (<kbd>Space</kbd> / <kbd>Enter</kbd> or number keys `1`-`4`).
+- [x] Low-friction session start from ambient screen (<kbd>Space</kbd> / <kbd>Enter</kbd> or number keys `1`-`4`, or clicking action bar buttons).
 - [x] Focus screen (`focus_screen.ui` + `FocusWidget`):
   - Subject label
   - Large countdown display

@@ -48,7 +48,11 @@ class CompletionWidget(QWidget):
         target_minutes: int,
     ) -> None:
         """Display the completion feedback and start auto-dismiss countdown."""
-        self.lbl_subject.setText(subject_name.upper())
+        from study_station.core.engine import ScheduleEngine
+        clean_name = ScheduleEngine.clean_subject_name(subject_name)
+        if len(clean_name) > 36:
+            clean_name = clean_name[:34].rstrip() + "…"
+        self.lbl_subject.setText(clean_name.upper())
         self.lbl_confirmation.setText(f"+{added_minutes} MIN")
         self.lbl_progress.setText(f"{completed_minutes} / {target_minutes} MIN COMPLETED")
 

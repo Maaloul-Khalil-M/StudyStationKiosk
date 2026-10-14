@@ -15,19 +15,19 @@
   </property>
   <layout class="QVBoxLayout" name="mainVerticalLayout">
    <property name="spacing">
-    <number>20</number>
+    <number>0</number>
    </property>
    <property name="leftMargin">
-    <number>40</number>
+    <number>0</number>
    </property>
    <property name="topMargin">
-    <number>40</number>
+    <number>0</number>
    </property>
    <property name="rightMargin">
-    <number>40</number>
+    <number>0</number>
    </property>
    <property name="bottomMargin">
-    <number>40</number>
+    <number>0</number>
    </property>
    <item>
     <spacer name="topSpacer">
@@ -43,84 +43,9 @@
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="lblSubject">
-     <property name="font">
-      <font>
-       <pointsize>18</pointsize>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">color: #8E8E93; letter-spacing: 2px;</string>
-     </property>
-     <property name="text">
-      <string>SUBJECT NAME</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="lblState">
-     <property name="font">
-      <font>
-       <pointsize>12</pointsize>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">color: #636366; letter-spacing: 1px;</string>
-     </property>
-     <property name="text">
-      <string>FOCUSING</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="lblRemaining">
-     <property name="font">
-      <font>
-       <family>Monospace</family>
-       <pointsize>84</pointsize>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">color: #FFFFFF;</string>
-     </property>
-     <property name="text">
-      <string>25:00</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="middleSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>30</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="controlsLayout">
-     <property name="spacing">
-      <number>16</number>
-     </property>
+    <layout class="QHBoxLayout" name="centerLayout">
      <item>
-      <spacer name="leftButtonSpacer">
+      <spacer name="leftCenterSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -133,46 +58,293 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPushButton" name="btnPause">
-       <property name="cursor">
-        <cursorShape>PointingHandCursor</cursorShape>
+      <widget class="QFrame" name="focusCard">
+       <property name="minimumSize">
+        <size>
+         <width>560</width>
+         <height>360</height>
+        </size>
        </property>
        <property name="styleSheet">
-        <string notr="true">QPushButton { background-color: #1C1C1E; color: #FFFFFF; font-size: 15px; font-weight: bold; border-radius: 8px; padding: 12px 28px; border: 1px solid #2C2C2E; } QPushButton:hover { background-color: #2C2C2E; }</string>
+        <string notr="true">QFrame#focusCard {
+    background-color: #121215;
+    border: 1px solid #27272A;
+    border-radius: 20px;
+}</string>
        </property>
-       <property name="text">
-        <string>Pause</string>
-       </property>
+       <layout class="QVBoxLayout" name="cardLayout">
+        <property name="spacing">
+         <number>12</number>
+        </property>
+        <property name="leftMargin">
+         <number>36</number>
+        </property>
+        <property name="topMargin">
+         <number>28</number>
+        </property>
+        <property name="rightMargin">
+         <number>36</number>
+        </property>
+        <property name="bottomMargin">
+         <number>24</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="lblSubject">
+          <property name="font">
+           <font>
+            <pointsize>15</pointsize>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: #F4F4F5; letter-spacing: 1.5px;</string>
+          </property>
+          <property name="text">
+           <string>SÉCURITÉ ET CONTRÔLE D'ACCÈS AUX BIG DATA</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="lblState">
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+            <weight>50</weight>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: #9CA3AF; letter-spacing: 2px;</string>
+          </property>
+          <property name="text">
+           <string>FOCUSING</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="lblRemaining">
+          <property name="font">
+           <font>
+            <family>Monospace</family>
+            <pointsize>72</pointsize>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: #FFFFFF;</string>
+          </property>
+          <property name="text">
+           <string>14:59</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="lblCycleProgress">
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: #71717A; letter-spacing: 1px;</string>
+          </property>
+          <property name="text">
+           <string>0 / 60 MIN (CYCLE)</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QProgressBar" name="progressBar">
+          <property name="maximumHeight">
+           <number>4</number>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QProgressBar {
+    background-color: #27272A;
+    border-radius: 2px;
+    text-align: center;
+    border: none;
+}
+QProgressBar::chunk {
+    background-color: #E4E4E7;
+    border-radius: 2px;
+}</string>
+          </property>
+          <property name="value">
+           <number>0</number>
+          </property>
+          <property name="textVisible">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="cardMiddleSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>12</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="controlsLayout">
+          <property name="spacing">
+           <number>12</number>
+          </property>
+          <item>
+           <spacer name="btnLeftSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnPause">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton {
+    background-color: #F4F4F5;
+    color: #09090B;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 9px 26px;
+    border: none;
+}
+QPushButton:hover {
+    background-color: #FFFFFF;
+}
+QPushButton:pressed {
+    background-color: #D4D4D8;
+}</string>
+            </property>
+            <property name="text">
+             <string>Pause</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnAddFive">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton {
+    background-color: #161619;
+    color: #D4D4D8;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 20px;
+    padding: 9px 20px;
+    border: 1px solid #27272A;
+}
+QPushButton:hover {
+    background-color: #27272A;
+    color: #FFFFFF;
+    border-color: #3F3F46;
+}
+QPushButton:pressed {
+    background-color: #1A1A1E;
+}</string>
+            </property>
+            <property name="text">
+             <string>+5 Min</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnEnd">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton {
+    background-color: #161619;
+    color: #F87171;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 20px;
+    padding: 9px 20px;
+    border: 1px solid #27272A;
+}
+QPushButton:hover {
+    background-color: #27272A;
+    color: #EF4444;
+    border-color: #7F1D1D;
+}
+QPushButton:pressed {
+    background-color: #1A1A1E;
+}</string>
+            </property>
+            <property name="text">
+             <string>End Session</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="btnRightSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QLabel" name="lblShortcutsHint">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: #52525B;</string>
+          </property>
+          <property name="text">
+           <string>Space to pause  ·  + for 5m  ·  Esc to end</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btnAddFive">
-       <property name="cursor">
-        <cursorShape>PointingHandCursor</cursorShape>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">QPushButton { background-color: #1C1C1E; color: #FFFFFF; font-size: 15px; font-weight: bold; border-radius: 8px; padding: 12px 24px; border: 1px solid #2C2C2E; } QPushButton:hover { background-color: #2C2C2E; }</string>
-       </property>
-       <property name="text">
-        <string>+5 Min</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnEnd">
-       <property name="cursor">
-        <cursorShape>PointingHandCursor</cursorShape>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">QPushButton { background-color: #1C1C1E; color: #E5E5EA; font-size: 15px; font-weight: bold; border-radius: 8px; padding: 12px 24px; border: 1px solid #2C2C2E; } QPushButton:hover { background-color: #3A3A3C; }</string>
-       </property>
-       <property name="text">
-        <string>End Session</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="rightButtonSpacer">
+      <spacer name="rightCenterSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -194,7 +366,7 @@
      <property name="sizeHint" stdset="0">
       <size>
        <width>20</width>
-       <height>100</height>
+       <height>80</height>
       </size>
      </property>
     </spacer>

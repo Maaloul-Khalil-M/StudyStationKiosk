@@ -242,10 +242,21 @@ class ScheduleEngine:
 
         return ""
 
-    @staticmethod
-    def _abbreviate_subject(name: str) -> str:
+    @classmethod
+    def clean_subject_name(cls, name: str) -> str:
+        """Fix common spelling errors in imported subject titles."""
+        return (
+            name.strip()
+            .replace("ACCÉES", "ACCÈS")
+            .replace("accées", "accès")
+            .replace("CONTROLE", "CONTRÔLE")
+            .replace("controle", "contrôle")
+        )
+
+    @classmethod
+    def _abbreviate_subject(cls, name: str) -> str:
         """Keep subject names readable and compact for the ambient secondary line."""
-        clean = name.strip()
+        clean = cls.clean_subject_name(name)
         upper = clean.upper()
 
         # Direct friendly abbreviations
@@ -256,6 +267,7 @@ class ScheduleEngine:
             "LA CYBER-CRIMINALITÉ": "CYBER-CRIME",
             "BASES DE DONNÉES NOSQL": "NOSQL",
             "ENTREPÔTS DE DONNÉES": "DATA WAREHOUSE",
+            "SÉCURITÉ ET CONTRÔLE D'ACCÈS AUX BIG DATA": "SÉCURITÉ BIG DATA",
             "SÉCURITÉ ET CONTROLE D'ACCÉES AUX BIG DATA": "SÉCURITÉ BIG DATA",
             "FRAMEWORK DE DÉVELOPPEMENT WEB": "WEB DEV",
             "TESTS LOGICIELS (CERTIFICATION ISTQB)": "TESTS LOGICIELS",
@@ -270,4 +282,4 @@ class ScheduleEngine:
             if k in upper or upper in k:
                 return v
 
-        return upper if len(upper) <= 20 else upper[:18].rstrip() + "…"
+        return upper if len(upper) <= 22 else upper[:20].rstrip() + "…"
