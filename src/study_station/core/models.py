@@ -85,3 +85,22 @@ class StudyLog:
     started_at: datetime = field(default_factory=datetime.now)
     duration_minutes: int = 0
     source: str = "timer"  # "timer" or "manual"
+
+
+@dataclass
+class SubjectSummary:
+    """Consolidated summary for a subject, its active cycle, next class, and review progress."""
+
+    name: str
+    short_name: str
+    core: str
+    location: str
+    target_minutes: int
+    completed_minutes: int
+    remaining_minutes: int
+    progress_percent: int  # 0 to 100
+    next_session_dt: datetime | None
+    next_session_text: str
+    is_target_met: bool
+    is_current_class: bool = False
+

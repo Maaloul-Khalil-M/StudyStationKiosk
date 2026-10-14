@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TimetableDialog</class>
+ <widget class="QDialog" name="TimetableDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>740</width>
+    <height>560</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Weekly Timetable Editor</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QDialog {
+    background-color: #121215;
+    border: 1px solid #27272A;
+    border-radius: 14px;
+}
+QLabel {
+    color: #F4F4F5;
+}
+QTableWidget {
+    background-color: #18181B;
+    color: #F4F4F5;
+    gridline-color: #27272A;
+    border: 1px solid #27272A;
+    border-radius: 8px;
+    selection-background-color: #27272A;
+}
+QHeaderView::section {
+    background-color: #161619;
+    color: #A1A1AA;
+    padding: 8px;
+    border: none;
+    border-bottom: 1px solid #27272A;
+    font-size: 11px;
+    font-weight: bold;
+}
+QComboBox, QLineEdit, QTimeEdit {
+    background-color: #18181B;
+    color: #F4F4F5;
+    border: 1px solid #3F3F46;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+}</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <property name="spacing">
+    <number>14</number>
+   </property>
+   <property name="leftMargin">
+    <number>24</number>
+   </property>
+   <property name="topMargin">
+    <number>20</number>
+   </property>
+   <property name="rightMargin">
+    <number>24</number>
+   </property>
+   <property name="bottomMargin">
+    <number>20</number>
+   </property>
+   <item>
+    <layout class="QHBoxLayout" name="headerLayout">
+     <item>
+      <layout class="QVBoxLayout" name="titleLayout">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="lblTitle">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Weekly Timetable</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="lblSubtitle">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: #71717A;</string>
+         </property>
+         <property name="text">
+          <string>Scheduled classes drive automatic study cycles between consecutive sessions.</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <spacer name="headerSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnDelete">
+       <property name="cursor">
+        <cursorShape>PointingHandCursor</cursorShape>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+    background-color: #161619;
+    color: #F87171;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 14px;
+    padding: 6px 14px;
+    border: 1px solid #27272A;
+}
+QPushButton:hover {
+    background-color: #27272A;
+    color: #EF4444;
+}</string>
+       </property>
+       <property name="text">
+        <string>Delete Selected</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QTableWidget" name="tableSessions">
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="addFrame">
+     <property name="styleSheet">
+      <string notr="true">QFrame#addFrame {
+    background-color: #161619;
+    border: 1px solid #27272A;
+    border-radius: 8px;
+    padding: 8px;
+}</string>
+     </property>
+     <layout class="QHBoxLayout" name="addLayout">
+      <property name="spacing">
+       <number>8</number>
+      </property>
+      <property name="leftMargin">
+       <number>10</number>
+      </property>
+      <property name="topMargin">
+       <number>8</number>
+      </property>
+      <property name="rightMargin">
+       <number>10</number>
+      </property>
+      <property name="bottomMargin">
+       <number>8</number>
+      </property>
+      <item>
+       <widget class="QComboBox" name="cmbDay">
+        <property name="minimumWidth">
+         <number>75</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="txtStart">
+        <property name="placeholderText">
+         <string>Start (08:00)</string>
+        </property>
+        <property name="maximumWidth">
+         <number>85</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="txtEnd">
+        <property name="placeholderText">
+         <string>End (09:30)</string>
+        </property>
+        <property name="maximumWidth">
+         <number>85</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="txtSubject">
+        <property name="placeholderText">
+         <string>Subject Name</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="cmbCore">
+        <property name="maximumWidth">
+         <number>85</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="txtLocation">
+        <property name="placeholderText">
+         <string>Room/Lab</string>
+        </property>
+        <property name="maximumWidth">
+         <number>85</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnAdd">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    background-color: #F4F4F5;
+    color: #09090B;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 6px;
+    padding: 6px 14px;
+    border: none;
+}
+QPushButton:hover {
+    background-color: #FFFFFF;
+}</string>
+        </property>
+        <property name="text">
+         <string>+ Add</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="bottomButtonsLayout">
+     <property name="spacing">
+      <number>10</number>
+     </property>
+     <item>
+      <spacer name="bottomSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btnClose">
+       <property name="cursor">
+        <cursorShape>PointingHandCursor</cursorShape>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+    background-color: #F4F4F5;
+    color: #09090B;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 18px;
+    padding: 8px 24px;
+    border: none;
+}
+QPushButton:hover {
+    background-color: #FFFFFF;
+}</string>
+       </property>
+       <property name="text">
+        <string>Save &amp; Close</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

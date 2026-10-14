@@ -159,3 +159,59 @@ QPushButton:pressed {
     background-color: #1A1A1E;
 }
 """
+
+BUTTON_NAV_STYLE = """
+QPushButton {
+    background-color: #161619;
+    color: #D4D4D8;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 16px;
+    padding: 6px 14px;
+    border: 1px solid #27272A;
+}
+QPushButton:hover {
+    background-color: #27272A;
+    color: #FFFFFF;
+    border-color: #3F3F46;
+}
+QPushButton:pressed {
+    background-color: #1A1A1E;
+}
+"""
+
+CHIP_BUTTON_STYLE = """
+QPushButton {
+    background-color: #141418;
+    color: #A1A1AA;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 16px;
+    padding: 8px 16px;
+    border: 1px solid #27272A;
+    text-align: center;
+}
+QPushButton:hover {
+    background-color: #202026;
+    color: #F4F4F5;
+    border-color: #3F3F46;
+}
+"""
+
+CHIP_BUTTON_ACTIVE_STYLE = """
+QPushButton {
+    background-color: #1E293B;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 16px;
+    padding: 8px 16px;
+    border: 1.5px solid #3B82F6;
+    text-align: center;
+}
+QPushButton:hover {
+    background-color: #2563EB;
+    color: #FFFFFF;
+}
+"""
+

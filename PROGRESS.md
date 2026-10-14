@@ -84,19 +84,62 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
   - If machine was suspended/off past target end: automatically logs the completed session so student effort is never lost.
 - [x] Unit test suite (`tests/test_persistence.py`) verifying all CRUD operations and timer recovery scenarios.
 
-### Milestone 5: Secondary Screens (Qt Designer) `[NEXT]`
-- [ ] Timetable viewer / editor dialog.
-- [ ] Subject review target configuration dialog.
-- [ ] Manual study time entry form (for offline study sessions).
-- [ ] Preferences dialog (theme, default session length, 12/24h default).
+### Milestone 5: Secondary Screens (Qt Designer) `[COMPLETED]`
+- [x] Weekly Timetable Editor dialog ([`timetable_dialog.ui`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/designer/timetable_dialog.ui) + `TimetableDialog`):
+  - Chronological schedule table (Day, Time, Subject, Type, Location).
+  - Add session form with instant validation.
+  - Delete selected session.
+  - Persists directly to SQLite and updates active cycles in real time.
+- [x] Subject Review Target Configuration dialog ([`targets_dialog.ui`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/designer/targets_dialog.ui) + `TargetsDialog`):
+  - Configure target review minutes per subject (e.g. 45m, 60m, 90m).
+  - Quick preset buttons (`30m`, `60m`, `90m`).
+  - Persists to SQLite and recalculates cycle completion percentage immediately.
+- [x] Offline Study Time Logger dialog ([`manual_log_dialog.ui`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/designer/manual_log_dialog.ui) + `ManualLogDialog`):
+  - Record offline review completed away from the computer (books, paper, library).
+  - Subject selector and minutes spinbox.
+  - Automatically logs `StudyLog(source="manual")` and displays completion feedback (`+X MIN`).
+- [x] Central access via Customization Dialog and dedicated keyboard shortcuts (<kbd>E</kbd> for Timetable, <kbd>S</kbd> for Targets, <kbd>M</kbd> for Manual Log).
+- [x] Unit test suite (`tests/test_secondary_dialogs.py`) verifying all three dialogs and their signal pipelines.
+
+### Milestone 6: Subject-Centric UI & Streamlined Interaction Rework `[COMPLETED]`
+- [x] **Subject-First Philosophy:** Refocused Study Station so the **Subject** and its review cycle are the true hero and centerpiece rather than just a clock screensaver.
+- [x] **Hero Subject Card:**
+  - Clear, prominent subject title with normalized French typography (`ACCÈS`, `CONTRÔLE`).
+  - Core format & location badge (`TP · Lab 20`, or emerald `● IN CLASS NOW` when active).
+  - High-visibility progress bar with status percentage and remaining minutes counter.
+  - Next scheduled class context: `📅 Next class: Friday at 08:00 (in 2 days)`.
+  - Prominent, easy-to-hit action buttons:
+    - `[ ▶ Start Focus (15m) ]` (Primary pill, bold filled)
+    - `[ ▶ 25m ]` (Secondary pill)
+    - `[ ✍ Log Time ]` (Secondary pill, pre-selects current subject)
+    - `[ ✏ Edit Target ]` (Secondary pill, opens target configurator with current subject highlighted)
+- [x] **Subject Switcher Carousel / Shelf:**
+  - Horizontal shelf displaying all enrolled subjects with mini progress indicators (`Data Vis · 25/60m`, `✓ Veille · 60/60m`).
+  - `★ Auto (Next Class)` mode to dynamically follow the next arriving class deadline.
+  - 1-click subject switching updating the Hero Card in real time.
+- [x] **Compact Split-Flap Flip Clock:**
+  - Isolated into `SplitFlapClockWidget`: authentic retro-minimal Fliqlo-inspired cards, 3D flip folding animations, center groove, and side notches.
+  - Repositioned as an elegant upper companion to the subject hero rather than monopolizing the screen.
+- [x] **Streamlined Top Bar Navigation:**
+  - One-click access to `[ 📅 Timetable ]`, `[ 🎯 Targets ]`, `[ ✍ Log Time ]`, `[ ⚙ Settings ]`, and `[ ⛶ Fullscreen ]`.
+- [x] **Domain Model Expansion:**
+  - `SubjectSummary` model with `ScheduleEngine.get_subject_summary` and `get_all_subjects_summary`.
+- [x] **Dialog Sizing & Translucent Background Fix:**
+  - Resolved issue where frameless translucent dialogs (`TimetableDialog`, `TargetsDialog`, `ManualLogDialog`) loaded via `QUiLoader` defaulted to (0, 0) size and 0 alpha (invisible).
+  - Encapsulated within solid `QFrame#dialogContainer` with fixed dimensions (`760x580`, `560x540`, `460x360`) and <kbd>Esc</kbd> dismissal.
+  - Hardened signal/slot bindings using `lambda checked=False: ...` to safely handle Qt's boolean click parameter.
+- [x] **Unit Test Suite:**
+  - 24/24 passing unit tests across `test_dashboard_ui.py`, `test_engine.py`, `test_timer.py`, `test_persistence.py`, `test_dialog.py`, and `test_secondary_dialogs.py`.
+
 
 ---
 
 ## Key Decisions & Guiding Rules
-1. **Time first:** Ambient clock is the visual centerpiece; study progress remains discreet.
+1. **Subject first (not Time first):** Study Station is a dedicated study machine; the Subject, its study cycle review progress, and the class schedule are the visual and functional centerpiece. The split-flap clock is a calm, glanceable companion.
 2. **One question per screen:**
-   - *Ambient Clock:* What time is it, and how am I progressing?
+   - *Dashboard:* What subject am I reviewing, what is my cycle progress, and when is my next class?
    - *Focus:* What am I working on right now?
-   - *Completion:* Did my effort count?
+   - *Completion:* Did my effort count toward my subject goal?
 3. **No guilt debt:** Unfinished review minutes do not accumulate as overdue debt across class cycles.
-4. **Deterministic core:** Engine and timer logic remain pure and unit-testable independently of Qt UI.
+4. **Deterministic core:** Engine, models, and timer logic remain pure and unit-testable independently of Qt UI.
+

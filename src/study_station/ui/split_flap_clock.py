@@ -1,0 +1,281 @@
+"""Compact Split-Flap Flip Clock widget for Study Station."""
+
+from datetime import datetime
+import math
+from PySide6.QtCore import QPoint, QRect, QTimer, Qt
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QLinearGradient,
+    QPaintEvent,
+    QPainter,
+    QPainterPath,
+    QPen,
+)
+from PySide6.QtWidgets import QWidget
+
+from study_station.core.settings import AppSettings
+from study_station.ui.theme import THEMES, get_modern_font
+
+
+class SplitFlapClockWidget(QWidget):
+    """Compact, elegant split-flap flip clock widget.
+    
+    Renders retro-minimal split-flap cards for Hours : Minutes (and optional Seconds)
+    with physical crease, notches, and snappy 3D fold animation.
+    """
+
+    def __init__(self, settings: AppSettings | None = None, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)
+        self.settings = settings or AppSettings()
+
+        now = datetime.now()
+        self._curr_hour = self._get_hour_str(now)
+        self._prev_hour = self._curr_hour
+        self._curr_minute = f"{now.minute:02d}"
+        self._prev_minute = self._curr_minute
+        self._curr_second = f"{now.second:02d}"
+        self._prev_second = self._curr_second
+
+        self._minute_flip_progress = 1.0
+        self._second_flip_progress = 1.0
+
+        # Clock tick timer
+        self._clock_timer = QTimer(self)
+        self._clock_timer.setInterval(200 if self.settings.show_seconds else 1000)
+        self._clock_timer.timeout.connect(self._on_clock_tick)
+        self._clock_timer.start()
+
+        # Animation timer (60 FPS)
+        self._anim_timer = QTimer(self)
+        self._anim_timer.setInterval(16)
+        self._anim_timer.timeout.connect(self._on_anim_frame)
+
+        self.setFixedHeight(105)
+
+    def apply_settings(self, settings: AppSettings) -> None:
+        self.settings = settings
+        self._clock_timer.setInterval(200 if self.settings.show_seconds else 1000)
+        self.update()
+
+    def _get_hour_str(self, now: datetime) -> str:
+        if self.settings.use_24h:
+            return f"{now.hour:02d}"
+        h = now.hour % 12
+        return f"{12 if h == 0 else h:02d}"
+
+    def _on_clock_tick(self) -> None:
+        now = datetime.now()
+        new_hour = self._get_hour_str(now)
+        new_min = f"{now.minute:02d}"
+        new_sec = f"{now.second:02d}"
+
+        hour_changed = new_hour != self._curr_hour
+        min_changed = new_min != self._curr_minute
+        sec_changed = new_sec != self._curr_second
+
+        if hour_changed or min_changed or sec_changed:
+            if min_changed or hour_changed:
+                self._prev_hour = self._curr_hour
+                self._curr_hour = new_hour
+                self._prev_minute = self._curr_minute
+                self._curr_minute = new_min
+                if self.settings.animate_flip:
+                    self._minute_flip_progress = 0.0
+                    if not self._anim_timer.isActive():
+                        self._anim_timer.start()
+
+            if sec_changed and self.settings.show_seconds:
+                self._prev_second = self._curr_second
+                self._curr_second = new_sec
+                if self.settings.animate_flip:
+                    self._second_flip_progress = 0.0
+                    if not self._anim_timer.isActive():
+                        self._anim_timer.start()
+
+            self.update()
+
+    def _on_anim_frame(self) -> None:
+        step = 0.16
+        active = False
+
+        if self._minute_flip_progress < 1.0:
+            self._minute_flip_progress = min(1.0, self._minute_flip_progress + step)
+            active = True
+
+        if self._second_flip_progress < 1.0:
+            self._second_flip_progress = min(1.0, self._second_flip_progress + step * 1.4)
+            active = True
+
+        if not active:
+            self._anim_timer.stop()
+
+        self.update()
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        rect = self.rect()
+        theme = THEMES.get(self.settings.theme_id, THEMES["noir"])
+        painter.fillRect(rect, theme.bg_canvas)
+
+        now = datetime.now()
+
+        card_h = min(96, rect.height() - 8)
+        card_w = int(card_h * 0.88)
+        gap = int(card_h * 0.07)
+        colon_w = 20
+
+        has_seconds = self.settings.show_seconds
+        total_w = card_w * 2 + gap + colon_w + (colon_w + card_w if has_seconds else 0)
+
+        start_x = (rect.width() - total_w) // 2
+        start_y = (rect.height() - card_h) // 2
+
+        # Card 1: Hours
+        hours_rect = QRect(start_x, start_y, card_w, card_h)
+        am_pm = ("AM" if now.hour < 12 else "PM") if not self.settings.use_24h else ""
+        self._paint_card(painter, hours_rect, self._curr_hour, self._prev_hour, 1.0, theme, am_pm=am_pm)
+
+        # Colon divider
+        colon_x = start_x + card_w + gap
+        colon_rect = QRect(colon_x, start_y, colon_w, card_h)
+        self._paint_colon(painter, colon_rect, theme)
+
+        # Card 2: Minutes
+        min_x = colon_x + colon_w
+        min_rect = QRect(min_x, start_y, card_w, card_h)
+        self._paint_card(painter, min_rect, self._curr_minute, self._prev_minute, self._minute_flip_progress, theme)
+
+        # Optional Seconds
+        if has_seconds:
+            colon_sec_rect = QRect(min_x + card_w + gap, start_y, colon_w, card_h)
+            self._paint_colon(painter, colon_sec_rect, theme)
+            sec_x = colon_sec_rect.right()
+            sec_rect = QRect(sec_x, start_y, card_w, card_h)
+            self._paint_card(painter, sec_rect, self._curr_second, self._prev_second, self._second_flip_progress, theme)
+
+    def _paint_colon(self, painter: QPainter, rect: QRect, theme) -> None:
+        """Render stylish blinking or steady colon dots."""
+        painter.save()
+        dot_r = 3
+        cx = rect.center().x()
+        cy1 = rect.center().y() - 14
+        cy2 = rect.center().y() + 14
+
+        painter.setBrush(theme.text_muted)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(QPoint(cx, cy1), dot_r, dot_r)
+        painter.drawEllipse(QPoint(cx, cy2), dot_r, dot_r)
+        painter.restore()
+
+    def _paint_card(
+        self,
+        painter: QPainter,
+        rect: QRect,
+        curr_digit: str,
+        prev_digit: str,
+        progress: float,
+        theme,
+        am_pm: str = "",
+    ) -> None:
+        corner_r = 7
+        notch_r = 3
+        y_mid = rect.center().y()
+
+        top_rect = QRect(rect.left(), rect.top(), rect.width(), y_mid - rect.top())
+        bottom_rect = QRect(rect.left(), y_mid, rect.width(), rect.bottom() - y_mid + 1)
+
+        font_size = int(rect.height() * 0.68)
+        digit_font = get_modern_font("mono", size=font_size, weight=QFont.Weight.Bold)
+
+        # 1. Base card (bottom flap)
+        bot_grad = QLinearGradient(bottom_rect.topLeft(), bottom_rect.bottomLeft())
+        bot_grad.setColorAt(0.0, theme.card_bottom_grad_start)
+        bot_grad.setColorAt(1.0, theme.card_bottom_grad_end)
+
+        bot_path = QPainterPath()
+        bot_path.addRoundedRect(rect, corner_r, corner_r)
+        painter.fillPath(bot_path, bot_grad)
+
+        # 2. Bottom flap digit
+        painter.save()
+        painter.setClipRect(bottom_rect)
+        painter.setFont(digit_font)
+        painter.setPen(theme.text_primary)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, curr_digit)
+        painter.restore()
+
+        # 3. Top flap background & digit
+        top_grad = QLinearGradient(top_rect.topLeft(), top_rect.bottomLeft())
+        top_grad.setColorAt(0.0, theme.card_top_grad_start)
+        top_grad.setColorAt(1.0, theme.card_top_grad_end)
+
+        painter.save()
+        painter.setClipRect(top_rect)
+        top_path = QPainterPath()
+        top_path.addRoundedRect(rect, corner_r, corner_r)
+        painter.fillPath(top_path, top_grad)
+        painter.setFont(digit_font)
+        painter.setPen(theme.text_primary)
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, curr_digit)
+        painter.restore()
+
+        # 4. Animated flip overlay
+        if progress < 1.0:
+            if progress < 0.5:
+                fold_ratio = math.cos(progress * math.pi)
+                fold_h = int(top_rect.height() * fold_ratio)
+                if fold_h > 0:
+                    fold_rect = QRect(top_rect.left(), y_mid - fold_h, top_rect.width(), fold_h)
+                    painter.save()
+                    painter.setClipRect(fold_rect)
+                    painter.fillPath(top_path, top_grad)
+                    painter.setFont(digit_font)
+                    painter.setPen(theme.text_primary)
+                    painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, prev_digit)
+                    shadow_alpha = int(120 * (progress * 2))
+                    painter.fillRect(fold_rect, QColor(0, 0, 0, shadow_alpha))
+                    painter.restore()
+            else:
+                unfold_ratio = math.sin((progress - 0.5) * math.pi)
+                unfold_h = int(bottom_rect.height() * unfold_ratio)
+                if unfold_h > 0:
+                    unfold_rect = QRect(bottom_rect.left(), y_mid, bottom_rect.width(), unfold_h)
+                    painter.save()
+                    painter.setClipRect(unfold_rect)
+                    painter.fillPath(bot_path, bot_grad)
+                    painter.setFont(digit_font)
+                    painter.setPen(theme.text_primary)
+                    painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, curr_digit)
+                    shadow_alpha = int(120 * (1.0 - (progress - 0.5) * 2))
+                    painter.fillRect(unfold_rect, QColor(0, 0, 0, shadow_alpha))
+                    painter.restore()
+
+        # 5. Outer card border
+        painter.save()
+        painter.setPen(QPen(theme.card_border, 1.2))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(rect, corner_r, corner_r)
+        painter.restore()
+
+        # 6. Center hinge groove
+        groove_rect = QRect(rect.left(), y_mid - 1, rect.width(), 2)
+        painter.fillRect(groove_rect, theme.hinge_groove)
+
+        # 7. Side hinge notches
+        painter.setPen(QPen(theme.card_border, 1.0))
+        painter.setBrush(theme.bg_canvas)
+        painter.drawEllipse(QPoint(rect.left(), y_mid), notch_r, notch_r)
+        painter.drawEllipse(QPoint(rect.right(), y_mid), notch_r, notch_r)
+
+        # 8. AM/PM Indicator
+        if am_pm:
+            ampm_font = get_modern_font("sans", size=max(9, int(rect.height() * 0.08)), weight=QFont.Weight.Bold)
+            painter.setFont(ampm_font)
+            painter.setPen(theme.text_muted)
+            ampm_rect = QRect(rect.left() + int(rect.width() * 0.08), rect.bottom() - int(rect.height() * 0.18), 32, 16)
+            painter.drawText(ampm_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, am_pm)

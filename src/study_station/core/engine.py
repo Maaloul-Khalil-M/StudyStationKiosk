@@ -16,6 +16,7 @@ from study_station.core.models import (
     StudyCycle,
     StudyLog,
     Subject,
+    SubjectSummary,
     TimeSlot,
 )
 
@@ -302,3 +303,95 @@ class ScheduleEngine:
                 return v
 
         return upper if len(upper) <= 22 else upper[:20].rstrip() + "…"
+
+    def get_subject_summary(self, subject_name: str, current_dt: datetime) -> SubjectSummary:
+        """Return rich summary for subject display, progress, and upcoming schedule context."""
+        clean_name = self.clean_subject_name(subject_name)
+        short_name = self._abbreviate_subject(clean_name)
+
+        # Check if currently in class for this subject
+        curr_session = self.get_current_session(current_dt)
+        is_current_class = bool(curr_session and curr_session.subject.name == subject_name)
+
+        # Find next occurrence
+        next_info = self.get_next_occurrence_of_subject(subject_name, current_dt)
+        next_dt: datetime | None = None
+        next_text = "No upcoming class"
+        core_type = "COURS"
+        loc = ""
+
+        if next_info:
+            session, next_dt = next_info
+            core_type = session.subject.core
+            loc = session.location
+            next_text = self._format_relative_session_time(next_dt, current_dt)
+        else:
+            matches = [s for s in self.sessions if s.subject.name == subject_name]
+            if matches:
+                core_type = matches[0].subject.core
+                loc = matches[0].location
+
+        # Cycle progress
+        cycle = self.get_active_cycle(subject_name, current_dt)
+        if cycle:
+            target = cycle.target_minutes
+            completed = cycle.completed_minutes
+            remaining = cycle.remaining_minutes
+            met = cycle.is_target_met
+        else:
+            target = self.get_subject_target(subject_name)
+            completed = 0
+            remaining = target
+            met = False
+
+        pct = min(100, int((completed / target) * 100)) if target > 0 else 0
+
+        return SubjectSummary(
+            name=clean_name,
+            short_name=short_name,
+            core=core_type,
+            location=loc,
+            target_minutes=target,
+            completed_minutes=completed,
+            remaining_minutes=remaining,
+            progress_percent=pct,
+            next_session_dt=next_dt,
+            next_session_text=next_text,
+            is_target_met=met,
+            is_current_class=is_current_class,
+        )
+
+    def get_all_subjects_summary(self, current_dt: datetime) -> list[SubjectSummary]:
+        """Return summaries for all distinct subjects, prioritizing those needing attention."""
+        summaries = [self.get_subject_summary(name, current_dt) for name in self.get_distinct_subjects()]
+
+        def sort_key(s: SubjectSummary) -> tuple[int, datetime]:
+            prio = 0 if s.is_current_class else (1 if not s.is_target_met else 2)
+            far_future = datetime.max
+            return (prio, s.next_session_dt or far_future)
+
+        summaries.sort(key=sort_key)
+        return summaries
+
+    @classmethod
+    def _format_relative_session_time(cls, session_dt: datetime, current_dt: datetime) -> str:
+        """Format friendly relative time string for next class."""
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        day_str = day_names[session_dt.weekday()]
+        time_str = session_dt.strftime("%H:%M")
+
+        delta = session_dt - current_dt
+        days_ahead = (session_dt.date() - current_dt.date()).days
+
+        if days_ahead == 0:
+            hours = int(delta.total_seconds() // 3600)
+            mins = int((delta.total_seconds() % 3600) // 60)
+            rel = f"in {hours}h {mins:02d}m" if hours > 0 else f"in {mins}m"
+            return f"Today at {time_str} ({rel})"
+        elif days_ahead == 1:
+            return f"Tomorrow at {time_str}"
+        elif days_ahead > 1:
+            return f"{day_str} at {time_str} (in {days_ahead} days)"
+        else:
+            return f"{day_str} at {time_str}"
+

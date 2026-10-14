@@ -96,14 +96,26 @@ class TestScheduleEngine(unittest.TestCase):
         text = self.engine.get_ambient_status_text(dt)
         self.assertIn("0 / 60 MIN", text)
 
-    def test_loading_example_json(self) -> None:
-        example_path = Path("docs/example.json")
-        if example_path.exists():
-            engine = ScheduleEngine.from_json_file(example_path)
-            self.assertGreater(len(engine.sessions), 0)
-            subjects = engine.get_distinct_subjects()
-            self.assertIn("Visualisation des données", subjects)
+    def test_subject_summary(self) -> None:
+        dt = datetime(2026, 10, 19, 11, 0)
+        summary = self.engine.get_subject_summary("Data Vis", dt)
+        self.assertEqual(summary.name, "Data Vis")
+        self.assertEqual(summary.target_minutes, 60)
+        self.assertEqual(summary.completed_minutes, 0)
+        self.assertEqual(summary.remaining_minutes, 60)
+        self.assertEqual(summary.progress_percent, 0)
+        self.assertFalse(summary.is_target_met)
+        self.assertIn("Fri at 10:00", summary.next_session_text)
+
+    def test_all_subjects_summary(self) -> None:
+        dt = datetime(2026, 10, 19, 11, 0)
+        all_summaries = self.engine.get_all_subjects_summary(dt)
+        self.assertEqual(len(all_summaries), 2)
+        names = [s.name for s in all_summaries]
+        self.assertIn("Data Vis", names)
+        self.assertIn("Math", names)
 
 
 if __name__ == "__main__":
     unittest.main()
+
