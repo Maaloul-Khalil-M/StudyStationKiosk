@@ -1,0 +1,249 @@
+{
+  "greeting": "Hello student of T-LSI ADBD Cours 2, here is your schedule.",
+  "metadata": {
+    "className": "T-LSI ADBD Cours 2",
+    "sourceFile": "png / pdf file for when i want to see the original one, and open said file in pc editor"
+  },
+  "sessions": [
+    {
+      "day": "Lun",
+      "timeSlot": {
+        "start": "08:00",
+        "end": "09:30"
+      },
+      "subject": {
+        "name": "Visualisation des données",
+        "core": "TP"
+      },
+      "location": "Lab 20"
+    },
+    {
+      "day": "Lun",
+      "timeSlot": {
+        "start": "09:40",
+        "end": "11:10"
+      },
+      "subject": {
+        "name": "Techniques de prévision",
+        "core": "Cours"
+      },
+      "location": "SC 3"
+    },
+    {
+      "day": "Lun",
+      "timeSlot": {
+        "start": "13:30",
+        "end": "15:00"
+      },
+      "subject": {
+        "name": "Technique de veille",
+        "core": "TP"
+      },
+      "location": "Lab 11"
+    },
+    {
+      "day": "Lun",
+      "timeSlot": {
+        "start": "15:10",
+        "end": "16:40"
+      },
+      "subject": {
+        "name": "Techniques de prévision",
+        "core": "TP"
+      },
+      "location": "Lab 4"
+    },
+    {
+      "day": "Mar",
+      "timeSlot": {
+        "start": "08:00",
+        "end": "09:30"
+      },
+      "subject": {
+        "name": "La cyber-criminalité",
+        "core": "Cours"
+      },
+      "location": "SC 1"
+    },
+    {
+      "day": "Mar",
+      "timeSlot": {
+        "start": "09:40",
+        "end": "11:10"
+      },
+      "subject": {
+        "name": "Entreprenariat",
+        "core": "Cours"
+      },
+      "location": "SC 3"
+    },
+    {
+      "day": "Mar",
+      "timeSlot": {
+        "start": "13:30",
+        "end": "15:00"
+      },
+      "subject": {
+        "name": "Bases de données NoSQL",
+        "core": "TP"
+      },
+      "location": "Lab 20"
+    },
+    {
+      "day": "Mar",
+      "timeSlot": {
+        "start": "15:10",
+        "end": "16:40"
+      },
+      "subject": {
+        "name": "Entrepôts de données",
+        "core": "TP"
+      },
+      "location": "Lab 20"
+    },
+    {
+      "day": "Jeu",
+      "timeSlot": {
+        "start": "08:00",
+        "end": "09:30"
+      },
+      "subject": {
+        "name": "Sécurité et controle d'accées aux Big data",
+        "core": "TP"
+      },
+      "location": "Lab 5"
+    },
+    {
+      "day": "Jeu",
+      "timeSlot": {
+        "start": "09:40",
+        "end": "11:10"
+      },
+      "subject": {
+        "name": "Entrepôts de données",
+        "core": "Cours"
+      },
+      "location": "SC 3"
+    },
+    {
+      "day": "Jeu",
+      "timeSlot": {
+        "start": "11:15",
+        "end": "12:45"
+      },
+      "subject": {
+        "name": "Bases de données NoSQL",
+        "core": "Cours"
+      },
+      "location": "SC 3"
+    },
+    {
+      "day": "Jeu",
+      "timeSlot": {
+        "start": "13:30",
+        "end": "15:00"
+      },
+      "subject": {
+        "name": "Anglais 4",
+        "core": "TD"
+      },
+      "location": "S 1"
+    },
+    {
+      "day": "Jeu",
+      "timeSlot": {
+        "start": "15:10",
+        "end": "16:40"
+      },
+      "subject": {
+        "name": "tests logiciels (Certification ISTQB)",
+        "core": "Cours"
+      },
+      "location": "SC V"
+    },
+    {
+      "day": "Ven",
+      "timeSlot": {
+        "start": "09:40",
+        "end": "11:10"
+      },
+      "subject": {
+        "name": "Visualisation des données",
+        "core": "Cours"
+      },
+      "location": "SC 3"
+    },
+    {
+      "day": "Ven",
+      "timeSlot": {
+        "start": "11:15",
+        "end": "12:45"
+      },
+      "subject": {
+        "name": "Framework de développement web",
+        "core": "CI"
+      },
+      "location": "SC 2"
+    },
+    {
+      "day": "Ven",
+      "timeSlot": {
+        "start": "13:30",
+        "end": "15:00"
+      },
+      "subject": {
+        "name": "Sécurité et controle d'accées aux Big data",
+        "core": "Cours"
+      },
+      "location": "SC 1"
+    },
+    {
+      "day": "Ven",
+      "timeSlot": {
+        "start": "15:10",
+        "end": "16:40"
+      },
+      "subject": {
+        "name": "Framework de développement web",
+        "core": "CI"
+      },
+      "location": "SC 2"
+    },
+    {
+      "day": "Sam",
+      "timeSlot": {
+        "start": "08:00",
+        "end": "09:30"
+      },
+      "subject": {
+        "name": "tests logiciels (Certification ISTQB)",
+        "core": "TP"
+      },
+      "location": "Lab 15"
+    },
+    {
+      "day": "Sam",
+      "timeSlot": {
+        "start": "09:40",
+        "end": "11:10"
+      },
+      "subject": {
+        "name": "Technique de veille",
+        "core": "Cours"
+      },
+      "location": "SC 3"
+    },
+    {
+      "day": "Sam",
+      "timeSlot": {
+        "start": "11:15",
+        "end": "12:45"
+      },
+      "subject": {
+        "name": "Technique de veille",
+        "core": "Cours"
+      },
+      "location": "SC 3"
+    }
+  ]
+}
