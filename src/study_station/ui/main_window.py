@@ -22,6 +22,7 @@ from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.dashboard_widget import SubjectDashboardWidget
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.manual_log_dialog import ManualLogDialog
+from study_station.ui.schedule_screen_widget import ScheduleScreenWidget
 from study_station.ui.targets_dialog import TargetsDialog
 from study_station.ui.theme import GLOBAL_QSS, THEMES
 from study_station.ui.timetable_dialog import TimetableDialog
@@ -34,6 +35,7 @@ class MainWindow(QMainWindow):
     INDEX_DASHBOARD = 0
     INDEX_FOCUS = 1
     INDEX_COMPLETION = 2
+    INDEX_SCHEDULE = 3
 
     def __init__(
         self,
@@ -74,6 +76,22 @@ class MainWindow(QMainWindow):
         self._completion_widget = CompletionWidget(self)
         self._completion_widget.dismissed.connect(self._show_dashboard_screen)
         self._stack.addWidget(self._completion_widget)
+
+        # 4. Full-Screen Weekly Schedule & Class Editor Screen
+        sessions = self._engine.sessions if self._engine else []
+        self._schedule_widget = ScheduleScreenWidget(sessions=sessions, parent=self)
+        self._schedule_widget.back_requested.connect(self._show_dashboard_screen)
+        self._schedule_widget.subject_selected.connect(self._dashboard_widget.set_selected_subject)
+        self._schedule_widget.timetable_changed.connect(self._on_timetable_updated)
+        self._stack.addWidget(self._schedule_widget)
+
+        # Scrim Overlay for dialogs (prevents main screen background text leakage)
+        from PySide6.QtWidgets import QFrame
+        self._scrim_overlay = QFrame(self)
+        self._scrim_overlay.setObjectName("scrimOverlay")
+        self._scrim_overlay.setStyleSheet("QFrame#scrimOverlay { background-color: rgba(9, 9, 11, 0.96); border: none; }")
+        self._scrim_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self._scrim_overlay.hide()
 
         # Default to Subject Dashboard screen
         self._stack.setCurrentIndex(self.INDEX_DASHBOARD)
@@ -141,14 +159,31 @@ class MainWindow(QMainWindow):
         else:
             self.showFullScreen()
 
+    def _show_scrim(self) -> None:
+        self._scrim_overlay.setGeometry(self.rect())
+        self._scrim_overlay.raise_()
+        self._scrim_overlay.show()
+
+    def _hide_scrim(self) -> None:
+        self._scrim_overlay.hide()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "_scrim_overlay"):
+            self._scrim_overlay.setGeometry(self.rect())
+
     def open_customization_dialog(self) -> None:
-        """Open modern customization modal."""
-        dialog = CustomizationDialog(self._settings, self)
-        dialog.settings_changed.connect(self._on_settings_updated)
-        dialog.open_timetable_requested.connect(self.open_timetable_editor)
-        dialog.open_targets_requested.connect(self.open_targets_dialog)
-        dialog.open_manual_log_requested.connect(self.open_manual_log_dialog)
-        dialog.exec()
+        """Open modern customization modal with dark backdrop scrim."""
+        self._show_scrim()
+        try:
+            dialog = CustomizationDialog(self._settings, self)
+            dialog.settings_changed.connect(self._on_settings_updated)
+            dialog.open_timetable_requested.connect(self.open_timetable_editor)
+            dialog.open_targets_requested.connect(self.open_targets_dialog)
+            dialog.open_manual_log_requested.connect(self.open_manual_log_dialog)
+            dialog.exec()
+        finally:
+            self._hide_scrim()
 
     def _on_settings_updated(self, settings: AppSettings) -> None:
         self._settings = settings
@@ -158,20 +193,14 @@ class MainWindow(QMainWindow):
         self._dashboard_widget.apply_settings(settings)
 
     # -------------------------------------------------------------------------
-    # Secondary Management Dialogs
+    # Secondary Management Dialogs & Full-Screen Views
     # -------------------------------------------------------------------------
 
     def open_timetable_editor(self) -> None:
-        """Open weekly timetable (defaults to visual Weekly Schedule Grid)."""
-        sessions = self._engine.sessions if self._engine else []
-        dialog = WeeklyScheduleGridDialog(
-            sessions=sessions,
-            current_subject=self._dashboard_widget.selected_subject,
-            parent=self,
-        )
-        dialog.subject_selected.connect(self._dashboard_widget.set_selected_subject)
-        dialog.edit_timetable_requested.connect(self.open_timetable_form_editor)
-        dialog.exec()
+        """Switch to full-screen Weekly Schedule and Class Editor view."""
+        if self._engine:
+            self._schedule_widget.update_sessions(self._engine.sessions)
+        self._stack.setCurrentIndex(self.INDEX_SCHEDULE)
 
     def open_timetable_form_editor(self) -> None:
         """Open raw tabular timetable editor dialog."""
@@ -186,20 +215,25 @@ class MainWindow(QMainWindow):
         if self._repo:
             self._repo.save_timetable_sessions(sessions)
         self._dashboard_widget.refresh_dashboard()
+        self._schedule_widget.update_sessions(sessions)
 
     def open_targets_dialog(self, default_subject: str | None = None) -> None:
-        """Open subject review targets configuration dialog."""
-        subjects = self._engine.get_distinct_subjects() if self._engine else []
-        current_targets = self._repo.get_all_subject_targets() if self._repo else {}
-        target_subject = default_subject or self._dashboard_widget.selected_subject
-        dialog = TargetsDialog(
-            subjects,
-            current_targets,
-            default_subject=target_subject,
-            parent=self,
-        )
-        dialog.targets_saved.connect(self._on_targets_updated)
-        dialog.exec()
+        """Open subject review targets configuration dialog with dark scrim."""
+        self._show_scrim()
+        try:
+            subjects = self._engine.get_distinct_subjects() if self._engine else []
+            current_targets = self._repo.get_all_subject_targets() if self._repo else {}
+            target_subject = default_subject or self._dashboard_widget.selected_subject
+            dialog = TargetsDialog(
+                subjects,
+                current_targets,
+                default_subject=target_subject,
+                parent=self,
+            )
+            dialog.targets_saved.connect(self._on_targets_updated)
+            dialog.exec()
+        finally:
+            self._hide_scrim()
 
     def _on_targets_updated(self, targets: dict[str, int]) -> None:
         if self._engine:
@@ -208,12 +242,16 @@ class MainWindow(QMainWindow):
         self._dashboard_widget.refresh_dashboard()
 
     def open_manual_log_dialog(self, default_subject: str | None = None) -> None:
-        """Open manual study time entry dialog for offline study."""
-        subjects = self._engine.get_distinct_subjects() if self._engine else []
-        target_subject = default_subject or self._dashboard_widget.selected_subject
-        dialog = ManualLogDialog(subjects, default_subject=target_subject, parent=self)
-        dialog.time_logged.connect(self._on_manual_time_logged)
-        dialog.exec()
+        """Open manual study time entry dialog with dark scrim."""
+        self._show_scrim()
+        try:
+            subjects = self._engine.get_distinct_subjects() if self._engine else []
+            target_subject = default_subject or self._dashboard_widget.selected_subject
+            dialog = ManualLogDialog(subjects, default_subject=target_subject, parent=self)
+            dialog.time_logged.connect(self._on_manual_time_logged)
+            dialog.exec()
+        finally:
+            self._hide_scrim()
 
     def _on_manual_time_logged(self, subject_name: str, minutes: int) -> None:
         """Handle manual time entry logged away from the computer."""
@@ -349,5 +387,10 @@ class MainWindow(QMainWindow):
 
         elif current_idx == self.INDEX_COMPLETION:
             self._show_dashboard_screen()
+        elif current_idx == self.INDEX_SCHEDULE:
+            if key == Qt.Key.Key_Escape:
+                self._show_dashboard_screen()
+            else:
+                super().keyPressEvent(event)
         else:
             super().keyPressEvent(event)

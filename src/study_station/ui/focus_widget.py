@@ -152,12 +152,28 @@ class FocusWidget(QWidget):
             self.progress_bar.setValue(min(100, max(0, progress_pct)))
 
         if snap.is_paused:
-            self.lbl_state.setText("PAUSED")
-            self.lbl_state.setStyleSheet("color: #F59E0B; letter-spacing: 2px; font-weight: bold;")
+            self.lbl_state.setText("⏸ PAUSED")
+            self.lbl_state.setStyleSheet("""
+                background-color: #38240D;
+                color: #FBBF24;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 1.5px;
+                padding: 4px 12px;
+                border-radius: 10px;
+            """)
             self.btn_pause.setText("Resume")
         else:
-            self.lbl_state.setText("FOCUSING")
-            self.lbl_state.setStyleSheet("color: #10B981; letter-spacing: 2px; font-weight: bold;")
+            self.lbl_state.setText("● FOCUSING")
+            self.lbl_state.setStyleSheet("""
+                background-color: #064E3B;
+                color: #34D399;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 1.5px;
+                padding: 4px 12px;
+                border-radius: 10px;
+            """)
             self.btn_pause.setText("Pause")
 
     def _on_pause_clicked(self) -> None:

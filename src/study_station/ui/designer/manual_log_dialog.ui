@@ -29,6 +29,7 @@ QComboBox, QSpinBox {
     border-radius: 8px;
     padding: 8px 12px;
     font-size: 14px;
+    min-height: 24px;
 }
 QComboBox:focus, QSpinBox:focus {
     border-color: #E4E4E7;

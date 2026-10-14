@@ -44,8 +44,8 @@ class CustomizationDialog(QDialog):
         container.setObjectName("dialogContainer")
         container.setStyleSheet("""
             QFrame#dialogContainer {
-                background-color: #121215;
-                border: 1px solid #27272A;
+                background-color: #111115;
+                border: 1px solid #24242C;
                 border-radius: 14px;
             }
             QLabel {
@@ -54,21 +54,33 @@ class CustomizationDialog(QDialog):
             QRadioButton, QCheckBox {
                 color: #D4D4D8;
                 font-size: 13px;
-                spacing: 8px;
+                font-weight: 500;
+                spacing: 10px;
             }
-            QRadioButton::indicator, QCheckBox::indicator {
-                width: 16px;
-                height: 16px;
-                border-radius: 4px;
-                border: 1px solid #3F3F46;
-                background-color: #18181B;
+            QRadioButton:hover, QCheckBox:hover {
+                color: #FFFFFF;
             }
-            QRadioButton::indicator::checked, QCheckBox::indicator::checked {
-                background-color: #E4E4E7;
-                border-color: #FFFFFF;
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 5px;
+                border: 1px solid #383842;
+                background-color: #18181E;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #10B981;
+                border-color: #059669;
             }
             QRadioButton::indicator {
-                border-radius: 8px;
+                width: 18px;
+                height: 18px;
+                border-radius: 9px;
+                border: 1px solid #383842;
+                background-color: #18181E;
+            }
+            QRadioButton::indicator:checked {
+                background-color: #10B981;
+                border-color: #059669;
             }
         """)
 

@@ -333,9 +333,10 @@ class WeeklyScheduleGridDialog(QDialog):
 
                 if matching:
                     session = matching[0]
+                    now_str = self._now.strftime("%H:%M")
                     is_current_session = (
                         (col_idx - 1) == current_day_idx
-                        and session.time_slot.contains(self._now.strftime("%H:%M"))
+                        and session.time_slot.start <= now_str <= session.time_slot.end
                     )
                     card = ClassGridCard(session, is_current=is_current_session)
                     card.clicked_session.connect(self._on_session_clicked)

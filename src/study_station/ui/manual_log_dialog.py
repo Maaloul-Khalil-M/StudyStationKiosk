@@ -30,7 +30,7 @@ class ManualLogDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Log Offline Study Time")
-        self.setFixedSize(460, 360)
+        self.setFixedSize(480, 420)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -71,7 +71,7 @@ class ManualLogDialog(QDialog):
         self.btn_cancel.clicked.connect(self.reject)
         self.btn_save.clicked.connect(self._on_save)
 
-        # Quick preset pills
+        self._preset_pills: dict[int, QPushButton] = {}
         duration_layout: QVBoxLayout = self.ui.findChild(QVBoxLayout, "durationLayout")
         if duration_layout:
             preset_row = QHBoxLayout()
@@ -79,24 +79,10 @@ class ManualLogDialog(QDialog):
             preset_row.setSpacing(8)
             for m in (15, 30, 45, 60):
                 btn_p = QPushButton(f"{m}m")
+                btn_p.setFixedHeight(28)
                 btn_p.setCursor(Qt.CursorShape.PointingHandCursor)
-                btn_p.setStyleSheet("""
-                    QPushButton {
-                        background-color: #27272A;
-                        color: #A1A1AA;
-                        font-size: 12px;
-                        font-weight: 600;
-                        border-radius: 6px;
-                        border: 1px solid #3F3F46;
-                        padding: 4px 10px;
-                    }
-                    QPushButton:hover {
-                        background-color: #3F3F46;
-                        color: #FFFFFF;
-                        border-color: #52525B;
-                    }
-                """)
                 btn_p.clicked.connect(lambda checked=False, val=m: self.spn_minutes.setValue(val))
+                self._preset_pills[m] = btn_p
                 preset_row.addWidget(btn_p)
             duration_layout.addLayout(preset_row)
 
@@ -110,6 +96,40 @@ class ManualLogDialog(QDialog):
             idx = self.cmb_subject.findData(default_subject)
             if idx >= 0:
                 self.cmb_subject.setCurrentIndex(idx)
+
+        self.spn_minutes.valueChanged.connect(self._update_preset_highlights)
+        self._update_preset_highlights(self.spn_minutes.value())
+
+    def _update_preset_highlights(self, current_val: int) -> None:
+        for m, btn in self._preset_pills.items():
+            if m == current_val:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #10B981;
+                        color: #09090B;
+                        font-size: 12px;
+                        font-weight: 700;
+                        border-radius: 6px;
+                        border: none;
+                        padding: 5px 12px;
+                    }
+                """)
+            else:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #222228;
+                        color: #A1A1AA;
+                        font-size: 12px;
+                        font-weight: 500;
+                        border-radius: 6px;
+                        border: 1px solid #2C2C36;
+                        padding: 5px 12px;
+                    }
+                    QPushButton:hover {
+                        background-color: #2E2E38;
+                        color: #FFFFFF;
+                    }
+                """)
 
     def _on_save(self) -> None:
         raw_subject = self.cmb_subject.currentData() or self.cmb_subject.currentText()

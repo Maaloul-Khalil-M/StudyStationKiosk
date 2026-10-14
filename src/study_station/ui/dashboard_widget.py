@@ -130,9 +130,9 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_subject_name.mousePressEvent = lambda e: self.open_timetable_requested.emit()
         subject_layout.addWidget(self.lbl_subject_name)
 
-        self.lbl_subject_hint = QLabel("▾ Click to open Weekly Schedule Grid")
+        self.lbl_subject_hint = QLabel("▾ Click to open schedule")
         self.lbl_subject_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_subject_hint.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 600;")
+        self.lbl_subject_hint.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 500;")
         subject_layout.addWidget(self.lbl_subject_hint)
 
         main_layout.addWidget(subject_container)
@@ -248,19 +248,14 @@ class SubjectDashboardWidget(QWidget):
         self.btn_focus_25.clicked.connect(lambda: self._on_start_focus(25))
         action_layout.addWidget(self.btn_focus_25)
 
-        # Log Time Trigger
-        self.btn_hero_log = QPushButton("✍ Log")
-        self.btn_hero_log.setStyleSheet(BUTTON_SECONDARY_STYLE)
-        self.btn_hero_log.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Backwards compatibility triggers (accessible via top bar)
+        self.btn_hero_log = QPushButton(self)
+        self.btn_hero_log.hide()
         self.btn_hero_log.clicked.connect(lambda: self.open_manual_log_requested.emit(self.selected_subject or ""))
-        action_layout.addWidget(self.btn_hero_log)
 
-        # Edit Target Trigger
-        self.btn_hero_target = QPushButton("✏ Target")
-        self.btn_hero_target.setStyleSheet(BUTTON_SECONDARY_STYLE)
-        self.btn_hero_target.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_hero_target = QPushButton(self)
+        self.btn_hero_target.hide()
         self.btn_hero_target.clicked.connect(lambda: self.open_targets_requested.emit(self.selected_subject or ""))
-        action_layout.addWidget(self.btn_hero_target)
 
         main_layout.addWidget(self.action_container)
 
@@ -278,44 +273,44 @@ class SubjectDashboardWidget(QWidget):
         bar = QWidget(self)
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(8)
 
         # Date Display
         now = datetime.now()
         date_str = now.strftime("%A, %b %d").upper()
         self.lbl_date = QLabel(date_str)
-        self.lbl_date.setStyleSheet("color: #71717A; font-size: 13px; font-weight: 700; letter-spacing: 1.5px;")
+        self.lbl_date.setStyleSheet("color: #71717A; font-size: 12px; font-weight: 700; letter-spacing: 1.5px;")
         layout.addWidget(self.lbl_date)
 
         layout.addStretch()
 
-        # Navigation Buttons (Tactile Micro-Pills)
-        self.btn_timetable = QPushButton("📅 Schedule")
+        # Navigation Buttons (Clean Tactile Micro-Pills)
+        self.btn_timetable = QPushButton("Schedule")
         self.btn_timetable.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_timetable.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_timetable.clicked.connect(self.open_timetable_requested.emit)
         layout.addWidget(self.btn_timetable)
 
-        self.btn_targets = QPushButton("🎯 Targets")
+        self.btn_targets = QPushButton("Targets")
         self.btn_targets.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_targets.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_targets.clicked.connect(lambda: self.open_targets_requested.emit(self.selected_subject or ""))
         layout.addWidget(self.btn_targets)
 
-        self.btn_log = QPushButton("✍ Log")
+        self.btn_log = QPushButton("Log")
         self.btn_log.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_log.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_log.clicked.connect(lambda: self.open_manual_log_requested.emit(self.selected_subject or ""))
         layout.addWidget(self.btn_log)
 
-        self.btn_settings = QPushButton("⚙ Settings")
+        self.btn_settings = QPushButton("Settings")
         self.btn_settings.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_settings.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_settings.clicked.connect(self.open_settings_requested.emit)
         layout.addWidget(self.btn_settings)
 
         self.btn_fullscreen = QPushButton("⛶")
-        self.btn_fullscreen.setFixedSize(36, 36)
+        self.btn_fullscreen.setFixedSize(36, 32)
         self.btn_fullscreen.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_fullscreen.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_fullscreen.clicked.connect(self.toggle_fullscreen_requested.emit)
@@ -423,11 +418,12 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_status_badge.setText(f"{tgt} MIN")
         self.lbl_cycle_progress.setText(f"{comp} / {tgt} MIN")
 
-        slide_progress = f"● {comp} / {tgt} MIN COMPLETED  ({pct}%)"
-        slide_next = f"📅 NEXT CLASS: {summary.next_session_text}" if summary.next_session_text else "📅 NEXT CLASS: No upcoming session"
-        slide_format = f"📍 {summary.core} · {summary.location or 'Class'}"
+        slide_progress = f"● {comp} / {tgt} MIN COMPLETED · {pct}%"
+        clean_next = summary.next_session_text.replace("📅 ", "").replace("📅", "") if summary.next_session_text else "No upcoming session"
+        slide_next = f"NEXT CLASS · {clean_next}"
+        slide_format = f"FORMAT · {summary.core} · {summary.location or 'Class'}"
         if summary.is_current_class:
-            slide_progress = f"● IN CLASS NOW ({summary.core})"
+            slide_progress = f"● IN CLASS NOW · {summary.core}"
 
         self._carousel_slides = [slide_progress, slide_next, slide_format]
         self._carousel_index = 0

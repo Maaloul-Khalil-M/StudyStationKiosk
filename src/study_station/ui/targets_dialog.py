@@ -35,7 +35,7 @@ class TargetsDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Subject Review Targets")
-        self.setFixedSize(560, 540)
+        self.setFixedSize(660, 540)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -43,8 +43,8 @@ class TargetsDialog(QDialog):
         container.setObjectName("dialogContainer")
         container.setStyleSheet("""
             QFrame#dialogContainer {
-                background-color: #121215;
-                border: 1px solid #27272A;
+                background-color: #111115;
+                border: 1px solid #24242C;
                 border-radius: 14px;
             }
         """)
@@ -76,6 +76,7 @@ class TargetsDialog(QDialog):
         self.btn_save.clicked.connect(self._on_save)
 
         self._spinners: dict[str, QSpinBox] = {}
+        self._preset_buttons: dict[str, dict[int, QPushButton]] = {}
 
         # Populate rows
         for s in subjects:
@@ -87,8 +88,8 @@ class TargetsDialog(QDialog):
 
     def _add_subject_row(self, subject_name: str, target_val: int, is_highlighted: bool = False) -> None:
         row_frame = QFrame()
-        border_css = "1.5px solid #3B82F6" if is_highlighted else "1px solid #27272A"
-        bg_css = "#1A2234" if is_highlighted else "#18181B"
+        border_css = "1.5px solid #10B981" if is_highlighted else "1px solid #222228"
+        bg_css = "#14201A" if is_highlighted else "#141418"
         row_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {bg_css};
@@ -98,7 +99,7 @@ class TargetsDialog(QDialog):
             }}
         """)
         row_layout = QHBoxLayout(row_frame)
-        row_layout.setContentsMargins(12, 8, 12, 8)
+        row_layout.setContentsMargins(14, 8, 14, 8)
         row_layout.setSpacing(10)
 
         # Clean subject name
@@ -108,25 +109,15 @@ class TargetsDialog(QDialog):
         lbl.setStyleSheet("color: #F4F4F5; border: none; background: transparent;")
         row_layout.addWidget(lbl, 1)
 
+        self._preset_buttons[subject_name] = {}
+
         # Preset pills
         for preset in (30, 60, 90):
             btn = QPushButton(f"{preset}m")
-            btn.setFixedSize(44, 28)
+            btn.setFixedSize(48, 28)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #27272A;
-                    color: #A1A1AA;
-                    font-size: 11px;
-                    border-radius: 6px;
-                    border: none;
-                }
-                QPushButton:hover {
-                    background-color: #3F3F46;
-                    color: #FFFFFF;
-                }
-            """)
             btn.clicked.connect(lambda checked=False, val=preset, s=subject_name: self._set_spin_value(s, val))
+            self._preset_buttons[subject_name][preset] = btn
             row_layout.addWidget(btn)
 
         # Target SpinBox
@@ -136,12 +127,47 @@ class TargetsDialog(QDialog):
         spn.setValue(target_val)
         spn.setSuffix(" m")
         spn.setFixedWidth(92)
+        spn.valueChanged.connect(lambda val, s=subject_name: self._update_row_presets(s, val))
         self._spinners[subject_name] = spn
         row_layout.addWidget(spn)
 
+        self._update_row_presets(subject_name, target_val)
         self.scroll_layout.addWidget(row_frame)
 
+    def _update_row_presets(self, subject_name: str, current_val: int) -> None:
+        if subject_name not in self._preset_buttons:
+            return
+        for preset, btn in self._preset_buttons[subject_name].items():
+            if preset == current_val:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #10B981;
+                        color: #09090B;
+                        font-size: 11px;
+                        font-weight: 700;
+                        border-radius: 6px;
+                        border: none;
+                    }
+                """)
+            else:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #222228;
+                        color: #A1A1AA;
+                        font-size: 11px;
+                        font-weight: 500;
+                        border-radius: 6px;
+                        border: none;
+                    }
+                    QPushButton:hover {
+                        background-color: #2E2E38;
+                        color: #FFFFFF;
+                    }
+                """)
+
     def _set_spin_value(self, subject_name: str, val: int) -> None:
+        if subject_name in self._spinners:
+            self._spinners[subject_name].setValue(val)
         if subject_name in self._spinners:
             self._spinners[subject_name].setValue(val)
 

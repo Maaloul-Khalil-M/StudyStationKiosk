@@ -182,12 +182,30 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
   - Added quick duration preset pills (`15m`, `30m`, `45m`, `60m`) to `ManualLogDialog`.
   - Maintained preset pills and 92px spinboxes in `TargetsDialog`.
 - [x] **Verification & Tests:**
-  - 24/24 unit tests passing:
-    ```powershell
-    .\.venv\Scripts\python.exe -m unittest discover -s tests
-    # Ran 24 tests in 0.900s — OK
-    ```
-  - Captured updated screenshots in `docs/currentScreens/` (`screen.png` [idle], `screen_hover.png` [hover], `grid.png`, `focus.png`, `targets.png`, `log.png`, `settings.png`).
+  - 24/24 unit tests passing.
+
+### Milestone 6.7: Comprehensive Aesthetics Overhaul Across ALL Screens `[COMPLETED]`
+- [x] **Deep Obsidian Palette & Contrast Tuning (`theme.py`):**
+  - Replaced harsh `#000000` pitch black with luxury deep obsidian (`#09090B`).
+  - Elevated surfaces to `#121216`, subtle hairline borders to `#24242A`, off-white typography to `#F4F4F6`, and calm emerald `#10B981` accents.
+- [x] **Full-Screen Schedule & Inline Class Editor (`schedule_screen_widget.py`):**
+  - Replaced floating window dialog with a seamless full-screen station mode (`INDEX_SCHEDULE = 3`) fitting the 1366×768 canvas edge-to-edge.
+  - Eliminated awkward "modal on top of modal" stacking: View Switcher allows switching between Calendar Grid mode and Inline Class Editor without spawning popup windows.
+  - Full calendar grid based on university schedule (`docs/grid.pdf`): 6 day columns (`LUN`–`SAM`) × 5 slot rows with live active day/session highlights.
+  - One-click subject selection: clicking any class block instantly selects the subject and returns to dashboard.
+- [x] **Modal Scrim Backdrop Overlay (`main_window.py`):**
+  - Implemented `QFrame#scrimOverlay` (`rgba(9, 9, 11, 0.96)`) covering the full client area whenever a secondary dialog is active.
+  - Completely darkens the background, eliminating distracting text peek-through from the giant hero subject title.
+- [x] **Typography & Micro-Interaction Polish:**
+  - Screen 1 (Ambient): Cleaned carousel typography to pure status lines (`● 0 / 60 MIN COMPLETED · 0%`, `NEXT CLASS · Tomorrow at 08:00 · Lab 20`), refined hover pills, removed redundant hero buttons.
+  - Screen 2 (Focus): True borderless full-bleed canvas, tracked uppercase subject header, sleek emerald/amber pill badge (`● FOCUSING`, `⏸ PAUSED`), 76pt countdown, auto-hiding controls.
+  - Screen 3 (Targets): Widened to 660×540 with active preset pills (`30m`, `60m`, `90m`) illuminated in emerald.
+  - Screen 4 (Log Time): Redesigned with 480×420 proportions, preset pills (`15m`, `30m`, `45m`, `60m`), and spacious input fields.
+  - Screen 5 (Settings): Clean dark cards, emerald toggle states, and unified action pills.
+- [x] **Verification & Visual Artifacts:**
+  - Automated screen capture refreshed across all 8 states in `docs/screens/` and `docs/currentScreens/`:
+    `main_noHover.png`, `main_hover.png`, `schedual.png`, `editSchedual.png`, `focus.png`, `target.png`, `log.png`, `settings.png`.
+  - 100% test pass rate: 24/24 unit tests passing.
 
 
 ---
