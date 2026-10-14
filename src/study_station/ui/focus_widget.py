@@ -7,6 +7,11 @@ from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QVBoxLayout, QW
 
 from study_station.core.engine import ScheduleEngine
 from study_station.core.timer import FocusTimer
+from study_station.ui.theme import (
+    BUTTON_DANGER_STYLE,
+    BUTTON_PRIMARY_STYLE,
+    BUTTON_SECONDARY_STYLE,
+)
 
 
 class FocusWidget(QWidget):
@@ -42,6 +47,11 @@ class FocusWidget(QWidget):
         self.btn_add_five: QPushButton = self.ui.findChild(QPushButton, "btnAddFive")
         self.btn_end: QPushButton = self.ui.findChild(QPushButton, "btnEnd")
 
+        # Apply harmonized theme styles
+        self.btn_pause.setStyleSheet(BUTTON_PRIMARY_STYLE)
+        self.btn_add_five.setStyleSheet(BUTTON_SECONDARY_STYLE)
+        self.btn_end.setStyleSheet(BUTTON_DANGER_STYLE)
+
         # Connect controls
         self.btn_pause.clicked.connect(self._on_pause_clicked)
         self.btn_add_five.clicked.connect(self._on_add_five_clicked)
@@ -57,12 +67,10 @@ class FocusWidget(QWidget):
         self.timer.start(subject_name, duration_minutes)
 
         clean_name = ScheduleEngine.clean_subject_name(subject_name)
-        # Shorten gracefully with ellipsis if excessively long
-        if len(clean_name) > 36:
-            clean_name = clean_name[:34].rstrip() + "…"
         self.lbl_subject.setText(clean_name.upper())
 
         self.lbl_state.setText("FOCUSING")
+        self.lbl_state.setStyleSheet("color: #10B981; letter-spacing: 2px; font-weight: bold;")
         self.btn_pause.setText("Pause")
 
         if cycle_info:
@@ -95,9 +103,11 @@ class FocusWidget(QWidget):
 
         if snap.is_paused:
             self.lbl_state.setText("PAUSED")
+            self.lbl_state.setStyleSheet("color: #F59E0B; letter-spacing: 2px; font-weight: bold;")
             self.btn_pause.setText("Resume")
         else:
             self.lbl_state.setText("FOCUSING")
+            self.lbl_state.setStyleSheet("color: #10B981; letter-spacing: 2px; font-weight: bold;")
             self.btn_pause.setText("Pause")
 
     def _on_pause_clicked(self) -> None:

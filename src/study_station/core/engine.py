@@ -136,6 +136,25 @@ class ScheduleEngine:
         next_dt, next_session = candidates[0]
         return next_session, next_dt
 
+    def get_upcoming_sessions(self, current_dt: datetime, limit: int = 4) -> list[tuple[AcademicSession, datetime]]:
+        """Return the next `limit` upcoming academic sessions sorted chronologically."""
+        if not self.sessions:
+            return []
+
+        candidates: list[tuple[datetime, AcademicSession]] = []
+        for week_offset in (0, 1):
+            ref_date = current_dt.date() + timedelta(weeks=week_offset)
+            for session in self.sessions:
+                start_dt, _ = self.get_session_datetime(session, ref_date)
+                if start_dt > current_dt:
+                    candidates.append((start_dt, session))
+
+        if not candidates:
+            return []
+
+        candidates.sort(key=lambda c: c[0])
+        return [(session, dt) for dt, session in candidates[:limit]]
+
     def get_next_occurrence_of_subject(
         self, subject_name: str, current_dt: datetime
     ) -> tuple[AcademicSession, datetime] | None:

@@ -23,7 +23,7 @@ from study_station.ui.dashboard_widget import SubjectDashboardWidget
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.manual_log_dialog import ManualLogDialog
 from study_station.ui.targets_dialog import TargetsDialog
-from study_station.ui.theme import THEMES
+from study_station.ui.theme import GLOBAL_QSS, THEMES
 from study_station.ui.timetable_dialog import TimetableDialog
 
 
@@ -130,6 +130,7 @@ class MainWindow(QMainWindow):
         palette.setColor(QPalette.ColorRole.Window, theme.bg_canvas)
         self.setPalette(palette)
         self.setAutoFillBackground(True)
+        self.setStyleSheet(GLOBAL_QSS)
 
     def toggle_fullscreen(self) -> None:
         """Toggle between Fullscreen and Normal window mode."""

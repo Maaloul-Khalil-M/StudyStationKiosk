@@ -28,13 +28,23 @@ QScrollArea {
 }
 QScrollBar:vertical {
     border: none;
-    background: #18181B;
-    width: 6px;
-    border-radius: 3px;
+    background: transparent;
+    width: 5px;
+    margin: 0px;
 }
 QScrollBar::handle:vertical {
-    background: #3F3F46;
-    border-radius: 3px;
+    background: #2E2E38;
+    min-height: 24px;
+    border-radius: 2px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #4B4B58;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    width: 0px;
+    height: 0px;
+    background: transparent;
 }
 QSpinBox {
     background-color: #18181B;

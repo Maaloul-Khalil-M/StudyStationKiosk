@@ -6,7 +6,7 @@ and quick subject switching.
 """
 
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, timedelta
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -63,7 +63,7 @@ class SubjectDashboardWidget(QWidget):
 
     def _init_ui(self) -> None:
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(28, 20, 28, 20)
+        main_layout.setContentsMargins(28, 16, 28, 16)
         main_layout.setSpacing(12)
 
         # 1. Top Bar
@@ -74,9 +74,22 @@ class SubjectDashboardWidget(QWidget):
         self.clock_widget = SplitFlapClockWidget(self.settings, self)
         main_layout.addWidget(self.clock_widget)
 
-        # 3. Hero Subject Card
+        # 3. Dual-Card Cockpit Container
+        self.cards_container = QWidget(self)
+        self.cards_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        cards_layout = QHBoxLayout(self.cards_container)
+        cards_layout.setContentsMargins(0, 0, 0, 0)
+        cards_layout.setSpacing(16)
+
         self.hero_card = self._create_hero_card()
-        main_layout.addWidget(self.hero_card, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.hero_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        cards_layout.addWidget(self.hero_card, stretch=6)
+
+        self.upcoming_card = self._create_upcoming_card()
+        self.upcoming_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        cards_layout.addWidget(self.upcoming_card, stretch=4)
+
+        main_layout.addWidget(self.cards_container, stretch=1)
 
         # 4. Subject Switcher Shelf
         self.switcher_widget = self._create_subject_switcher()
@@ -117,26 +130,26 @@ class SubjectDashboardWidget(QWidget):
 
         layout.addStretch()
 
-        # Direct Editing & Utility Buttons
-        self.btn_timetable = QPushButton("📅 Timetable", container)
+        # Direct Editing & Utility Buttons (Clean typography without multi-color emojis)
+        self.btn_timetable = QPushButton("Timetable", container)
         self.btn_timetable.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_timetable.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_timetable.clicked.connect(lambda checked=False: self.open_timetable_requested.emit())
         layout.addWidget(self.btn_timetable)
 
-        self.btn_targets = QPushButton("🎯 Targets", container)
+        self.btn_targets = QPushButton("Targets", container)
         self.btn_targets.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_targets.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_targets.clicked.connect(lambda checked=False: self.open_targets_requested.emit(self.selected_subject or ""))
         layout.addWidget(self.btn_targets)
 
-        self.btn_log = QPushButton("✍ Log Time", container)
+        self.btn_log = QPushButton("Log Time", container)
         self.btn_log.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_log.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_log.clicked.connect(lambda checked=False: self.open_manual_log_requested.emit(self.selected_subject or ""))
         layout.addWidget(self.btn_log)
 
-        self.btn_settings = QPushButton("⚙ Settings", container)
+        self.btn_settings = QPushButton("Settings", container)
         self.btn_settings.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_settings.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_settings.clicked.connect(lambda checked=False: self.open_settings_requested.emit())
@@ -158,33 +171,31 @@ class SubjectDashboardWidget(QWidget):
     def _create_hero_card(self) -> QFrame:
         card = QFrame(self)
         card.setObjectName("heroCard")
-        card.setMinimumWidth(680)
-        card.setMaximumWidth(880)
         card.setStyleSheet("""
             QFrame#heroCard {
                 background-color: #121216;
-                border: 1px solid #27272E;
-                border-radius: 24px;
+                border: 1px solid #24242C;
+                border-radius: 18px;
             }
         """)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(32, 24, 32, 24)
-        layout.setSpacing(14)
+        layout.setContentsMargins(26, 20, 26, 20)
+        layout.setSpacing(12)
 
         # Row 1: Header tags (Session type / Location & Target status)
         row1 = QHBoxLayout()
         self.lbl_type_loc = QLabel("SESSION TYPE · LOCATION", card)
-        self.lbl_type_loc.setFont(get_modern_font("sans", 12, QFont.Weight.DemiBold))
+        self.lbl_type_loc.setFont(get_modern_font("sans", 11, QFont.Weight.DemiBold))
         self.lbl_type_loc.setStyleSheet("""
             color: #38BDF8;
             background-color: #0C2136;
             border: 1px solid #0369A1;
-            border-radius: 10px;
+            border-radius: 8px;
             padding: 3px 10px;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         """)
-        row1.addWidget(self.lbl_type_loc)
+        row1.addWidget(self.lbl_type_loc, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         row1.addStretch()
 
@@ -194,33 +205,33 @@ class SubjectDashboardWidget(QWidget):
             color: #A1A1AA;
             background-color: #18181D;
             border: 1px solid #27272A;
-            border-radius: 10px;
+            border-radius: 8px;
             padding: 3px 10px;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         """)
-        row1.addWidget(self.lbl_status_badge)
+        row1.addWidget(self.lbl_status_badge, alignment=Qt.AlignmentFlag.AlignVCenter)
         layout.addLayout(row1)
 
         # Row 2: Subject Title
         self.lbl_subject_name = QLabel("SUBJECT NAME", card)
-        self.lbl_subject_name.setFont(get_modern_font("sans", 24, QFont.Weight.Bold))
+        self.lbl_subject_name.setFont(get_modern_font("sans", 22, QFont.Weight.Bold))
         self.lbl_subject_name.setWordWrap(True)
-        self.lbl_subject_name.setStyleSheet("color: #FFFFFF; line-height: 1.2;")
+        self.lbl_subject_name.setStyleSheet("color: #FFFFFF; line-height: 1.25;")
         layout.addWidget(self.lbl_subject_name)
 
         # Row 3: Progress Bar
         self.progress_bar = QProgressBar(card)
-        self.progress_bar.setFixedHeight(10)
+        self.progress_bar.setFixedHeight(8)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                background-color: #202026;
-                border-radius: 5px;
+                background-color: #1E1E26;
+                border-radius: 4px;
                 border: none;
             }
             QProgressBar::chunk {
                 background-color: #3B82F6;
-                border-radius: 5px;
+                border-radius: 4px;
             }
         """)
         layout.addWidget(self.progress_bar)
@@ -228,39 +239,41 @@ class SubjectDashboardWidget(QWidget):
         # Row 4: Progress Stats
         row_stats = QHBoxLayout()
         self.lbl_completed_text = QLabel("0 / 60 MIN COMPLETED", card)
-        self.lbl_completed_text.setFont(get_modern_font("sans", 13, QFont.Weight.DemiBold))
+        self.lbl_completed_text.setFont(get_modern_font("sans", 12, QFont.Weight.DemiBold))
         self.lbl_completed_text.setStyleSheet("color: #F4F4F5; letter-spacing: 0.5px;")
-        row_stats.addWidget(self.lbl_completed_text)
+        row_stats.addWidget(self.lbl_completed_text, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         self.lbl_remaining_text = QLabel("60 MIN REMAINING", card)
-        self.lbl_remaining_text.setFont(get_modern_font("sans", 13, QFont.Weight.Medium))
+        self.lbl_remaining_text.setFont(get_modern_font("sans", 12, QFont.Weight.Medium))
         self.lbl_remaining_text.setStyleSheet("color: #71717A; letter-spacing: 0.5px;")
-        row_stats.addWidget(self.lbl_remaining_text)
+        row_stats.addWidget(self.lbl_remaining_text, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         row_stats.addStretch()
 
         self.lbl_pct_badge = QLabel("0%", card)
-        self.lbl_pct_badge.setFont(get_modern_font("mono", 12, QFont.Weight.Bold))
+        self.lbl_pct_badge.setFont(get_modern_font("mono", 11, QFont.Weight.Bold))
         self.lbl_pct_badge.setStyleSheet("""
             color: #E4E4E7;
-            background-color: #1F1F24;
-            border: 1px solid #2E2E36;
-            border-radius: 8px;
+            background-color: #1A1A22;
+            border: 1px solid #2E2E38;
+            border-radius: 6px;
             padding: 2px 8px;
         """)
-        row_stats.addWidget(self.lbl_pct_badge)
+        row_stats.addWidget(self.lbl_pct_badge, alignment=Qt.AlignmentFlag.AlignVCenter)
         layout.addLayout(row_stats)
 
         # Row 5: Schedule context (Next class)
-        self.lbl_next_class = QLabel("📅 Next class: Friday at 08:00 (in 2 days)", card)
-        self.lbl_next_class.setFont(get_modern_font("sans", 13, QFont.Weight.Normal))
+        self.lbl_next_class = QLabel("Next class: Friday at 08:00 (in 2 days)", card)
+        self.lbl_next_class.setFont(get_modern_font("sans", 12, QFont.Weight.Normal))
         self.lbl_next_class.setStyleSheet("color: #9CA3AF;")
         layout.addWidget(self.lbl_next_class)
 
+        layout.addStretch(1)
+
         # Row 6: Action Buttons
-        layout.addSpacing(6)
+        layout.addSpacing(4)
         row_actions = QHBoxLayout()
-        row_actions.setSpacing(12)
+        row_actions.setSpacing(10)
 
         self.btn_focus_15 = QPushButton("▶ Start Focus (15m)", card)
         self.btn_focus_15.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -274,13 +287,13 @@ class SubjectDashboardWidget(QWidget):
         self.btn_focus_25.clicked.connect(lambda checked=False: self._on_start_focus(25))
         row_actions.addWidget(self.btn_focus_25)
 
-        self.btn_hero_log = QPushButton("✍ Log Time", card)
+        self.btn_hero_log = QPushButton("Log Time", card)
         self.btn_hero_log.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_hero_log.setStyleSheet(BUTTON_SECONDARY_STYLE)
         self.btn_hero_log.clicked.connect(lambda checked=False: self.open_manual_log_requested.emit(self.selected_subject or ""))
         row_actions.addWidget(self.btn_hero_log)
 
-        self.btn_hero_target = QPushButton("✏ Edit Target", card)
+        self.btn_hero_target = QPushButton("Edit Target", card)
         self.btn_hero_target.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_hero_target.setStyleSheet(BUTTON_SECONDARY_STYLE)
         self.btn_hero_target.clicked.connect(lambda checked=False: self.open_targets_requested.emit(self.selected_subject or ""))
@@ -292,6 +305,61 @@ class SubjectDashboardWidget(QWidget):
         return card
 
     # -------------------------------------------------------------------------
+    # Upcoming Classes Card (Part of Dual-Card Cockpit)
+    # -------------------------------------------------------------------------
+
+    def _create_upcoming_card(self) -> QFrame:
+        card = QFrame(self)
+        card.setObjectName("upcomingCard")
+        card.setStyleSheet("""
+            QFrame#upcomingCard {
+                background-color: #121216;
+                border: 1px solid #24242C;
+                border-radius: 18px;
+            }
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(22, 20, 22, 20)
+        layout.setSpacing(10)
+
+        # Header Row
+        header_row = QHBoxLayout()
+        lbl_title = QLabel("UPCOMING CLASSES", card)
+        lbl_title.setFont(get_modern_font("sans", 11, QFont.Weight.Bold))
+        lbl_title.setStyleSheet("color: #A1A1AA; letter-spacing: 1.5px;")
+        header_row.addWidget(lbl_title)
+        header_row.addStretch()
+
+        lbl_badge = QLabel("TIMETABLE", card)
+        lbl_badge.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
+        lbl_badge.setStyleSheet("""
+            color: #71717A;
+            background-color: #18181D;
+            border: 1px solid #27272A;
+            border-radius: 6px;
+            padding: 2px 7px;
+            letter-spacing: 1px;
+        """)
+        header_row.addWidget(lbl_badge)
+        layout.addLayout(header_row)
+
+        # Upcoming list layout
+        self.upcoming_list_layout = QVBoxLayout()
+        self.upcoming_list_layout.setSpacing(6)
+        layout.addLayout(self.upcoming_list_layout)
+
+        layout.addStretch()
+
+        # Footer shortcut hint
+        lbl_hint = QLabel("Press 'E' for full timetable · 'M' to log time", card)
+        lbl_hint.setFont(get_modern_font("sans", 11, QFont.Weight.Normal))
+        lbl_hint.setStyleSheet("color: #52525B;")
+        layout.addWidget(lbl_hint)
+
+        return card
+
+    # -------------------------------------------------------------------------
     # Subject Switcher Shelf
     # -------------------------------------------------------------------------
 
@@ -299,9 +367,9 @@ class SubjectDashboardWidget(QWidget):
         container = QWidget(self)
         vbox = QVBoxLayout(container)
         vbox.setContentsMargins(0, 0, 0, 0)
-        vbox.setSpacing(8)
+        vbox.setSpacing(6)
 
-        lbl_section = QLabel("SUBJECTS · CLICK TO FOCUS:", container)
+        lbl_section = QLabel("ENROLLED SUBJECTS · CLICK TO FOCUS", container)
         lbl_section.setFont(get_modern_font("sans", 11, QFont.Weight.DemiBold))
         lbl_section.setStyleSheet("color: #71717A; letter-spacing: 1.5px;")
         vbox.addWidget(lbl_section)
@@ -309,7 +377,7 @@ class SubjectDashboardWidget(QWidget):
         # Horizontal Scroll Area for subject chips
         self.chips_scroll = QScrollArea(container)
         self.chips_scroll.setWidgetResizable(True)
-        self.chips_scroll.setFixedHeight(54)
+        self.chips_scroll.setFixedHeight(48)
         self.chips_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.chips_scroll.setStyleSheet("background: transparent; border: none;")
         self.chips_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -319,7 +387,7 @@ class SubjectDashboardWidget(QWidget):
         self.chips_container.setStyleSheet("background: transparent;")
         self.chips_layout = QHBoxLayout(self.chips_container)
         self.chips_layout.setContentsMargins(0, 0, 0, 0)
-        self.chips_layout.setSpacing(10)
+        self.chips_layout.setSpacing(8)
 
         self.chips_scroll.setWidget(self.chips_container)
         vbox.addWidget(self.chips_scroll)
@@ -383,13 +451,16 @@ class SubjectDashboardWidget(QWidget):
         # 3. Update Subject Switcher Chips
         self._rebuild_subject_chips(now)
 
+        # 4. Update Upcoming Classes Timeline
+        self._render_upcoming_classes(now)
+
     def _render_empty_state(self) -> None:
         self.lbl_type_loc.setText("TIMETABLE EMPTY")
         self.lbl_type_loc.setStyleSheet("""
             color: #A1A1AA;
             background-color: #18181D;
             border: 1px solid #27272A;
-            border-radius: 10px;
+            border-radius: 8px;
             padding: 3px 10px;
         """)
         self.lbl_status_badge.setText("GET STARTED")
@@ -400,6 +471,7 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_remaining_text.setText("No active cycle")
         self.lbl_pct_badge.setText("0%")
         self.btn_focus_15.setText("▶ Start Focus (15m)")
+        self._render_upcoming_classes(datetime.now())
 
     def _render_hero_summary(self, summary: SubjectSummary, is_auto: bool) -> None:
         # Type & Location
@@ -410,9 +482,9 @@ class SubjectDashboardWidget(QWidget):
                 color: #34D399;
                 background-color: #064E3B;
                 border: 1px solid #059669;
-                border-radius: 10px;
+                border-radius: 8px;
                 padding: 3px 10px;
-                letter-spacing: 1px;
+                letter-spacing: 0.5px;
             """)
         else:
             self.lbl_type_loc.setText(f"{summary.core}{loc_str}")
@@ -420,9 +492,9 @@ class SubjectDashboardWidget(QWidget):
                 color: #38BDF8;
                 background-color: #0C2136;
                 border: 1px solid #0369A1;
-                border-radius: 10px;
+                border-radius: 8px;
                 padding: 3px 10px;
-                letter-spacing: 1px;
+                letter-spacing: 0.5px;
             """)
 
         # Status badge
@@ -432,19 +504,19 @@ class SubjectDashboardWidget(QWidget):
                 color: #34D399;
                 background-color: #064E3B;
                 border: 1px solid #059669;
-                border-radius: 10px;
+                border-radius: 8px;
                 padding: 3px 10px;
-                letter-spacing: 1px;
+                letter-spacing: 0.5px;
             """)
             self.progress_bar.setStyleSheet("""
                 QProgressBar {
-                    background-color: #202026;
-                    border-radius: 5px;
+                    background-color: #1E1E26;
+                    border-radius: 4px;
                     border: none;
                 }
                 QProgressBar::chunk {
                     background-color: #10B981;
-                    border-radius: 5px;
+                    border-radius: 4px;
                 }
             """)
         else:
@@ -454,19 +526,19 @@ class SubjectDashboardWidget(QWidget):
                 color: #A1A1AA;
                 background-color: #18181D;
                 border: 1px solid #27272A;
-                border-radius: 10px;
+                border-radius: 8px;
                 padding: 3px 10px;
-                letter-spacing: 1px;
+                letter-spacing: 0.5px;
             """)
             self.progress_bar.setStyleSheet("""
                 QProgressBar {
-                    background-color: #202026;
-                    border-radius: 5px;
+                    background-color: #1E1E26;
+                    border-radius: 4px;
                     border: none;
                 }
                 QProgressBar::chunk {
                     background-color: #3B82F6;
-                    border-radius: 5px;
+                    border-radius: 4px;
                 }
             """)
 
@@ -480,10 +552,87 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_pct_badge.setText(f"{summary.progress_percent}%")
 
         # Next class
-        self.lbl_next_class.setText(f"📅 Next class: {summary.next_session_text}")
+        self.lbl_next_class.setText(f"Next class: {summary.next_session_text}")
 
         # Primary button text
         self.btn_focus_15.setText(f"▶ Start Focus ({self.settings.default_focus_minutes}m)")
+
+    def _render_upcoming_classes(self, current_dt: datetime) -> None:
+        """Populate the upcoming classes mini-timeline card."""
+        while self.upcoming_list_layout.count():
+            item = self.upcoming_list_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.setParent(None)
+                widget.deleteLater()
+
+        if not self.engine or not self.engine.sessions:
+            lbl = QLabel("No timetable sessions loaded.\nClick 'Timetable' above to add your weekly classes.")
+            lbl.setFont(get_modern_font("sans", 12, QFont.Weight.Normal))
+            lbl.setStyleSheet("color: #71717A; line-height: 1.4;")
+            lbl.setWordWrap(True)
+            self.upcoming_list_layout.addWidget(lbl)
+            return
+
+        upcoming = self.engine.get_upcoming_sessions(current_dt, limit=3)
+        if not upcoming:
+            lbl = QLabel("No upcoming classes scheduled this week.")
+            lbl.setFont(get_modern_font("sans", 12, QFont.Weight.Normal))
+            lbl.setStyleSheet("color: #71717A;")
+            self.upcoming_list_layout.addWidget(lbl)
+            return
+
+        for session, start_dt in upcoming:
+            item_frame = QFrame()
+            item_frame.setStyleSheet("""
+                QFrame {
+                    background-color: #16161D;
+                    border: 1px solid #22222A;
+                    border-radius: 10px;
+                }
+            """)
+            item_layout = QVBoxLayout(item_frame)
+            item_layout.setContentsMargins(12, 8, 12, 8)
+            item_layout.setSpacing(4)
+
+            # Header row: When + Type Badge
+            top_row = QHBoxLayout()
+            if start_dt.date() == current_dt.date():
+                time_prefix = "Today"
+            elif start_dt.date() == (current_dt + timedelta(days=1)).date():
+                time_prefix = "Tomorrow"
+            else:
+                day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                time_prefix = day_names[start_dt.weekday()]
+
+            time_str = f"{time_prefix} at {session.time_slot.start}"
+            lbl_time = QLabel(time_str)
+            lbl_time.setFont(get_modern_font("sans", 11, QFont.Weight.DemiBold))
+            lbl_time.setStyleSheet("color: #93C5FD; letter-spacing: 0.5px;")
+            top_row.addWidget(lbl_time)
+            top_row.addStretch()
+
+            type_text = f"{session.subject.core} · {session.location}" if session.location else session.subject.core
+            lbl_type = QLabel(type_text)
+            lbl_type.setFont(get_modern_font("sans", 10, QFont.Weight.Medium))
+            lbl_type.setStyleSheet("""
+                color: #71717A;
+                background-color: #1F1F28;
+                border-radius: 4px;
+                padding: 1px 6px;
+            """)
+            top_row.addWidget(lbl_type)
+            item_layout.addLayout(top_row)
+
+            # Subject title
+            clean_name = ScheduleEngine.clean_subject_name(session.subject.name)
+            lbl_sub = QLabel(clean_name)
+            lbl_sub.setFont(get_modern_font("sans", 12, QFont.Weight.DemiBold))
+            lbl_sub.setStyleSheet("color: #F4F4F5;")
+            lbl_sub.setWordWrap(True)
+            item_layout.addWidget(lbl_sub)
+
+            self.upcoming_list_layout.addWidget(item_frame)
 
     def _rebuild_subject_chips(self, current_dt: datetime) -> None:
         """Populate the horizontal subject selector shelf."""

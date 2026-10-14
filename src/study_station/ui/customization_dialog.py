@@ -180,19 +180,19 @@ class CustomizationDialog(QDialog):
         tools_layout = QHBoxLayout()
         tools_layout.setSpacing(8)
 
-        btn_timetable = QPushButton("📅 Timetable")
+        btn_timetable = QPushButton("Timetable")
         btn_timetable.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_timetable.setStyleSheet(BUTTON_SECONDARY_STYLE)
         btn_timetable.clicked.connect(self._on_timetable_clicked)
         tools_layout.addWidget(btn_timetable)
 
-        btn_targets = QPushButton("🎯 Targets")
+        btn_targets = QPushButton("Targets")
         btn_targets.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_targets.setStyleSheet(BUTTON_SECONDARY_STYLE)
         btn_targets.clicked.connect(self._on_targets_clicked)
         tools_layout.addWidget(btn_targets)
 
-        btn_manual = QPushButton("✍ Log Time")
+        btn_manual = QPushButton("Log Time")
         btn_manual.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_manual.setStyleSheet(BUTTON_SECONDARY_STYLE)
         btn_manual.clicked.connect(self._on_manual_clicked)

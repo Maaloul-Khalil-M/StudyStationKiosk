@@ -61,50 +61,53 @@
       <widget class="QFrame" name="focusCard">
        <property name="minimumSize">
         <size>
-         <width>560</width>
-         <height>360</height>
+         <width>780</width>
+         <height>420</height>
         </size>
        </property>
        <property name="styleSheet">
         <string notr="true">QFrame#focusCard {
-    background-color: #121215;
-    border: 1px solid #27272A;
-    border-radius: 20px;
+    background-color: #121216;
+    border: 1px solid #24242C;
+    border-radius: 24px;
 }</string>
        </property>
        <layout class="QVBoxLayout" name="cardLayout">
         <property name="spacing">
-         <number>12</number>
+         <number>14</number>
         </property>
         <property name="leftMargin">
-         <number>36</number>
+         <number>40</number>
         </property>
         <property name="topMargin">
-         <number>28</number>
+         <number>32</number>
         </property>
         <property name="rightMargin">
-         <number>36</number>
+         <number>40</number>
         </property>
         <property name="bottomMargin">
-         <number>24</number>
+         <number>28</number>
         </property>
         <item>
          <widget class="QLabel" name="lblSubject">
           <property name="font">
            <font>
-            <pointsize>15</pointsize>
+            <pointsize>16</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
           <property name="styleSheet">
-           <string notr="true">color: #F4F4F5; letter-spacing: 1.5px;</string>
+           <string notr="true">color: #F4F4F5; letter-spacing: 1px;</string>
           </property>
           <property name="text">
            <string>SÉCURITÉ ET CONTRÔLE D'ACCÈS AUX BIG DATA</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -113,11 +116,12 @@
           <property name="font">
            <font>
             <pointsize>11</pointsize>
-            <weight>50</weight>
+            <weight>75</weight>
+            <bold>true</bold>
            </font>
           </property>
           <property name="styleSheet">
-           <string notr="true">color: #9CA3AF; letter-spacing: 2px;</string>
+           <string notr="true">color: #10B981; letter-spacing: 2px;</string>
           </property>
           <property name="text">
            <string>FOCUSING</string>
@@ -132,7 +136,7 @@
           <property name="font">
            <font>
             <family>Monospace</family>
-            <pointsize>72</pointsize>
+            <pointsize>76</pointsize>
             <weight>75</weight>
             <bold>true</bold>
            </font>
@@ -169,18 +173,17 @@
         <item>
          <widget class="QProgressBar" name="progressBar">
           <property name="maximumHeight">
-           <number>4</number>
+           <number>6</number>
           </property>
           <property name="styleSheet">
            <string notr="true">QProgressBar {
-    background-color: #27272A;
-    border-radius: 2px;
-    text-align: center;
+    background-color: #1F1F28;
+    border-radius: 3px;
     border: none;
 }
 QProgressBar::chunk {
-    background-color: #E4E4E7;
-    border-radius: 2px;
+    background-color: #3B82F6;
+    border-radius: 3px;
 }</string>
           </property>
           <property name="value">
@@ -235,13 +238,15 @@ QProgressBar::chunk {
     font-weight: 600;
     border-radius: 20px;
     padding: 9px 26px;
-    border: none;
+    border: 1px solid #F4F4F5;
 }
 QPushButton:hover {
     background-color: #FFFFFF;
+    border-color: #FFFFFF;
 }
 QPushButton:pressed {
     background-color: #D4D4D8;
+    border-color: #D4D4D8;
 }</string>
             </property>
             <property name="text">

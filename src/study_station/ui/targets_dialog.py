@@ -82,6 +82,7 @@ class TargetsDialog(QDialog):
             is_highlighted = bool(default_subject and s == default_subject)
             self._add_subject_row(s, current_targets.get(s, default_target), is_highlighted=is_highlighted)
 
+        self.scroll_layout.setContentsMargins(0, 0, 8, 0)
         self.scroll_layout.addStretch()
 
     def _add_subject_row(self, subject_name: str, target_val: int, is_highlighted: bool = False) -> None:
@@ -133,8 +134,8 @@ class TargetsDialog(QDialog):
         spn.setRange(10, 600)
         spn.setSingleStep(5)
         spn.setValue(target_val)
-        spn.setSuffix(" min")
-        spn.setFixedWidth(85)
+        spn.setSuffix(" m")
+        spn.setFixedWidth(92)
         self._spinners[subject_name] = spn
         row_layout.addWidget(spn)
 

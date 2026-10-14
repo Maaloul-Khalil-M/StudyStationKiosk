@@ -131,6 +131,36 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 - [x] **Unit Test Suite:**
   - 24/24 passing unit tests across `test_dashboard_ui.py`, `test_engine.py`, `test_timer.py`, `test_persistence.py`, `test_dialog.py`, and `test_secondary_dialogs.py`.
 
+### Milestone 6.5: Professional UI Polish & Integrated Split-Station Overhaul `[COMPLETED]`
+- [x] **Integrated Split-Station Cockpit (Option A):**
+  - Eliminated the 200px empty black void on 1366×768 displays by arranging the Hero Focus Card (stretch=6) and Upcoming Classes Card (stretch=4) in a balanced horizontal cockpit layout.
+  - Retained the scaled ambient split-flap flip clock at the top as an authentic mechanical companion.
+- [x] **Upcoming Classes Timeline:**
+  - Added `ScheduleEngine.get_upcoming_sessions()` returning chronological upcoming class sessions from SQLite.
+  - Dynamic upcoming card rendering with class times, course titles, room/type badges, and friendly relative countdowns (e.g. `Tomorrow at 08:00`).
+- [x] **Global Modern QSS Reset & OS Artifact Elimination:**
+  - Eliminated 1990s Windows 95 17px bevel scrollbars across all scroll areas, tables, and dialogs.
+  - Implemented 5px sleek semi-transparent thumb with 0-height arrows, smooth rounded corners, and transparent gutter.
+  - Uniform dark theme resets for `QLineEdit`, `QSpinBox`, `QComboBox`, `QTableWidget`, `QHeaderView`, and `QProgressBar`.
+- [x] **Iconography & Visual Tone Cleanup:**
+  - Replaced multi-colored emojis in the top navigation bar (`📅`, `🎯`, `✍`, `⚙`, `⛶`) with clean, typographic labels and subtle unicode glyphs.
+  - Replaced emojis in subject chips, hero buttons, and dialogs with professional micro-typography.
+- [x] **Qt Button Radius Quirks Solved:**
+  - Solved Qt's Windows rendering engine bug where `border-radius` calculation collapses to 90-degree rectangle corners if `border: none;` or `border-radius > (height / 2)`.
+  - Enforced explicit button geometry (`height: 36px; border-radius: 18px; border: 1px solid <color>;`) guaranteeing razor-smooth pill buttons.
+- [x] **Full-Width Focus Screen Overhaul:**
+  - Widened focus card to 780×420 to utilize the 1366×768 canvas proportionally.
+  - Upgraded timer typography to 76pt tabular monospace numerals.
+  - Enabled multi-line word wrapping on long French subject titles (`wordWrap=True`).
+  - Added dynamic state badge coloring: `#10B981` emerald pill for active focus, `#F59E0B` amber pill for paused.
+- [x] **Secondary Dialog Polish:**
+  - Fixed Windows shortcut parser issue in `timetable_dialog.ui` where `&` resulted in `Save Close` by properly escaping to `Save && Close`.
+  - Harmonized spinboxes in `targets_dialog.ui` to 92px width with clear `" m"` suffix and modern zero-arrow scrollbars.
+  - Harmonized action buttons across all secondary dialogs (`ManualLogDialog`, `TimetableDialog`, `TargetsDialog`, `CustomizationDialog`).
+- [x] **Verification & Test Suite:**
+  - Created automated screenshot tool `capture_screens.py` refreshing all screen states in `docs/currentScreens/`.
+  - 100% test pass rate maintained: 24/24 unit tests passing.
+
 
 ---
 
@@ -142,4 +172,37 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
    - *Completion:* Did my effort count toward my subject goal?
 3. **No guilt debt:** Unfinished review minutes do not accumulate as overdue debt across class cycles.
 4. **Deterministic core:** Engine, models, and timer logic remain pure and unit-testable independently of Qt UI.
+
+---
+
+## Next Steps Roadmap & Recommended Work
+
+### Milestone 7: Study History & Cycle Statistics `[RECOMMENDED NEXT]`
+- [ ] **Study History Dialog (`HistoryDialog`):**
+  - Chronological log viewer of all completed focus sessions and manual entries (Date, Time, Subject, Duration, Source).
+  - Ability to delete or correct mistaken time logs.
+  - Weekly study summary: total hours completed across subjects.
+  - Cycle target completion rate (percentage of study cycles completed on target).
+- [ ] **Top Bar Integration:** Add a `[ 📊 History ]` button in the top navigation bar.
+
+### Milestone 8: Audio Cues & Calm Feedback
+- [ ] **Discreet Completion Chime:**
+  - Subtle, calm audible tone when a focus countdown finishes (useful when looking away from the screen reading notes or books).
+  - Configurable sound toggle in Settings (`CustomizationDialog`): Enabled / Disabled.
+  - Cross-platform audio via `QSoundEffect` or synthesized chime.
+
+### Milestone 9: Timetable Portability (Import & Export)
+- [ ] **Timetable JSON / CSV Export & Import:**
+  - Export timetable sessions to standard JSON/CSV for backup or sharing.
+  - Import schedule files directly through `TimetableDialog` with collision validation.
+- [ ] **Optional PDF Timetable Parser:**
+  - CLI/dialog helper to extract timetable sessions from university PDF schedules with a human verification step before saving.
+
+### Milestone 10: Dedicated Kiosk Mode & Packaging
+- [ ] **Custom Duration Presets:**
+  - Configure preferred primary focus duration (e.g., 20m, 30m) directly in Settings.
+- [ ] **Linux / Fedora Dedicated Machine Deployment:**
+  - Autostart `.desktop` entry for Xfce / X11 kiosk setup.
+  - Standalone binary build script with PyInstaller for one-click deployment.
+
 
