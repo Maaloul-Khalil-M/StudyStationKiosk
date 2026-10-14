@@ -5,6 +5,8 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from study_station.core.engine import ScheduleEngine
+from study_station.persistence.database import Database
+from study_station.persistence.repository import StudyStationRepository
 from study_station.ui.main_window import MainWindow
 
 
@@ -14,19 +16,25 @@ def run() -> int:
     app.setApplicationName("Study Station")
     app.setOrganizationName("StudyStation")
 
-    # Load timetable if available
-    engine: ScheduleEngine | None = None
+    # 1. Initialize SQLite persistence layer
+    db = Database()
+    repo = StudyStationRepository(db)
+
+    # 2. Seed initial timetable from docs/example.json if database is empty
     sample_timetable = Path(__file__).resolve().parent.parent.parent / "docs" / "example.json"
     if sample_timetable.exists():
-        try:
-            engine = ScheduleEngine.from_json_file(sample_timetable)
-        except Exception as exc:
-            print(f"Warning: Could not load timetable from {sample_timetable}: {exc}")
+        repo.seed_timetable_if_empty(sample_timetable)
 
-    window = MainWindow(engine=engine)
+    # 3. Initialize ScheduleEngine powered by the persistent repository
+    engine = ScheduleEngine.from_repository(repo)
+
+    # 4. Create and show Main Window with recovery check
+    window = MainWindow(engine=engine, repository=repo)
     window.showFullScreen()
 
-    return app.exec()
+    exit_code = app.exec()
+    db.close()
+    return exit_code
 
 
 if __name__ == "__main__":

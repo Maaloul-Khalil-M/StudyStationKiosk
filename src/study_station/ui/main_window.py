@@ -6,7 +6,7 @@ Manages transitions between:
 3. Completion Screen (progress confirmation)
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QPalette
 from PySide6.QtWidgets import QMainWindow, QMenu, QStackedWidget
@@ -15,6 +15,7 @@ from study_station.core.engine import ScheduleEngine
 from study_station.core.models import StudyLog
 from study_station.core.settings import AppSettings
 from study_station.core.timer import FocusTimer
+from study_station.persistence.repository import StudyStationRepository
 from study_station.ui.clock_widget import AmbientClockWidget
 from study_station.ui.completion_widget import CompletionWidget
 from study_station.ui.customization_dialog import CustomizationDialog
@@ -29,13 +30,18 @@ class MainWindow(QMainWindow):
     INDEX_FOCUS = 1
     INDEX_COMPLETION = 2
 
-    def __init__(self, engine: ScheduleEngine | None = None) -> None:
+    def __init__(
+        self,
+        engine: ScheduleEngine | None = None,
+        repository: StudyStationRepository | None = None,
+    ) -> None:
         super().__init__()
         self.setWindowTitle("Study Station")
         self.resize(1366, 768)
 
+        self._repo = repository
         self._engine = engine
-        self._settings = AppSettings()
+        self._settings = self._repo.load_settings() if self._repo else AppSettings()
         self._timer = FocusTimer()
         self._selected_subject: str | None = None
 
@@ -73,6 +79,47 @@ class MainWindow(QMainWindow):
             self._status_timer.timeout.connect(self._update_progress_line)
             self._status_timer.start()
 
+        # Timer state synchronization (survives crashes / sleep)
+        if self._repo:
+            self._timer_sync_timer = QTimer(self)
+            self._timer_sync_timer.setInterval(5000)
+            self._timer_sync_timer.timeout.connect(self._sync_timer_state)
+            self._timer_sync_timer.start()
+
+            # Check for crash/sleep recovery on startup
+            self._check_timer_recovery()
+
+    def _sync_timer_state(self) -> None:
+        """Persist active timer progress to SQLite for recovery safety."""
+        if self._repo and self._timer.is_active:
+            self._repo.save_timer_state(self._timer)
+
+    def _check_timer_recovery(self) -> None:
+        """Recover timer state if application restarted or PC woke from sleep."""
+        if not self._repo:
+            return
+
+        recovered = self._repo.recover_timer_state()
+        if not recovered:
+            return
+
+        subject_name, sec_or_min, total_duration = recovered
+        if total_duration is None:
+            # Session completed while machine was suspended or app was closed!
+            # Effort is never lost: log the completed minutes
+            self._on_session_finished(subject_name, sec_or_min)
+        else:
+            # Resume active focus session
+            self._timer.start(subject_name, total_duration)
+            self._timer.target_end_time = datetime.now() + timedelta(seconds=sec_or_min)
+            cycle_info = ""
+            if self._engine:
+                cycle = self._engine.get_active_cycle(subject_name, datetime.now())
+                if cycle:
+                    cycle_info = f"{cycle.completed_minutes} / {cycle.target_minutes} MIN"
+            self._focus_widget.start_session(subject_name, total_duration, cycle_info=cycle_info)
+            self._stack.setCurrentIndex(self.INDEX_FOCUS)
+
     def _apply_window_palette(self) -> None:
         theme = THEMES.get(self._settings.theme_id, THEMES["noir"])
         palette = self.palette()
@@ -96,6 +143,8 @@ class MainWindow(QMainWindow):
 
     def _on_settings_updated(self, settings: AppSettings) -> None:
         self._settings = settings
+        if self._repo:
+            self._repo.save_settings(settings)
         self._apply_window_palette()
         self._clock_widget.apply_settings(settings)
 
@@ -141,7 +190,6 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        # Add auto recommendation option
         auto_action = menu.addAction("● Recommended (Auto)")
         auto_action.triggered.connect(lambda: self._set_selected_subject(None))
         menu.addSeparator()
@@ -151,7 +199,6 @@ class MainWindow(QMainWindow):
             action = menu.addAction(clean)
             action.triggered.connect(lambda checked=False, subj=s: self._set_selected_subject(subj))
 
-        # Position menu above the progress pill
         rect = self.rect()
         pill_rect = self._clock_widget._get_pill_rect(rect)
         global_pos = self.mapToGlobal(pill_rect.topLeft())
@@ -181,10 +228,16 @@ class MainWindow(QMainWindow):
                 cycle_info = f"{cycle.completed_minutes} / {cycle.target_minutes} MIN"
 
         self._focus_widget.start_session(subject_name, duration_minutes, cycle_info=cycle_info)
+        if self._repo:
+            self._repo.save_timer_state(self._timer)
+
         self._stack.setCurrentIndex(self.INDEX_FOCUS)
 
     def _on_session_finished(self, subject_name: str, elapsed_minutes: int) -> None:
         """Handle focus session completion or manual finish."""
+        if self._repo:
+            self._repo.clear_timer_state()
+
         if elapsed_minutes <= 0:
             self._show_clock_screen()
             return
@@ -260,9 +313,13 @@ class MainWindow(QMainWindow):
             if key == Qt.Key.Key_Space:
                 self._timer.toggle_pause()
                 self._focus_widget._update_display()
+                if self._repo:
+                    self._repo.save_timer_state(self._timer)
             elif key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal, Qt.Key.Key_5):
                 self._timer.add_minutes(5)
                 self._focus_widget._update_display()
+                if self._repo:
+                    self._repo.save_timer_state(self._timer)
             elif key in (Qt.Key.Key_Escape, Qt.Key.Key_Return):
                 self._focus_widget._on_end_clicked()
             else:

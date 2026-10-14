@@ -72,15 +72,19 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
   - Auto-return to Ambient Clock after a brief interval (5s) or any keypress.
 - [x] Unit test suite (`tests/test_timer.py`) verifying timer calculations and pause/resume logic.
 
-### Milestone 4: Local Persistence & State Recovery `[NEXT]`
-- [ ] Local storage (SQLite or JSON files in user data directory) for:
-  - Timetable data
-  - Study logs (history of completed sessions)
-  - Subject target overrides
-  - Active timer state (for crash / restart recovery)
-- [ ] Timetable validation and editable targets.
+### Milestone 4: Local Persistence & State Recovery `[COMPLETED]`
+- [x] SQLite database architecture with WAL mode (`Database` in `database.py`).
+- [x] Standard cross-platform storage locations (`~/.local/share/study_station/studystation.db` on Linux, `%APPDATA%/StudyStation/` on Windows).
+- [x] Persistent study logs repository (`StudyStationRepository.add_study_log`, `get_all_study_logs`).
+- [x] Timetable sessions repository with auto-seeding from `docs/example.json` if empty.
+- [x] Subject review target overrides repository.
+- [x] UI settings persistence (`AppSettings` stored in SQLite, reloaded on startup).
+- [x] Hardware resilience: active timer state tracking & recovery:
+  - If app restarts or wakes from sleep with session in progress: seamlessly resumes remaining countdown.
+  - If machine was suspended/off past target end: automatically logs the completed session so student effort is never lost.
+- [x] Unit test suite (`tests/test_persistence.py`) verifying all CRUD operations and timer recovery scenarios.
 
-### Milestone 5: Secondary Screens (Qt Designer) `[PENDING]`
+### Milestone 5: Secondary Screens (Qt Designer) `[NEXT]`
 - [ ] Timetable viewer / editor dialog.
 - [ ] Subject review target configuration dialog.
 - [ ] Manual study time entry form (for offline study sessions).

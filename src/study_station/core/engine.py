@@ -27,11 +27,25 @@ class ScheduleEngine:
         self,
         sessions: Sequence[AcademicSession] | None = None,
         default_target_minutes: int = 60,
+        repository: "StudyStationRepository | None" = None,
     ) -> None:
-        self.sessions: list[AcademicSession] = list(sessions or [])
+        self.repository = repository
         self.default_target_minutes = default_target_minutes
-        self.study_logs: list[StudyLog] = []
-        self._target_overrides: dict[str, int] = {}  # subject_name -> target_minutes
+
+        if self.repository is not None:
+            loaded_sessions = self.repository.get_timetable_sessions()
+            self.sessions: list[AcademicSession] = list(loaded_sessions if loaded_sessions else (sessions or []))
+            self._target_overrides: dict[str, int] = self.repository.get_all_subject_targets()
+            self.study_logs: list[StudyLog] = self.repository.get_all_study_logs()
+        else:
+            self.sessions = list(sessions or [])
+            self.study_logs = []
+            self._target_overrides = {}
+
+    @classmethod
+    def from_repository(cls, repository: "StudyStationRepository", default_target_minutes: int = 60) -> ScheduleEngine:
+        """Create ScheduleEngine powered by persistence repository."""
+        return cls(repository=repository, default_target_minutes=default_target_minutes)
 
     @classmethod
     def from_json_file(cls, json_path: str | Path, default_target_minutes: int = 60) -> ScheduleEngine:
@@ -63,7 +77,10 @@ class ScheduleEngine:
 
     def set_subject_target(self, subject_name: str, target_minutes: int) -> None:
         """Set or update target review minutes for a specific subject."""
-        self._target_overrides[subject_name] = max(1, target_minutes)
+        val = max(1, target_minutes)
+        self._target_overrides[subject_name] = val
+        if self.repository is not None:
+            self.repository.set_subject_target(subject_name, val)
 
     def get_subject_target(self, subject_name: str) -> int:
         """Return the target review minutes for a subject."""
@@ -72,6 +89,8 @@ class ScheduleEngine:
     def add_study_log(self, log: StudyLog) -> None:
         """Record a completed study session or manual time entry."""
         self.study_logs.append(log)
+        if self.repository is not None:
+            self.repository.add_study_log(log)
 
     def get_distinct_subjects(self) -> list[str]:
         """Return sorted list of distinct subject names in timetable."""
