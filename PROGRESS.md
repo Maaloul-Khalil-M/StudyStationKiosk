@@ -161,6 +161,34 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
   - Created automated screenshot tool `capture_screens.py` refreshing all screen states in `docs/currentScreens/`.
   - 100% test pass rate maintained: 24/24 unit tests passing.
 
+### Milestone 6.6: Kiosk & Ambient Study Appliance Overhaul `[COMPLETED]`
+- [x] **Philosophy Pivot from SaaS Dashboard to Desk Appliance:**
+  - Eliminated web SaaS card clutter, side-by-side widget grids, and permanent toolbars that distracted students reading books from 1–2 meters away.
+  - Documented formal critique and architecture in [`docs/KIOSK_MINIMAL_SPEC.md`](file:///c:/Users/marj/Music/Study%20Station/docs/KIOSK_MINIMAL_SPEC.md).
+- [x] **Screen 1: Zero-Distraction Ambient Kiosk Station:**
+  - **Idle Mode (Default):** Shows only the medium mechanical split-flap flip clock, giant 38pt Swiss typography subject name, and a single-line rotating info carousel with a hairline progress bar. Zero borders, zero card boxes, zero permanent buttons.
+  - **Hover Mode (Mouse Move):** Top navigation (`[ 📅 Schedule ]`, `[ 🎯 Targets ]`, `[ ✍ Log ]`, `[ ⚙ Settings ]`, `[ ⛶ ]`), primary focus action (`[ ▶ START FOCUS ]`), and carousel arrow pills smoothly fade in, then auto-hide after 3.5s of stillness.
+- [x] **Screen 2: Visual Weekly Schedule Grid (`docs/grid.pdf` / Google Calendar Model):**
+  - Implemented [`WeeklyScheduleGridDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/weekly_schedule_dialog.py) replicating the student's real university schedule (`docs/grid.pdf`).
+  - Columns: `LUN`, `MAR`, `MER`, `JEU`, `VEN`, `SAM`.
+  - Rows: Standard university time slots (`08:00 - 09:30`, `09:40 - 11:10`, `11:15 - 12:45`, `13:30 - 15:00`, `15:10 - 16:40`).
+  - Each class card displays course format badge (`TP`, `COURS`, `TD`, `CI`), clean course title, room (`Lab 20`, `SC 3`), and `● NOW` real-time highlight.
+  - 1-click subject switcher: Clicking any class card instantly sets the active subject.
+  - Added `[ 📄 Original PDF ]` button to launch the original schedule PDF in the default OS viewer.
+- [x] **Screen 3: Pure Concentration Focus Screen:**
+  - Borderless, full-bleed dark focus mode.
+  - Controls (`[ Pause ]`, `[ +5 Min ]`, `[ End Session ]`, shortcut hints) auto-hide when idle so the student sees only the subject name, massive 76pt countdown numerals, and session progress line.
+- [x] **Secondary Screens Appliance Polish:**
+  - Added quick duration preset pills (`15m`, `30m`, `45m`, `60m`) to `ManualLogDialog`.
+  - Maintained preset pills and 92px spinboxes in `TargetsDialog`.
+- [x] **Verification & Tests:**
+  - 24/24 unit tests passing:
+    ```powershell
+    .\.venv\Scripts\python.exe -m unittest discover -s tests
+    # Ran 24 tests in 0.900s — OK
+    ```
+  - Captured updated screenshots in `docs/currentScreens/` (`screen.png` [idle], `screen_hover.png` [hover], `grid.png`, `focus.png`, `targets.png`, `log.png`, `settings.png`).
+
 
 ---
 

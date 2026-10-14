@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFrame,
+    QHBoxLayout,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -69,6 +70,35 @@ class ManualLogDialog(QDialog):
 
         self.btn_cancel.clicked.connect(self.reject)
         self.btn_save.clicked.connect(self._on_save)
+
+        # Quick preset pills
+        duration_layout: QVBoxLayout = self.ui.findChild(QVBoxLayout, "durationLayout")
+        if duration_layout:
+            preset_row = QHBoxLayout()
+            preset_row.setContentsMargins(0, 4, 0, 0)
+            preset_row.setSpacing(8)
+            for m in (15, 30, 45, 60):
+                btn_p = QPushButton(f"{m}m")
+                btn_p.setCursor(Qt.CursorShape.PointingHandCursor)
+                btn_p.setStyleSheet("""
+                    QPushButton {
+                        background-color: #27272A;
+                        color: #A1A1AA;
+                        font-size: 12px;
+                        font-weight: 600;
+                        border-radius: 6px;
+                        border: 1px solid #3F3F46;
+                        padding: 4px 10px;
+                    }
+                    QPushButton:hover {
+                        background-color: #3F3F46;
+                        color: #FFFFFF;
+                        border-color: #52525B;
+                    }
+                """)
+                btn_p.clicked.connect(lambda checked=False, val=m: self.spn_minutes.setValue(val))
+                preset_row.addWidget(btn_p)
+            duration_layout.addLayout(preset_row)
 
         # Populate subjects
         self._subjects = subjects

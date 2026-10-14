@@ -3,7 +3,14 @@
 from pathlib import Path
 from PySide6.QtCore import QFile, QTimer, Signal
 from PySide6.QtUiTools import QUiLoader
-from PySide6.QtWidgets import QLabel, QProgressBar, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFrame,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from study_station.core.engine import ScheduleEngine
 from study_station.core.timer import FocusTimer
@@ -38,6 +45,7 @@ class FocusWidget(QWidget):
         layout.addWidget(self.ui)
 
         # UI References
+        self.focus_card: QFrame = self.ui.findChild(QFrame, "focusCard")
         self.lbl_subject: QLabel = self.ui.findChild(QLabel, "lblSubject")
         self.lbl_state: QLabel = self.ui.findChild(QLabel, "lblState")
         self.lbl_remaining: QLabel = self.ui.findChild(QLabel, "lblRemaining")
@@ -46,6 +54,16 @@ class FocusWidget(QWidget):
         self.btn_pause: QPushButton = self.ui.findChild(QPushButton, "btnPause")
         self.btn_add_five: QPushButton = self.ui.findChild(QPushButton, "btnAddFive")
         self.btn_end: QPushButton = self.ui.findChild(QPushButton, "btnEnd")
+        self.lbl_shortcuts_hint: QLabel = self.ui.findChild(QLabel, "lblShortcutsHint")
+
+        # Make card seamless with background
+        if self.focus_card:
+            self.focus_card.setStyleSheet("""
+                QFrame#focusCard {
+                    background-color: transparent;
+                    border: none;
+                }
+            """)
 
         # Apply harmonized theme styles
         self.btn_pause.setStyleSheet(BUTTON_PRIMARY_STYLE)
@@ -57,10 +75,42 @@ class FocusWidget(QWidget):
         self.btn_add_five.clicked.connect(self._on_add_five_clicked)
         self.btn_end.clicked.connect(self._on_end_clicked)
 
+        # Inactivity timer for auto-hiding controls (3s)
+        self._controls_visible = True
+        self._inactivity_timer = QTimer(self)
+        self._inactivity_timer.setInterval(3000)
+        self._inactivity_timer.timeout.connect(self._hide_controls)
+
         # 1-second refresh timer
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setInterval(500)
         self._refresh_timer.timeout.connect(self._on_tick)
+
+        self.setMouseTracking(True)
+        self.installEventFilter(self)
+
+    def eventFilter(self, watched, event) -> bool:
+        from PySide6.QtCore import QEvent
+        if event.type() in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.KeyPress):
+            self._show_controls()
+            self._inactivity_timer.start()
+        return super().eventFilter(watched, event)
+
+    def _show_controls(self) -> None:
+        self.btn_pause.setVisible(True)
+        self.btn_add_five.setVisible(True)
+        self.btn_end.setVisible(True)
+        if self.lbl_shortcuts_hint:
+            self.lbl_shortcuts_hint.setVisible(True)
+        self._controls_visible = True
+
+    def _hide_controls(self) -> None:
+        self.btn_pause.setVisible(False)
+        self.btn_add_five.setVisible(False)
+        self.btn_end.setVisible(False)
+        if self.lbl_shortcuts_hint:
+            self.lbl_shortcuts_hint.setVisible(False)
+        self._controls_visible = False
 
     def start_session(self, subject_name: str, duration_minutes: int, cycle_info: str = "") -> None:
         """Start a new focus session and display."""

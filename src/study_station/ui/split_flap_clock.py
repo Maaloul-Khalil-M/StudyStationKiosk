@@ -2,7 +2,7 @@
 
 from datetime import datetime
 import math
-from PySide6.QtCore import QPoint, QRect, QTimer, Qt
+from PySide6.QtCore import QPoint, QRect, QSize, QTimer, Qt
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -52,11 +52,20 @@ class SplitFlapClockWidget(QWidget):
         self._anim_timer.setInterval(16)
         self._anim_timer.timeout.connect(self._on_anim_frame)
 
-        self.setFixedHeight(105)
+        self._update_dimensions()
+
+    def sizeHint(self) -> QSize:
+        w = 460 if self.settings.show_seconds else 340
+        return QSize(w, 105)
+
+    def _update_dimensions(self) -> None:
+        w = 460 if self.settings.show_seconds else 340
+        self.setFixedSize(w, 105)
 
     def apply_settings(self, settings: AppSettings) -> None:
         self.settings = settings
         self._clock_timer.setInterval(200 if self.settings.show_seconds else 1000)
+        self._update_dimensions()
         self.update()
 
     def _get_hour_str(self, now: datetime) -> str:

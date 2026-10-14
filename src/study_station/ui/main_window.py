@@ -25,6 +25,7 @@ from study_station.ui.manual_log_dialog import ManualLogDialog
 from study_station.ui.targets_dialog import TargetsDialog
 from study_station.ui.theme import GLOBAL_QSS, THEMES
 from study_station.ui.timetable_dialog import TimetableDialog
+from study_station.ui.weekly_schedule_dialog import WeeklyScheduleGridDialog
 
 
 class MainWindow(QMainWindow):
@@ -161,7 +162,19 @@ class MainWindow(QMainWindow):
     # -------------------------------------------------------------------------
 
     def open_timetable_editor(self) -> None:
-        """Open weekly timetable editor dialog."""
+        """Open weekly timetable (defaults to visual Weekly Schedule Grid)."""
+        sessions = self._engine.sessions if self._engine else []
+        dialog = WeeklyScheduleGridDialog(
+            sessions=sessions,
+            current_subject=self._dashboard_widget.selected_subject,
+            parent=self,
+        )
+        dialog.subject_selected.connect(self._dashboard_widget.set_selected_subject)
+        dialog.edit_timetable_requested.connect(self.open_timetable_form_editor)
+        dialog.exec()
+
+    def open_timetable_form_editor(self) -> None:
+        """Open raw tabular timetable editor dialog."""
         sessions = self._engine.sessions if self._engine else []
         dialog = TimetableDialog(sessions, self)
         dialog.timetable_changed.connect(self._on_timetable_updated)
