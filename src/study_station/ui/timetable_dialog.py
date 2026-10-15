@@ -22,7 +22,9 @@ from study_station.core.models import (
     DAY_INDEX_MAP,
     Subject,
     TimeSlot,
+    normalize_time_str,
 )
+from study_station.ui.class_session_dialog import ClassSessionDialog
 
 
 class TimetableDialog(QDialog):
@@ -87,6 +89,12 @@ class TimetableDialog(QDialog):
         for core in ("COURS", "TD", "TP", "CI"):
             self.cmb_core.addItem(core)
 
+        # Pre-fill sensible default times
+        if not self.txt_start.text():
+            self.txt_start.setText("08:00")
+        if not self.txt_end.text():
+            self.txt_end.setText("09:30")
+
         # Setup Table
         self.table.setColumnCount(5)
         self.table.setHorizontalHeaderLabels(["Day", "Time", "Subject", "Type", "Location"])
@@ -103,6 +111,7 @@ class TimetableDialog(QDialog):
         self.btn_delete.clicked.connect(self._on_delete)
         self.btn_add.clicked.connect(self._on_add)
         self.btn_close.clicked.connect(self._on_save_and_close)
+        self.table.cellDoubleClicked.connect(self._on_table_cell_double_clicked)
 
     def _refresh_table(self) -> None:
         """Populate table sorted chronologically by day and start time."""
@@ -128,6 +137,28 @@ class TimetableDialog(QDialog):
 
             self.table.setItem(row, 4, QTableWidgetItem(s.location))
 
+    def _on_table_cell_double_clicked(self, row: int, col: int) -> None:
+        if 0 <= row < len(self._sessions):
+            session = self._sessions[row]
+            existing_names = sorted({s.subject.name for s in self._sessions})
+            dialog = ClassSessionDialog(session=session, existing_subjects=existing_names, parent=self)
+            dialog.session_saved.connect(self._on_session_saved)
+            dialog.session_deleted.connect(self._on_session_deleted)
+            dialog.exec()
+
+    def _on_session_saved(self, old_s: AcademicSession | None, new_s: AcademicSession) -> None:
+        if old_s and old_s in self._sessions:
+            idx = self._sessions.index(old_s)
+            self._sessions[idx] = new_s
+        else:
+            self._sessions.append(new_s)
+        self._refresh_table()
+
+    def _on_session_deleted(self, s: AcademicSession) -> None:
+        if s in self._sessions:
+            self._sessions.remove(s)
+            self._refresh_table()
+
     def _on_delete(self) -> None:
         selected_rows = self.table.selectionModel().selectedRows()
         if not selected_rows:
@@ -140,13 +171,17 @@ class TimetableDialog(QDialog):
 
     def _on_add(self) -> None:
         day = self.cmb_day.currentText()
-        start = self.txt_start.text().strip()
-        end = self.txt_end.text().strip()
+        raw_start = self.txt_start.text().strip()
+        raw_end = self.txt_end.text().strip()
         subject = self.txt_subject.text().strip()
         core = self.cmb_core.currentText()
         location = self.txt_location.text().strip()
 
-        if not start or not end or not subject:
+        start = normalize_time_str(raw_start) or "08:00"
+        end = normalize_time_str(raw_end) or "09:30"
+
+        if not subject:
+            self.txt_subject.setFocus()
             return
 
         session = AcademicSession(

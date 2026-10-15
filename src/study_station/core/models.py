@@ -13,12 +13,42 @@ DAY_NAMES = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 DAY_INDEX_MAP = {day: idx for idx, day in enumerate(DAY_NAMES)}
 
 
+def normalize_time_str(val: str) -> str | None:
+    """Normalize '8:00', '08:00', '8h00', '8h' into standard '08:00'."""
+    if not val:
+        return None
+    val = val.strip().replace("h", ":").replace("H", ":")
+    if ":" in val:
+        parts = val.split(":")
+        try:
+            h = int(parts[0])
+            m = int(parts[1]) if parts[1] else 0
+            if 0 <= h < 24 and 0 <= m < 60:
+                return f"{h:02d}:{m:02d}"
+        except (ValueError, IndexError):
+            return None
+    else:
+        try:
+            h = int(val)
+            if 0 <= h < 24:
+                return f"{h:02d}:00"
+        except ValueError:
+            return None
+    return None
+
+
 @dataclass(frozen=True)
 class TimeSlot:
     """Represents a start and end time within a day."""
 
     start: str  # "HH:MM"
     end: str    # "HH:MM"
+
+    def __post_init__(self) -> None:
+        norm_start = normalize_time_str(self.start) or self.start
+        norm_end = normalize_time_str(self.end) or self.end
+        object.__setattr__(self, "start", norm_start)
+        object.__setattr__(self, "end", norm_end)
 
     @property
     def start_time(self) -> time:

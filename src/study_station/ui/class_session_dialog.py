@@ -4,6 +4,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
+    QCompleter,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -20,6 +21,7 @@ from study_station.core.models import (
     DAY_INDEX_MAP,
     Subject,
     TimeSlot,
+    normalize_time_str,
 )
 from study_station.ui.theme import (
     BUTTON_DANGER_STYLE,
@@ -152,6 +154,37 @@ class ClassSessionDialog(QDialog):
 
         card_layout.addLayout(row_time)
 
+        # Quick Preset Buttons
+        preset_row = QHBoxLayout()
+        preset_row.setSpacing(6)
+        lbl_presets = QLabel("PRESETS:")
+        lbl_presets.setStyleSheet("color: #52525B; font-size: 9px; font-weight: 700; letter-spacing: 0.5px;")
+        preset_row.addWidget(lbl_presets)
+
+        for slot_s, slot_e in [("08:00", "09:30"), ("09:40", "11:10"), ("11:15", "12:45"), ("13:30", "15:00"), ("15:10", "16:40")]:
+            btn_p = QPushButton(f"{slot_s}–{slot_e}")
+            btn_p.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_p.setStyleSheet("""
+                QPushButton {
+                    background-color: #18181E;
+                    color: #A1A1AA;
+                    border: 1px solid #27272E;
+                    border-radius: 4px;
+                    padding: 2px 6px;
+                    font-size: 10px;
+                    font-family: monospace;
+                }
+                QPushButton:hover {
+                    background-color: #272732;
+                    color: #FFFFFF;
+                    border-color: #3F3F4A;
+                }
+            """)
+            btn_p.clicked.connect(lambda _, s=slot_s, e=slot_e: self._set_preset_time(s, e))
+            preset_row.addWidget(btn_p)
+        preset_row.addStretch()
+        card_layout.addLayout(preset_row)
+
         # Form: Subject Name
         col_subject = QVBoxLayout()
         lbl_subject = QLabel("SUBJECT NAME")
@@ -160,6 +193,10 @@ class ClassSessionDialog(QDialog):
         self.txt_subject.setPlaceholderText("e.g. Visualisation des données")
         if self.session:
             self.txt_subject.setText(self.session.subject.name)
+        if self.existing_subjects:
+            completer = QCompleter(self.existing_subjects, self)
+            completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            self.txt_subject.setCompleter(completer)
         col_subject.addWidget(lbl_subject)
         col_subject.addWidget(self.txt_subject)
         card_layout.addLayout(col_subject)
@@ -193,6 +230,12 @@ class ClassSessionDialog(QDialog):
 
         card_layout.addLayout(row_core)
 
+        # Error status feedback label
+        self.lbl_error = QLabel("")
+        self.lbl_error.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 600;")
+        self.lbl_error.hide()
+        card_layout.addWidget(self.lbl_error)
+
         card_layout.addStretch()
 
         # Bottom Actions
@@ -223,6 +266,10 @@ class ClassSessionDialog(QDialog):
 
         card_layout.addLayout(actions_layout)
 
+    def _set_preset_time(self, start_t: str, end_t: str) -> None:
+        self.txt_start.setText(start_t)
+        self.txt_end.setText(end_t)
+
     def _on_start_focus(self) -> None:
         if self.session:
             self.start_focus_requested.emit(self.session.subject.name)
@@ -235,14 +282,32 @@ class ClassSessionDialog(QDialog):
 
     def _on_save(self) -> None:
         subject_name = self.txt_subject.text().strip()
-        start = self.txt_start.text().strip()
-        end = self.txt_end.text().strip()
+        raw_start = self.txt_start.text().strip()
+        raw_end = self.txt_end.text().strip()
         day = self.cmb_day.currentText()
         core = self.cmb_core.currentText()
         location = self.txt_location.text().strip()
 
-        if not subject_name or not start or not end:
+        if not subject_name:
+            self.lbl_error.setText("⚠️ Please enter a subject name.")
+            self.lbl_error.show()
+            self.txt_subject.setFocus()
             return
+
+        start = normalize_time_str(raw_start)
+        end = normalize_time_str(raw_end)
+
+        if not start or not end:
+            self.lbl_error.setText("⚠️ Please enter valid times in HH:MM format (e.g. 08:00).")
+            self.lbl_error.show()
+            return
+
+        if start >= end:
+            self.lbl_error.setText("⚠️ Start time must be before end time.")
+            self.lbl_error.show()
+            return
+
+        self.lbl_error.hide()
 
         new_session = AcademicSession(
             day=day,

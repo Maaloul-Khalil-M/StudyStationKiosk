@@ -10,6 +10,7 @@ from pathlib import Path
 from PySide6.QtCore import QPoint, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QFrame,
     QGridLayout,
@@ -33,6 +34,7 @@ from study_station.core.models import (
     DAY_INDEX_MAP,
     Subject,
     TimeSlot,
+    normalize_time_str,
 )
 from study_station.ui.class_session_dialog import ClassSessionDialog
 from study_station.ui.theme import (
@@ -562,123 +564,397 @@ class ScheduleScreenWidget(QWidget):
     def _create_editor_view(self) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 4, 0, 0)
         layout.setSpacing(12)
 
-        # Top row: Info & Delete button
+        # 1. Header Toolbar
         top_row = QHBoxLayout()
-        lbl_info = QLabel("Manage your weekly schedule sessions:")
-        lbl_info.setStyleSheet("color: #A1A1AA; font-size: 13px; font-weight: 500;")
-        top_row.addWidget(lbl_info)
+        top_row.setSpacing(10)
 
-        top_row.addStretch()
+        title_layout = QVBoxLayout()
+        title_layout.setSpacing(2)
+        self.lbl_editor_title = QLabel("SCHEDULED SESSIONS")
+        self.lbl_editor_title.setStyleSheet("color: #FFFFFF; font-size: 14px; font-weight: 800; letter-spacing: 1.2px;")
+        title_layout.addWidget(self.lbl_editor_title)
 
+        lbl_editor_hint = QLabel("Double-click any class or click Edit to update · Real-time synchronization")
+        lbl_editor_hint.setStyleSheet("color: #71717A; font-size: 11px;")
+        title_layout.addWidget(lbl_editor_hint)
+        top_row.addLayout(title_layout)
+
+        top_row.addSpacing(16)
+
+        # Search / filter box
+        self.txt_filter = QLineEdit()
+        self.txt_filter.setPlaceholderText("🔍 Filter by subject, day, room...")
+        self.txt_filter.setStyleSheet("""
+            QLineEdit {
+                background-color: #18181E;
+                color: #FFFFFF;
+                border: 1px solid #27272E;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border-color: #10B981;
+            }
+        """)
+        self.txt_filter.textChanged.connect(self._filter_table_rows)
+        top_row.addWidget(self.txt_filter, stretch=1)
+
+        # Primary Modal "+ Add Class" button
+        self.btn_top_add = QPushButton("+ Add Class")
+        self.btn_top_add.setStyleSheet(BUTTON_PRIMARY_STYLE)
+        self.btn_top_add.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_top_add.clicked.connect(self._open_new_class_dialog)
+        top_row.addWidget(self.btn_top_add)
+
+        # "Edit Selected" button
+        self.btn_edit_selected = QPushButton("Edit Selected")
+        self.btn_edit_selected.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_edit_selected.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_edit_selected.clicked.connect(self._on_edit_selected_session)
+        top_row.addWidget(self.btn_edit_selected)
+
+        # "Delete Selected" button
         self.btn_delete_session = QPushButton("Delete Selected")
         self.btn_delete_session.setStyleSheet(BUTTON_DANGER_STYLE)
         self.btn_delete_session.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_delete_session.clicked.connect(self._on_delete_session)
         top_row.addWidget(self.btn_delete_session)
+
         layout.addLayout(top_row)
 
-        # Table of sessions
+        # 2. Modern Table of sessions
         self.table_sessions = QTableWidget()
-        self.table_sessions.setColumnCount(5)
-        self.table_sessions.setHorizontalHeaderLabels(["Day", "Time", "Subject", "Type", "Location"])
-        header = self.table_sessions.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
-        layout.addWidget(self.table_sessions, stretch=1)
+        self.table_sessions.setColumnCount(6)
+        header_labels = ["DAY", "TIME", "SUBJECT", "TYPE", "LOCATION", "ACTIONS"]
+        self.table_sessions.setHorizontalHeaderLabels(header_labels)
+        for c in range(len(header_labels)):
+            item = self.table_sessions.horizontalHeaderItem(c)
+            if item:
+                if c == 2:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                else:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Add Session Bar
-        add_bar = QFrame()
-        add_bar.setStyleSheet("""
-            QFrame {
+        self.table_sessions.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_sessions.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table_sessions.setShowGrid(False)
+        self.table_sessions.verticalHeader().setVisible(False)
+        self.table_sessions.setStyleSheet("""
+            QTableWidget {
                 background-color: #121216;
+                color: #F4F4F6;
                 border: 1px solid #222228;
                 border-radius: 10px;
-                padding: 6px;
+                selection-background-color: #222230;
+                outline: none;
+            }
+            QTableWidget::item {
+                padding: 4px 8px;
+                border-bottom: 1px solid #1C1C24;
+            }
+            QHeaderView::section {
+                background-color: #16161C;
+                color: #71717A;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 10px 8px;
+                border: none;
+                border-bottom: 1px solid #27272A;
+                letter-spacing: 0.8px;
             }
         """)
-        bar_layout = QHBoxLayout(add_bar)
-        bar_layout.setContentsMargins(8, 6, 8, 6)
-        bar_layout.setSpacing(8)
+
+        header = self.table_sessions.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.table_sessions.setColumnWidth(0, 70)
+
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        self.table_sessions.setColumnWidth(1, 140)
+
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        self.table_sessions.setColumnWidth(3, 90)
+
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        self.table_sessions.setColumnWidth(4, 110)
+
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        self.table_sessions.setColumnWidth(5, 130)
+
+        self.table_sessions.cellDoubleClicked.connect(self._on_table_cell_double_clicked)
+        layout.addWidget(self.table_sessions, stretch=1)
+
+        # 3. Quick Add Bar with smart presets and pre-filled valid defaults
+        add_bar = QFrame()
+        add_bar.setStyleSheet("""
+            QFrame#quickAddBar {
+                background-color: #14141A;
+                border: 1px solid #272730;
+                border-radius: 10px;
+            }
+        """)
+        add_bar.setObjectName("quickAddBar")
+        bar_layout = QVBoxLayout(add_bar)
+        bar_layout.setContentsMargins(12, 10, 12, 10)
+        bar_layout.setSpacing(6)
+
+        # Quick add header label + status message
+        bar_header = QHBoxLayout()
+        lbl_quick_title = QLabel("QUICK INLINE ADD")
+        lbl_quick_title.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 800; letter-spacing: 1px;")
+        bar_header.addWidget(lbl_quick_title)
+
+        self.lbl_quick_status = QLabel("")
+        self.lbl_quick_status.setStyleSheet("font-size: 11px; font-weight: 600;")
+        bar_header.addWidget(self.lbl_quick_status)
+        bar_header.addStretch()
+        bar_layout.addLayout(bar_header)
+
+        form_row = QHBoxLayout()
+        form_row.setSpacing(8)
 
         self.cmb_day = QComboBox()
         for d in ("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"):
             self.cmb_day.addItem(d)
-        self.cmb_day.setFixedWidth(70)
-        bar_layout.addWidget(self.cmb_day)
+        self.cmb_day.setFixedWidth(75)
+        form_row.addWidget(self.cmb_day)
 
-        self.txt_start = QLineEdit()
-        self.txt_start.setPlaceholderText("08:00")
-        self.txt_start.setFixedWidth(90)
-        bar_layout.addWidget(self.txt_start)
+        # Preset slot selector for 1-click standard times
+        self.cmb_preset = QComboBox()
+        self.cmb_preset.addItem("08:00 – 09:30")
+        self.cmb_preset.addItem("09:40 – 11:10")
+        self.cmb_preset.addItem("11:15 – 12:45")
+        self.cmb_preset.addItem("13:30 – 15:00")
+        self.cmb_preset.addItem("15:10 – 16:40")
+        self.cmb_preset.addItem("Custom...")
+        self.cmb_preset.setFixedWidth(130)
+        self.cmb_preset.currentIndexChanged.connect(self._on_preset_slot_changed)
+        form_row.addWidget(self.cmb_preset)
 
-        self.txt_end = QLineEdit()
-        self.txt_end.setPlaceholderText("09:30")
-        self.txt_end.setFixedWidth(90)
-        bar_layout.addWidget(self.txt_end)
+        self.txt_start = QLineEdit("08:00")
+        self.txt_start.setFixedWidth(65)
+        self.txt_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        form_row.addWidget(self.txt_start)
+
+        lbl_sep = QLabel("–")
+        lbl_sep.setStyleSheet("color: #52525B; font-weight: bold;")
+        form_row.addWidget(lbl_sep)
+
+        self.txt_end = QLineEdit("09:30")
+        self.txt_end.setFixedWidth(65)
+        self.txt_end.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        form_row.addWidget(self.txt_end)
 
         self.txt_subject = QLineEdit()
-        self.txt_subject.setPlaceholderText("Subject Name")
-        bar_layout.addWidget(self.txt_subject, stretch=1)
+        self.txt_subject.setPlaceholderText("Subject Name (e.g. Visualisation des données)")
+        form_row.addWidget(self.txt_subject, stretch=1)
 
         self.cmb_core = QComboBox()
-        for c in ("TP", "COURS", "TD", "CI"):
+        for c in ("COURS", "TD", "TP", "CI"):
             self.cmb_core.addItem(c)
         self.cmb_core.setFixedWidth(85)
-        bar_layout.addWidget(self.cmb_core)
+        form_row.addWidget(self.cmb_core)
 
         self.txt_location = QLineEdit()
         self.txt_location.setPlaceholderText("Room/Lab")
-        self.txt_location.setFixedWidth(90)
-        bar_layout.addWidget(self.txt_location)
+        self.txt_location.setFixedWidth(85)
+        form_row.addWidget(self.txt_location)
 
         self.btn_add_session = QPushButton("+ Add Class")
         self.btn_add_session.setStyleSheet(BUTTON_PRIMARY_STYLE)
         self.btn_add_session.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_add_session.clicked.connect(self._on_add_session)
-        bar_layout.addWidget(self.btn_add_session)
+        form_row.addWidget(self.btn_add_session)
 
+        bar_layout.addLayout(form_row)
         layout.addWidget(add_bar)
+
         self._refresh_table()
         return container
 
+    def _on_preset_slot_changed(self, idx: int) -> None:
+        preset_map = {
+            0: ("08:00", "09:30"),
+            1: ("09:40", "11:10"),
+            2: ("11:15", "12:45"),
+            3: ("13:30", "15:00"),
+            4: ("15:10", "16:40"),
+        }
+        if idx in preset_map:
+            s, e = preset_map[idx]
+            self.txt_start.setText(s)
+            self.txt_end.setText(e)
+
+    def _open_new_class_dialog(self) -> None:
+        existing_names = sorted({s.subject.name for s in self._sessions})
+        dialog = ClassSessionDialog(
+            session=None,
+            default_day="Lun",
+            default_start="08:00",
+            default_end="09:30",
+            existing_subjects=existing_names,
+            parent=self,
+        )
+        dialog.session_saved.connect(self._on_session_edited)
+        dialog.exec()
+
+    def _on_edit_selected_session(self) -> None:
+        selected_rows = self.table_sessions.selectionModel().selectedRows()
+        if not selected_rows:
+            return
+        row_idx = selected_rows[0].row()
+        if 0 <= row_idx < len(self._sessions):
+            self._open_session_manager(self._sessions[row_idx])
+
+    def _on_table_cell_double_clicked(self, row: int, col: int) -> None:
+        if 0 <= row < len(self._sessions):
+            self._open_session_manager(self._sessions[row])
+
+    def _filter_table_rows(self, query: str) -> None:
+        q = query.strip().lower()
+        for row in range(self.table_sessions.rowCount()):
+            day_text = self.table_sessions.item(row, 0).text().lower() if self.table_sessions.item(row, 0) else ""
+            time_text = self.table_sessions.item(row, 1).text().lower() if self.table_sessions.item(row, 1) else ""
+            subj_text = self.table_sessions.item(row, 2).text().lower() if self.table_sessions.item(row, 2) else ""
+            loc_text = self.table_sessions.item(row, 4).text().lower() if self.table_sessions.item(row, 4) else ""
+
+            match = (not q) or (q in day_text) or (q in time_text) or (q in subj_text) or (q in loc_text)
+            self.table_sessions.setRowHidden(row, not match)
+
     def _refresh_table(self) -> None:
+        # Cleanly remove and destroy existing cell widgets to prevent orphaned viewport overlays
+        for r in range(self.table_sessions.rowCount()):
+            for c in range(self.table_sessions.columnCount()):
+                w = self.table_sessions.cellWidget(r, c)
+                if w is not None:
+                    self.table_sessions.removeCellWidget(r, c)
+                    w.setParent(None)
+                    w.deleteLater()
+        self.table_sessions.clearContents()
+
         self._sessions.sort(key=lambda s: (s.day_index, s.time_slot.start))
         self.table_sessions.setRowCount(len(self._sessions))
 
         for row, s in enumerate(self._sessions):
-            day_item = QTableWidgetItem(s.day)
+            self.table_sessions.setRowHeight(row, 44)
+
+            # Day
+            day_item = QTableWidgetItem(s.day.upper())
             day_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            day_item.setFont(get_modern_font("sans", 11, QFont.Weight.Bold))
             self.table_sessions.setItem(row, 0, day_item)
 
-            time_str = f"{s.time_slot.start} - {s.time_slot.end}"
+            # Time
+            time_str = f"{s.time_slot.start} – {s.time_slot.end}"
             time_item = QTableWidgetItem(time_str)
             time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            time_item.setFont(get_modern_font("mono", 11, QFont.Weight.Medium))
             self.table_sessions.setItem(row, 1, time_item)
 
+            # Subject
             clean_name = ScheduleEngine.clean_subject_name(s.subject.name)
-            self.table_sessions.setItem(row, 2, QTableWidgetItem(clean_name))
+            subj_item = QTableWidgetItem(clean_name)
+            subj_item.setFont(get_modern_font("sans", 11, QFont.Weight.Bold))
+            self.table_sessions.setItem(row, 2, subj_item)
 
-            core_item = QTableWidgetItem(s.subject.core)
+            # Type
+            core_upper = s.subject.core.upper()
+            core_item = QTableWidgetItem(core_upper)
             core_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            core_item.setFont(get_modern_font("sans", 10, QFont.Weight.Bold))
             self.table_sessions.setItem(row, 3, core_item)
 
-            self.table_sessions.setItem(row, 4, QTableWidgetItem(s.location))
+            # Location
+            loc_item = QTableWidgetItem(s.location or "—")
+            loc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table_sessions.setItem(row, 4, loc_item)
+
+            # Actions Column
+            action_cell = QWidget()
+            cell_layout = QHBoxLayout(action_cell)
+            cell_layout.setContentsMargins(4, 4, 4, 4)
+            cell_layout.setSpacing(6)
+            cell_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            btn_edit = QPushButton("✏ Edit")
+            btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_edit.setFixedHeight(26)
+            btn_edit.setMinimumWidth(64)
+            btn_edit.setStyleSheet("""
+                QPushButton {
+                    background-color: #272732;
+                    color: #FFFFFF;
+                    border: 1px solid #3F3F4A;
+                    border-radius: 4px;
+                    padding: 2px 8px;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background-color: #38BDF8;
+                    color: #000000;
+                    border-color: #38BDF8;
+                }
+            """)
+            btn_edit.clicked.connect(lambda _, sess=s: self._open_session_manager(sess))
+            cell_layout.addWidget(btn_edit)
+
+            btn_del = QPushButton("🗑")
+            btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_del.setFixedSize(28, 26)
+            btn_del.setStyleSheet("""
+                QPushButton {
+                    background-color: #1A1A22;
+                    color: #F87171;
+                    border: 1px solid #2E2E38;
+                    border-radius: 4px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #EF4444;
+                    color: #FFFFFF;
+                    border-color: #EF4444;
+                }
+            """)
+            btn_del.clicked.connect(lambda _, sess=s: self._on_session_deleted(sess))
+            cell_layout.addWidget(btn_del)
+
+            self.table_sessions.setCellWidget(row, 5, action_cell)
+
+        # Re-apply filter if text was typed
+        if hasattr(self, "txt_filter") and self.txt_filter.text():
+            self._filter_table_rows(self.txt_filter.text())
 
     def _on_add_session(self) -> None:
         day = self.cmb_day.currentText()
-        start = self.txt_start.text().strip()
-        end = self.txt_end.text().strip()
+        raw_start = self.txt_start.text().strip()
+        raw_end = self.txt_end.text().strip()
         subject = self.txt_subject.text().strip()
         core = self.cmb_core.currentText()
         location = self.txt_location.text().strip()
 
-        if not start or not end or not subject:
+        if not subject:
+            self.lbl_quick_status.setText("⚠️ Please enter a subject name")
+            self.lbl_quick_status.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 600;")
+            self.txt_subject.setFocus()
+            return
+
+        start = normalize_time_str(raw_start)
+        end = normalize_time_str(raw_end)
+
+        if not start or not end:
+            self.lbl_quick_status.setText("⚠️ Invalid time format (use HH:MM)")
+            self.lbl_quick_status.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 600;")
+            return
+
+        if start >= end:
+            self.lbl_quick_status.setText("⚠️ Start time must be before end time")
+            self.lbl_quick_status.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 600;")
             return
 
         session = AcademicSession(
@@ -691,6 +967,9 @@ class ScheduleScreenWidget(QWidget):
         self._refresh_table()
         self._refresh_calendar_grid()
         self.timetable_changed.emit(self._sessions)
+
+        self.lbl_quick_status.setText("✓ Class added successfully!")
+        self.lbl_quick_status.setStyleSheet("color: #10B981; font-size: 11px; font-weight: 600;")
 
         self.txt_subject.clear()
         self.txt_location.clear()
@@ -728,9 +1007,19 @@ class ScheduleScreenWidget(QWidget):
         dialog.exec()
 
     def _on_session_edited(self, old_session: AcademicSession | None, new_session: AcademicSession) -> None:
-        if old_session is not None and old_session in self._sessions:
-            idx = self._sessions.index(old_session)
-            self._sessions[idx] = new_session
+        if old_session is not None:
+            if old_session in self._sessions:
+                idx = self._sessions.index(old_session)
+                self._sessions[idx] = new_session
+            else:
+                matched = False
+                for i, s in enumerate(self._sessions):
+                    if s.day.lower() == old_session.day.lower() and s.time_slot.start == old_session.time_slot.start:
+                        self._sessions[i] = new_session
+                        matched = True
+                        break
+                if not matched:
+                    self._sessions.append(new_session)
         else:
             self._sessions.append(new_session)
 
