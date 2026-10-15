@@ -201,7 +201,10 @@ class FocusWidget(QWidget):
             self.lbl_task_title.show()
             due_date = getattr(todo, "due_date", None)
             if due_date:
-                due_str = due_date.strftime("%a, %b %d at %H:%M")
+                if due_date.hour == 0 and due_date.minute in (0, 5):
+                    due_str = due_date.strftime("%a, %b %d")
+                else:
+                    due_str = due_date.strftime("%a, %b %d at %H:%M")
                 self.lbl_task_due.setText(f"Due: {due_str}")
                 self.lbl_task_due.show()
             else:

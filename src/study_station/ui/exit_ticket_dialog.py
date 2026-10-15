@@ -148,7 +148,11 @@ class ExitTicketDialog(QDialog):
         # ---------------------------------------------------------------------
         # 3. Confidence Rating: Traffic Light (🔴 Foggy / 🟡 Getting There / 🟢 Solid)
         # ---------------------------------------------------------------------
-        sec2 = QVBoxLayout()
+        # 3. Confidence Rating: Traffic Light (🔴 Foggy / 🟡 Getting There / 🟢 Solid)
+        # ---------------------------------------------------------------------
+        self.sec2_widget = QWidget()
+        sec2 = QVBoxLayout(self.sec2_widget)
+        sec2.setContentsMargins(0, 0, 0, 0)
         sec2.setSpacing(8)
 
         lbl_q2 = QLabel("2. How confident do you feel about this material?")
@@ -177,21 +181,23 @@ class ExitTicketDialog(QDialog):
         row_conf.addWidget(self.btn_conf_solid)
 
         sec2.addLayout(row_conf)
-        content.addLayout(sec2)
+        content.addWidget(self.sec2_widget)
 
         # ---------------------------------------------------------------------
-        # 4. In-Class Question Formulation
+        # 4. In-Class Question Formulation (Adaptive / Optional)
         # ---------------------------------------------------------------------
-        sec3 = QVBoxLayout()
+        self.sec3_widget = QWidget()
+        sec3 = QVBoxLayout(self.sec3_widget)
+        sec3.setContentsMargins(0, 0, 0, 0)
         sec3.setSpacing(4)
 
         lbl_q3 = QLabel("3. Formulate 1 Question for Next Class (Optional):")
         lbl_q3.setStyleSheet("color: #F4F4F6; font-size: 13px; font-weight: 700;")
         sec3.addWidget(lbl_q3)
 
-        lbl_q3_hint = QLabel("What made you pause? Pinned to next week's card so you can ask the professor.")
-        lbl_q3_hint.setStyleSheet("color: #71717A; font-size: 11px;")
-        sec3.addWidget(lbl_q3_hint)
+        self.lbl_q3_hint = QLabel("What made you pause? Pinned to next week's card so you can ask the professor.")
+        self.lbl_q3_hint.setStyleSheet("color: #71717A; font-size: 11px;")
+        sec3.addWidget(self.lbl_q3_hint)
 
         self.txt_question = QLineEdit()
         self.txt_question.setPlaceholderText("e.g. Why does Kerberos require synchronized system clocks within 5 min?")
@@ -211,12 +217,14 @@ class ExitTicketDialog(QDialog):
         if self.todo and self.todo.next_class_question:
             self.txt_question.setText(self.todo.next_class_question)
         sec3.addWidget(self.txt_question)
-        content.addLayout(sec3)
+        content.addWidget(self.sec3_widget)
 
         # ---------------------------------------------------------------------
         # 5. 1-Sentence Feynman Takeaway
         # ---------------------------------------------------------------------
-        sec4 = QVBoxLayout()
+        self.sec4_widget = QWidget()
+        sec4 = QVBoxLayout(self.sec4_widget)
+        sec4.setContentsMargins(0, 0, 0, 0)
         sec4.setSpacing(4)
 
         lbl_q4 = QLabel("4. 1-Sentence Takeaway / Note (Optional):")
@@ -240,7 +248,19 @@ class ExitTicketDialog(QDialog):
         """)
         self.txt_takeaway.returnPressed.connect(self._on_save_clicked)
         sec4.addWidget(self.txt_takeaway)
-        content.addLayout(sec4)
+        content.addWidget(self.sec4_widget)
+
+        # ---------------------------------------------------------------------
+        # Continuation Sprint Notice
+        # ---------------------------------------------------------------------
+        self.continuation_widget = QWidget()
+        cont_layout = QVBoxLayout(self.continuation_widget)
+        cont_layout.setContentsMargins(0, 4, 0, 4)
+        lbl_cont = QLabel("⚡ Ready for continuation sprint! Completed focus minutes are already credited.")
+        lbl_cont.setStyleSheet("color: #38BDF8; font-size: 12px; font-weight: 600;")
+        cont_layout.addWidget(lbl_cont)
+        self.continuation_widget.hide()
+        content.addWidget(self.continuation_widget)
 
         content.addStretch()
 
@@ -251,7 +271,7 @@ class ExitTicketDialog(QDialog):
         bottom_row.setContentsMargins(0, 0, 0, 0)
         bottom_row.setSpacing(10)
 
-        btn_skip = QPushButton("Skip Debrief")
+        btn_skip = QPushButton("Skip Ticket")
         btn_skip.setStyleSheet(BUTTON_NAV_STYLE)
         btn_skip.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_skip.clicked.connect(self.reject)
@@ -268,9 +288,10 @@ class ExitTicketDialog(QDialog):
 
         content.addLayout(bottom_row)
 
-        # Apply initial visual selection
+        # Apply initial visual selection & visibility
         self._update_action_styles()
         self._update_confidence_styles()
+        self._update_visibility()
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -281,6 +302,39 @@ class ExitTicketDialog(QDialog):
     def _set_action(self, action: str) -> None:
         self.selected_action = action
         self._update_action_styles()
+        self._update_visibility()
+
+    def _set_confidence(self, conf: str) -> None:
+        self.selected_confidence = conf
+        self._update_confidence_styles()
+        self._update_visibility()
+
+    def _update_visibility(self) -> None:
+        """Adaptively show/hide questions based on action and confidence level."""
+        if self.selected_action == "extend":
+            self.sec2_widget.hide()
+            self.sec3_widget.hide()
+            self.sec4_widget.hide()
+            self.continuation_widget.show()
+            self.btn_save.setText("▶ Resume +10m Focus")
+        else:
+            self.continuation_widget.hide()
+            self.sec2_widget.show()
+            self.sec4_widget.show()
+            self.btn_save.setText("Done && Save")
+
+            # Adaptive question display: hide if solid confidence and no pending question
+            has_question_text = bool(self.txt_question.text().strip())
+            if self.selected_confidence == "solid" and not has_question_text:
+                self.sec3_widget.hide()
+            else:
+                self.sec3_widget.show()
+                if self.selected_confidence == "foggy":
+                    self.lbl_q3_hint.setText("⚠️ Foggy comprehension: Formulate 1 question to ask your professor in next class.")
+                    self.lbl_q3_hint.setStyleSheet("color: #F87171; font-size: 11px; font-weight: 600;")
+                else:
+                    self.lbl_q3_hint.setText("What made you pause? Pinned to next week's card so you can ask the professor.")
+                    self.lbl_q3_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500;")
 
     def _update_action_styles(self) -> None:
         style_default = """
@@ -335,10 +389,6 @@ class ExitTicketDialog(QDialog):
         self.btn_act_complete.setStyleSheet(style_complete if self.selected_action == "complete" else style_default)
         self.btn_act_extend.setStyleSheet(style_extend if self.selected_action == "extend" else style_default)
         self.btn_act_aside.setStyleSheet(style_aside if self.selected_action == "put_aside" else style_default)
-
-    def _set_confidence(self, conf: str) -> None:
-        self.selected_confidence = conf
-        self._update_confidence_styles()
 
     def _update_confidence_styles(self) -> None:
         style_default = """

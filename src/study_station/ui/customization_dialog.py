@@ -42,7 +42,7 @@ class CustomizationDialog(QDialog):
     def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Clock & Display Customization")
-        self.setFixedSize(500, 715)
+        self.setFixedSize(510, 740)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -103,27 +103,27 @@ class CustomizationDialog(QDialog):
         main_layout.addWidget(container)
 
         container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(24, 14, 24, 14)
-        container_layout.setSpacing(6)
+        container_layout.setContentsMargins(20, 10, 20, 10)
+        container_layout.setSpacing(4)
 
         # Header with title and close button
         header_layout = QHBoxLayout()
         title = QLabel("Settings & Customization")
-        title.setFont(get_modern_font("sans", 17, QFont.Weight.Bold))
-        title.setMinimumHeight(28)
+        title.setFont(get_modern_font("sans", 16, QFont.Weight.Bold))
+        title.setMinimumHeight(26)
         title.setStyleSheet("padding: 0px 0 2px 0;")
         header_layout.addWidget(title)
         header_layout.addStretch()
 
         btn_close = QPushButton("✕")
-        btn_close.setFixedSize(28, 28)
+        btn_close.setFixedSize(26, 26)
         btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_close.setStyleSheet("""
             QPushButton {
                 background-color: #1C1C1F;
                 color: #A1A1AA;
-                font-size: 14px;
-                border-radius: 14px;
+                font-size: 13px;
+                border-radius: 13px;
                 border: 1px solid #27272A;
             }
             QPushButton:hover {
@@ -144,17 +144,18 @@ class CustomizationDialog(QDialog):
                 border: none;
             }
             QScrollBar:vertical {
-                width: 4px;
-                background: transparent;
+                width: 6px;
+                background: rgba(0, 0, 0, 0.15);
+                border-radius: 3px;
                 margin: 0px;
             }
             QScrollBar::handle:vertical {
-                background: #272732;
+                background: #2E2E3A;
                 min-height: 24px;
-                border-radius: 2px;
+                border-radius: 3px;
             }
             QScrollBar::handle:vertical:hover {
-                background: #3F3F4E;
+                background: #4A4A5E;
             }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
@@ -162,13 +163,14 @@ class CustomizationDialog(QDialog):
                 background: transparent;
             }
         """)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background: transparent;")
         content_layout = QVBoxLayout(scroll_content)
         content_layout.setContentsMargins(0, 0, 6, 0)
-        content_layout.setSpacing(8)
+        content_layout.setSpacing(6)
 
         # Section 1: Time Format
         sec1_lbl = QLabel("TIME FORMAT")
@@ -385,9 +387,10 @@ class CustomizationDialog(QDialog):
 
         # Done button pinned at bottom
         done_layout = QHBoxLayout()
+        done_layout.setContentsMargins(0, 4, 0, 0)
         done_layout.addStretch()
         btn_done = QPushButton("Done")
-        btn_done.setFixedSize(160, 36)
+        btn_done.setFixedSize(140, 32)
         btn_done.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_done.setStyleSheet(BUTTON_PRIMARY_STYLE)
         btn_done.clicked.connect(self.accept)
@@ -551,7 +554,7 @@ class CustomizationDialog(QDialog):
     def _create_divider() -> QFrame:
         div = QFrame()
         div.setFixedHeight(1)
-        div.setStyleSheet("background-color: #1E1E26; margin: 2px 0; border: none;")
+        div.setStyleSheet("background-color: #1A1A22; margin: 1px 0; border: none;")
         return div
 
     def showEvent(self, event) -> None:

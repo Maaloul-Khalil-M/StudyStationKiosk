@@ -325,6 +325,7 @@ class ScheduleScreenWidget(QWidget):
         self._now = datetime.now()
         self._current_view_date: date = self._now.date()
         self._debrief_banner_dismissed = False
+        self._priority_card_dismissed = False
         self._current_priority_todo: StudyTodo | None = None
 
         self._build_ui()
@@ -342,11 +343,16 @@ class ScheduleScreenWidget(QWidget):
         main_layout.setSpacing(10)
 
         # ---------------------------------------------------------------------
-        # Top Navigation & Header Bar
+        # Top Navigation & Header Bar (3 Balanced Clusters)
         # ---------------------------------------------------------------------
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(8)
+
+        # 1. Left Cluster: Student Identity & Evening Rituals
+        left_cluster = QHBoxLayout()
+        left_cluster.setContentsMargins(0, 0, 0, 0)
+        left_cluster.setSpacing(6)
 
         self.btn_user = QPushButton(f"👤 {self._current_user}")
         self.btn_user.setStyleSheet("""
@@ -367,13 +373,7 @@ class ScheduleScreenWidget(QWidget):
         self.btn_user.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_user.setToolTip("Switch user profile (no password)")
         self.btn_user.clicked.connect(self.open_switch_user_requested.emit)
-        header.addWidget(self.btn_user)
-
-        self.btn_ambient = QPushButton("⏱ Clock")
-        self.btn_ambient.setStyleSheet(BUTTON_NAV_STYLE)
-        self.btn_ambient.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_ambient.clicked.connect(self.ambient_requested.emit)
-        header.addWidget(self.btn_ambient)
+        left_cluster.addWidget(self.btn_user)
 
         self.btn_debrief = QPushButton("⚡ Debrief")
         self.btn_debrief.setStyleSheet("""
@@ -393,13 +393,21 @@ class ScheduleScreenWidget(QWidget):
         """)
         self.btn_debrief.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_debrief.clicked.connect(self.open_debrief_requested.emit)
-        header.addWidget(self.btn_debrief)
+        left_cluster.addWidget(self.btn_debrief)
 
         self.btn_tasks = QPushButton("✓ Tasks")
         self.btn_tasks.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_tasks.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_tasks.clicked.connect(self.open_tasks_requested.emit)
-        header.addWidget(self.btn_tasks)
+        left_cluster.addWidget(self.btn_tasks)
+
+        header.addLayout(left_cluster)
+        header.addStretch(1)
+
+        # 2. Center Cluster: Title & Academic Week Navigator
+        center_cluster = QHBoxLayout()
+        center_cluster.setContentsMargins(0, 0, 0, 0)
+        center_cluster.setSpacing(8)
 
         title_col = QVBoxLayout()
         title_col.setSpacing(1)
@@ -410,9 +418,7 @@ class ScheduleScreenWidget(QWidget):
         self.lbl_sub = QLabel("Click class to inspect · Esc to return")
         self.lbl_sub.setStyleSheet("color: #71717A; font-size: 11px;")
         title_col.addWidget(self.lbl_sub)
-        header.addLayout(title_col)
-
-        header.addSpacing(10)
+        center_cluster.addLayout(title_col)
 
         # Tactile Week Navigator: [ ‹ ] [ 12 – 17 OCT 2026 ] [ › ] [ Today ]
         self.week_nav_container = QWidget()
@@ -487,9 +493,21 @@ class ScheduleScreenWidget(QWidget):
         self.btn_today.hide()
         week_layout.addWidget(self.btn_today)
 
-        header.addWidget(self.week_nav_container)
+        center_cluster.addWidget(self.week_nav_container)
+        header.addLayout(center_cluster)
 
-        header.addStretch()
+        header.addStretch(1)
+
+        # 3. Right Cluster: Station Views, View Switcher & Portability Tools
+        right_cluster = QHBoxLayout()
+        right_cluster.setContentsMargins(0, 0, 0, 0)
+        right_cluster.setSpacing(6)
+
+        self.btn_ambient = QPushButton("⏱ Clock")
+        self.btn_ambient.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_ambient.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_ambient.clicked.connect(self.ambient_requested.emit)
+        right_cluster.addWidget(self.btn_ambient)
 
         # View Mode Toggle: [ Grid View | Edit Classes ]
         self.btn_mode_grid = QPushButton("Grid View")
@@ -506,28 +524,29 @@ class ScheduleScreenWidget(QWidget):
             }
         """)
         self.btn_mode_grid.clicked.connect(lambda: self._set_view_mode(0))
-        header.addWidget(self.btn_mode_grid)
+        right_cluster.addWidget(self.btn_mode_grid)
 
         self.btn_mode_edit = QPushButton("Edit Classes")
         self.btn_mode_edit.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_mode_edit.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_mode_edit.clicked.connect(lambda: self._set_view_mode(1))
-        header.addWidget(self.btn_mode_edit)
+        right_cluster.addWidget(self.btn_mode_edit)
 
         # Import / Export Portability Button
         self.btn_portability = QPushButton("⇄ Import / Export")
         self.btn_portability.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_portability.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_portability.clicked.connect(self.open_import_export_requested.emit)
-        header.addWidget(self.btn_portability)
+        right_cluster.addWidget(self.btn_portability)
 
         # Original PDF Button
         btn_pdf = QPushButton("PDF")
         btn_pdf.setStyleSheet(BUTTON_NAV_STYLE)
         btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_pdf.clicked.connect(self._open_original_doc)
-        header.addWidget(btn_pdf)
+        right_cluster.addWidget(btn_pdf)
 
+        header.addLayout(right_cluster)
         main_layout.addLayout(header)
 
         # ---------------------------------------------------------------------
@@ -684,6 +703,27 @@ class ScheduleScreenWidget(QWidget):
         self.btn_priority_focus.clicked.connect(self._on_start_priority_focus)
         layout.addWidget(self.btn_priority_focus)
 
+        btn_dismiss_prio = QPushButton("✕")
+        btn_dismiss_prio.setToolTip("Dismiss priority task capsule")
+        btn_dismiss_prio.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_dismiss_prio.setFixedSize(24, 24)
+        btn_dismiss_prio.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #818CF8;
+                border: 1px solid transparent;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #FFFFFF;
+            }
+        """)
+        btn_dismiss_prio.clicked.connect(self._dismiss_priority_card)
+        layout.addWidget(btn_dismiss_prio)
+
         card.hide()
         return card
 
@@ -691,6 +731,11 @@ class ScheduleScreenWidget(QWidget):
         self._debrief_banner_dismissed = True
         if hasattr(self, "debrief_banner"):
             self.debrief_banner.hide()
+
+    def _dismiss_priority_card(self) -> None:
+        self._priority_card_dismissed = True
+        if hasattr(self, "priority_task_card"):
+            self.priority_task_card.hide()
 
     def _on_start_priority_focus(self) -> None:
         if self._current_priority_todo is not None:
@@ -718,7 +763,7 @@ class ScheduleScreenWidget(QWidget):
         if hasattr(self, "priority_task_card"):
             priority_todo = self.engine.get_priority_study_todo(now)
             self._current_priority_todo = priority_todo
-            if priority_todo is not None:
+            if priority_todo is not None and not self._priority_card_dismissed:
                 due_str = priority_todo.due_date.strftime("%a, %b %d at %H:%M")
                 if priority_todo.is_overdue(now):
                     due_text = f"<span style='color: #EF4444; font-weight: 700;'>⚠️ OVERDUE</span> · Was due: {due_str}"

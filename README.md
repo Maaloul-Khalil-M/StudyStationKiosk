@@ -8,7 +8,7 @@
 [![PySide6 / Qt](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-41CD52?style=flat&logo=qt&logoColor=white)](https://www.qt.io/)
 [![SQLite WAL](https://img.shields.io/badge/Database-SQLite%20(WAL)-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Local-First](https://img.shields.io/badge/Architecture-100%25%20Offline%20%2F%20Local--First-black?style=flat)](#)
-[![Tests Passing](https://img.shields.io/badge/Tests-124%2F124%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
+[![Tests Passing](https://img.shields.io/badge/Tests-129%2F129%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
 [![Zero Cloud](https://img.shields.io/badge/Privacy-Zero%20Cloud%20%2F%20Zero%20Electron-6366F1?style=flat)](#)
 
 </div>
@@ -32,7 +32,7 @@ Study Station bridges the gap between consecutive occurrences of the same subjec
 ### The Academic Cockpit (Primary Station)
 The weekly schedule grid acts as the student's default mission control, highlighting real calendar dates, live task badges, the Evening Desk Routine banner, Tonight's Priority Task capsule, and 1-click User Switch button (`[ 👤 Default ]`).
 
-![Weekly Schedule Academic Cockpit](docs/screens/grid_schedual.png)
+![Weekly Schedule Academic Cockpit](docs/screens/grid_schedule.png)
 
 <br/>
 
@@ -292,7 +292,7 @@ Study Station is designed for rapid, keyboard-first workstation operation:
 Study Station is backed by a deterministic, zero-external-dependency test suite running on `unittest`:
 
 ```bash
-# Run all 114 unit tests across all 17 test suites
+# Run all 129 unit tests across all 18 test suites
 $env:PYTHONPATH="src"; python -m unittest discover tests
 ```
 
@@ -303,11 +303,11 @@ $env:PYTHONPATH="src"; python -m unittest discover tests
 - **Interactive UI**: Headless verification of `ScheduleScreenWidget`, `SubjectDashboardWidget`, `SplitFlapClockWidget`, `DebriefDialog`, `ExitTicketDialog`, `SubjectPreparationSheet`, `TasksDialog`, and `FocusWidget`.
 
 ```
-..................................................................................................................
+.................................................................................................................................
 ----------------------------------------------------------------------
-Ran 114 tests in 8.446s
+Ran 129 tests in 14.489s
 
-OK (100% passing across 17 test suites)
+OK (100% passing across 18 test suites)
 ```
 
 ---
@@ -320,8 +320,8 @@ You can programmatically re-generate all high-resolution documentation screensho
 $env:PYTHONPATH="src"; python scripts/capture_screens.py
 ```
 This script renders and grabs:
-- `docs/screens/grid_schedual.png` (Academic Cockpit Grid)
-- `docs/screens/editSchedual.png` (Full-height class session table)
+- `docs/screens/grid_schedule.png` (Academic Cockpit Grid)
+- `docs/screens/edit_schedule.png` (Full-height class session table)
 - `docs/screens/clock_no_hover.png` (Ambient sprint launchpad in idle mode)
 - `docs/screens/clock_with_hover.png` (Sprint launchpad with active launchers)
 - `docs/screens/focus.png` (Radial focus gauge tethered to task)
@@ -337,6 +337,8 @@ This script renders and grabs:
 ---
 
 ## 10. Milestone Implementation Roadmap
+
+*See [`docs/ROADMAP_TIERS.md`](docs/ROADMAP_TIERS.md) for the detailed 3-tier architectural roadmap.*
 
 | Milestone | Title | Focus Area | Status |
 |:---:|:---|:---|:---:|
@@ -359,6 +361,7 @@ This script renders and grabs:
 | **15.5** | Runtime Stability & Backlog Polish | Signal lifecycle stability, font evaluation, upcoming class calculations | `[COMPLETED]` |
 | **16** | UI Professionalization & Sprint Launchpad | Split-flap mechanical clock, dynamic customization engine, active task sprint launcher | `[COMPLETED]` |
 | **17** | Multi-User Profiles & DB Isolation | Zero-password user switching, isolated SQLite databases, instant seeding, and top-bar button | `[COMPLETED]` |
+| **18** | Immediate UX Polish & Anti-Fatigue Workflows | Top-bar clustering, adaptive exit ticket, priority dismiss, positive clock framing | `[COMPLETED]` |
 
 ---
 

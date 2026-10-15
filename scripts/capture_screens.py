@@ -160,12 +160,16 @@ def main():
     window._schedule_widget.debrief_banner.show()
     window._schedule_widget.priority_task_card.show()
     app.processEvents()
-    save_both(window.grab(), "grid_schedual.png", "s1 main-grid.png")
+    pix_grid = window.grab()
+    save_both(pix_grid, "grid_schedule.png", "s1 main-grid.png")
+    pix_grid.save(str(out_dir / "grid_schedual.png"))
 
-    # 2. Capture Edit Classes view (editSchedual.png / s4 edit classes.png)
+    # 2. Capture Edit Classes view (edit_schedule.png / editSchedual.png / s4 edit classes.png)
     window._schedule_widget._set_view_mode(1)
     app.processEvents()
-    save_both(window.grab(), "editSchedual.png", "s4 edit classes.png")
+    pix_edit = window.grab()
+    save_both(pix_edit, "edit_schedule.png", "s4 edit classes.png")
+    pix_edit.save(str(out_dir / "editSchedual.png"))
     window._schedule_widget._set_view_mode(0)
     app.processEvents()
 
@@ -230,7 +234,7 @@ def main():
 
     # 10. Capture Settings / Customization Dialog (settings.png / s8 settings.png)
     settings_dlg = CustomizationDialog(settings=AppSettings())
-    settings_dlg.resize(500, 680)
+    settings_dlg.resize(510, 740)
     settings_dlg.show()
     app.processEvents()
     save_both(settings_dlg.grab(), "settings.png", "s8 settings.png")
@@ -242,7 +246,7 @@ def main():
         elapsed_minutes=15,
         todo=todo_prio,
     )
-    exit_dlg.resize(540, 520)
+    exit_dlg.resize(680, 560)
     exit_dlg.show()
     app.processEvents()
     save_both(exit_dlg.grab(), "exit_ticket.png", "s9 exit_ticket.png")

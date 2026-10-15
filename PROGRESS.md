@@ -680,9 +680,40 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 
 ---
 
+### Milestone 18: Immediate UX Polish & Anti-Fatigue Workflows (Tier 1 Roadmap) `[COMPLETED]`
+- [x] **Settings & Customization Dialog Layout Overhaul (`CustomizationDialog`)**:
+  - Resized dialog container to 510×740px to eliminate vertical clipping of the Study Management section.
+  - Tightened content spacing and divider heights; styled scrollbar with smooth background track.
+  - Sized `[ Done ]` button to 140×32px with dedicated top margin, preventing overlap with controls.
+- [x] **Cognitive Exit Ticket Anti-Fatigue Adaptive Workflow (`ExitTicketDialog`)**:
+  - **Instant Continuation Sprint**: Clicking `[ +10m Need More Time ]` adaptively collapses questions 3 & 4 and updates save trigger to `[ ▶ Resume +10m Focus ]`.
+  - **Adaptive Question Revelation**: If `🟢 Solid` confidence is chosen, Question 3 ("Formulate Question for Professor") is automatically hidden unless existing question text is present, cutting questionnaire cognitive fatigue by over 50%.
+  - When `🔴 Foggy` is selected, Question 3 expands prominently with an amber/red reminder banner.
+  - Renamed bottom dismiss action from ambiguous `Skip Debrief` to `Skip Ticket`.
+- [x] **Weekly Schedule Cockpit 3-Cluster Top-Bar Architecture (`ScheduleScreenWidget`)**:
+  - Organized previously crowded 9-item top bar into 3 balanced visual clusters:
+    - **Left Cluster (Identity & Rituals):** `[ 👤 {Username} ]`, `[ ⚡ Debrief ]`, `[ ✓ Tasks ]`.
+    - **Center Cluster (Academic Calendar):** `WEEKLY SCHEDULE` + `[ ‹ ]  12 – 17 OCT 2026  [ › ]  [ Today ]`.
+    - **Right Cluster (Station Views & Tools):** `[ ⏱ Clock ]`, `[ Grid View | Edit Classes ]`, `[ ⇄ Import / Export ]`, `[ PDF ]`.
+  - Stretched layout spacers between clusters preventing horizontal squeeze on 1366×768 displays.
+- [x] **Dismissible Priority Task Capsule (`ScheduleScreenWidget`)**:
+  - Added discrete `[ ✕ ]` dismiss button to `priority_task_card` and implemented `_dismiss_priority_card()` allowing students to easily reclaim full 768p vertical height for afternoon class rows on demand.
+- [x] **Positive Target Framing on Ambient Flip Clock (`SubjectDashboardWidget`)**:
+  - Eliminated guilt-inducing `● 0 / 60 MIN COMPLETED · 0%` when 0 minutes are logged.
+  - Formatted 0-minute state as `🎯 {tgt} MIN TARGET · READY TO FOCUS`.
+- [x] **High-Contrast Abort Button & Clean Due Date Context**:
+  - Upgraded `BUTTON_DANGER_STYLE` in `theme.py` to `#201315` container with `#5C1D24` border and `#FCA5A5` text.
+  - Filtered off-hour midnight minutes in `FocusWidget` (`Due: Sun, Oct 18` instead of `at 00:05`).
+- [x] **Typo Normalization & Documentation Sync**:
+  - Renamed screenshot outputs to `grid_schedule.png` and `edit_schedule.png` with backwards-compatible aliases.
+  - Synchronized `README.md` test counter badge and summary to 129/129 tests passing.
+  - Documented full 3-tier roadmap in [`docs/ROADMAP_TIERS.md`](docs/ROADMAP_TIERS.md).
+
+---
+
 ## Complete Academic Station Milestone Summary
 
-Study Station is fully realized across 20 comprehensive development milestones:
+Study Station is fully realized across 21 comprehensive development milestones:
 1. **Milestone 1: Project Foundation & Screen Framework** `[COMPLETED]` — Window lifecycle, fullscreen, Linux X11/Xfce support.
 2. **Milestone 2: Ambient Flip Clock & Schedule Engine** `[COMPLETED]` — Retro minimal typography, ScheduleEngine timetable parsing.
 3. **Milestone 2.5: Modern UI Redesign & Calm Discipline** `[COMPLETED]` — 3D flip card animations, auto-hiding action bars.
@@ -703,6 +734,8 @@ Study Station is fully realized across 20 comprehensive development milestones:
 18. **Milestone 15.5: Runtime Stability & Backlog Polish** `[COMPLETED]` — Signal lifecycle stability, font sizing evaluation, upcoming class calculations.
 19. **Milestone 16: UI Professionalization, Customization Engine & Academic Sprint Launchpad** `[COMPLETED]` — Mechanical clock overhaul, dynamic UI themes, reclaimed session space, and active task sprint launcher.
 20. **Milestone 17: Multi-User Profile Architecture, Zero-Password Database Isolation & Clean Slate Options** `[COMPLETED]` — Zero-password user switching, isolated SQLite databases, clean slate default with optional template loading, on-demand Empty Schedule & Empty Tasks actions, and top-bar switch button.
+21. **Milestone 18: Immediate UX Polish & Anti-Fatigue Workflows (Tier 1 Roadmap)** `[COMPLETED]` — Top-bar clustering, adaptive exit ticket, priority dismiss, positive clock framing, and test telemetry sync.
+
 
 
 

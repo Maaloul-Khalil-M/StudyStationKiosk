@@ -206,22 +206,22 @@ QPushButton:pressed {
 
 BUTTON_DANGER_STYLE = """
 QPushButton {
-    background-color: #161214;
-    color: #F87171;
+    background-color: #201315;
+    color: #FCA5A5;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     height: 36px;
-    border: 1px solid #3B1C1C;
+    border: 1px solid #5C1D24;
     border-radius: 18px;
     padding: 0px 18px;
 }
 QPushButton:hover {
-    background-color: #261618;
-    color: #EF4444;
-    border-color: #7F1D1D;
+    background-color: #38151A;
+    color: #FFFFFF;
+    border-color: #EF4444;
 }
 QPushButton:pressed {
-    background-color: #120E10;
+    background-color: #180D0F;
 }
 """
 

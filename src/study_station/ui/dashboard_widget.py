@@ -750,11 +750,14 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_status_badge.setText(f"{tgt} MIN")
         self.lbl_cycle_progress.setText(f"{comp} / {tgt} MIN")
 
-        slide_progress = f"● {comp} / {tgt} MIN COMPLETED · {pct}%"
-        slide_next = f"NEXT CLASS · {clean_next}"
-        slide_format = f"{summary.core} · {summary.location or 'Class'}"
         if summary.is_current_class:
             slide_progress = f"● IN CLASS NOW · {summary.core}"
+        elif comp == 0:
+            slide_progress = f"🎯 {tgt} MIN TARGET · READY TO FOCUS"
+        else:
+            slide_progress = f"● {comp} / {tgt} MIN COMPLETED · {pct}%"
+
+        slide_next = f"NEXT CLASS · {clean_next}"
 
         # If there are unresolved questions for this subject, highlight as carousel slide!
         questions = self.engine.get_subject_questions(summary.name)
