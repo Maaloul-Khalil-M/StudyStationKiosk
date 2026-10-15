@@ -195,6 +195,7 @@ class ScheduleScreenWidget(QWidget):
     back_requested = Signal()
     subject_selected = Signal(str)
     timetable_changed = Signal(list)  # list[AcademicSession]
+    open_import_export_requested = Signal()
 
     TIME_SLOTS = [
         ("08:00", "09:30", "08h - 09h30"),
@@ -218,8 +219,10 @@ class ScheduleScreenWidget(QWidget):
         sessions: list[AcademicSession],
         current_subject: str | None = None,
         parent: QWidget | None = None,
+        engine: ScheduleEngine | None = None,
     ) -> None:
         super().__init__(parent)
+        self.engine = engine
         self._sessions = list(sessions)
         self._current_subject = current_subject
         self._now = datetime.now()
@@ -357,6 +360,13 @@ class ScheduleScreenWidget(QWidget):
         self.btn_mode_edit.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_mode_edit.clicked.connect(lambda: self._set_view_mode(1))
         header.addWidget(self.btn_mode_edit)
+
+        # Import / Export Portability Button
+        self.btn_portability = QPushButton("⇄ Import / Export")
+        self.btn_portability.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_portability.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_portability.clicked.connect(self.open_import_export_requested.emit)
+        header.addWidget(self.btn_portability)
 
         # Original PDF Button
         btn_pdf = QPushButton("Original PDF")

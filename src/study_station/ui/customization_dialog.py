@@ -27,6 +27,7 @@ class CustomizationDialog(QDialog):
     open_timetable_requested = Signal()
     open_targets_requested = Signal()
     open_manual_log_requested = Signal()
+    open_import_export_requested = Signal()
 
     def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -292,6 +293,12 @@ class CustomizationDialog(QDialog):
         btn_manual.clicked.connect(self._on_manual_clicked)
         tools_layout.addWidget(btn_manual)
 
+        btn_import_export = QPushButton("Import/Export")
+        btn_import_export.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_import_export.setStyleSheet(BUTTON_SECONDARY_STYLE)
+        btn_import_export.clicked.connect(self._on_import_export_clicked)
+        tools_layout.addWidget(btn_import_export)
+
         content_layout.addLayout(tools_layout)
 
         content_layout.addStretch()
@@ -315,6 +322,10 @@ class CustomizationDialog(QDialog):
     def _on_manual_clicked(self) -> None:
         self.accept()
         self.open_manual_log_requested.emit()
+
+    def _on_import_export_clicked(self) -> None:
+        self.accept()
+        self.open_import_export_requested.emit()
 
     def _on_format_changed(self) -> None:
         self._settings.use_24h = self.rb_24h.isChecked()

@@ -410,17 +410,46 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 
 ---
 
+### Milestone 9: Timetable Portability (Import & Export) `[COMPLETED]`
+- [x] **Core Serialization & Portability Engine ([`timetable_portability.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/timetable_portability.py)):**
+  - **Structured JSON Export & Import:**
+    - Exports weekly class schedule matching official `docs/example.json` schema (`sessions: [...]`) with timestamp and session count metadata.
+    - Full schema validation on import with descriptive warnings for malformed entries.
+  - **RFC 4180 CSV Export & Import:**
+    - Standard tabular format: `Day,Start,End,Subject,Core,Location`.
+    - Encoded with UTF-8 BOM (`utf-8-sig`) so Excel and spreadsheet viewers display French accents without character mojibake.
+    - Automatic delimiter sniffing: supports both comma (`,`) and French semicolon (`;`) delimited files.
+    - Flexible header detection supporting both French (`Jour`, `Début`, `Fin`, `Matière`, `Salle`) and English (`Day`, `Start`, `End`, `Subject`, `Location`).
+  - **Direct PDF Schedule Extraction:**
+    - Pure Python PDF text extraction powered by `pypdf`.
+    - Parses university grid timetables (matching `docs/grid.pdf`), extracting day blocks, course formats (`TP`, `COURS`, `TD`, `CI`), clean subject names, and rooms.
+  - **Collision Detection & Duplicate Prevention:**
+    - Deterministic time-overlap detection on identical weekdays:
+      $$\text{Overlap} \iff (\text{start}_1 < \text{end}_2) \land (\text{start}_2 < \text{end}_1)$$
+    - Duplicate-safe merging: ignores identical recurring sessions while adding new classes.
+    - Support for both **Replace Schedule** (clean overwrite) and **Merge Schedule** (keep current, add new) modes.
+- [x] **Timetable Portability Modal ([`ImportExportDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/import_export_dialog.py)):**
+  - Designed in obsidian minimal aesthetic (`#121215` canvas, `#27272A` borders) with dark scrim backdrop overlay:
+    - **Export Card:** Displays current class count, with 1-click `[ Export JSON ]` and `[ Export CSV ]` triggers.
+    - **Import Card:** File picker supporting `.json`, `.csv`, `.pdf` files.
+    - Pre-import validation preview showing detected session count, warnings, and an amber collision warning banner (`⚠️ X time overlap(s) detected`).
+    - Radio toggles for `Replace current schedule` vs `Merge and add new classes`.
+- [x] **UI & Screen Navigation Integration:**
+  - Added `[ ⇄ Import / Export ]` button in the top navigation bar of [`ScheduleScreenWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/schedule_screen_widget.py#L364-L370).
+  - Added `[ Import / Export ]` action in the `STUDY MANAGEMENT` section of [`CustomizationDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/customization_dialog.py).
+  - Added global keyboard shortcut: <kbd>I</kbd> in Dashboard and Weekly Schedule screens opens the portability modal.
+  - Live synchronization: imported sessions immediately update the active calendar grid, editor table, and ambient subject dashboard without app restart.
+- [x] **Verification & Test Suite:**
+  - Added comprehensive test suite in [`tests/test_timetable_portability.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_timetable_portability.py) (9 tests) covering JSON round-trips, CSV round-trips, French semicolon CSVs, collisions, duplicates, PDF parsing with `docs/grid.pdf`, engine integration, and dialog workflows.
+  - **100% test pass rate:** **64/64 passing unit tests** across all 11 test suites.
+  - Screenshots updated and verified: [`docs/screens/import_export.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/import_export.png) and [`docs/screens/grid_schedual.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/grid_schedual.png).
+
+---
+
 ## Next Steps Roadmap & Recommended Work
 
-### Milestone 9: Timetable Portability (Import & Export) `[RECOMMENDED NEXT]`
-- [ ] **Timetable JSON / CSV Export & Import:**
-  - Export timetable sessions to standard JSON/CSV for backup or sharing.
-  - Import schedule files directly through `TimetableDialog` with collision validation.
-- [ ] **Optional PDF Timetable Parser:**
-  - CLI/dialog helper to extract timetable sessions from university PDF schedules with a human verification step before saving.
-
-### Milestone 10: Dedicated Kiosk Mode & Packaging
-- [ ] **Custom Duration Presets:**
+### Milestone 10: Dedicated Kiosk Mode & Packaging `[RECOMMENDED NEXT]`
+- [ ] **Custom Duration Presets in Settings:**
   - Configure preferred primary focus duration (e.g., 20m, 30m) directly in Settings.
 - [ ] **Linux / Fedora Dedicated Machine Deployment:**
   - Autostart `.desktop` entry for Xfce / X11 kiosk setup.

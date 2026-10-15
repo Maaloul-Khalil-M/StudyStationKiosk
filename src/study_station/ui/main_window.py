@@ -22,6 +22,7 @@ from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.dashboard_widget import SubjectDashboardWidget
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.history_dialog import HistoryDialog
+from study_station.ui.import_export_dialog import ImportExportDialog
 from study_station.ui.manual_log_dialog import ManualLogDialog
 from study_station.ui.schedule_screen_widget import ScheduleScreenWidget
 from study_station.ui.targets_dialog import TargetsDialog
@@ -82,10 +83,11 @@ class MainWindow(QMainWindow):
 
         # 4. Full-Screen Weekly Schedule & Class Editor Screen
         sessions = self._engine.sessions if self._engine else []
-        self._schedule_widget = ScheduleScreenWidget(sessions=sessions, parent=self)
+        self._schedule_widget = ScheduleScreenWidget(sessions=sessions, parent=self, engine=self._engine)
         self._schedule_widget.back_requested.connect(self._show_dashboard_screen)
         self._schedule_widget.subject_selected.connect(self._dashboard_widget.set_selected_subject)
         self._schedule_widget.timetable_changed.connect(self._on_timetable_updated)
+        self._schedule_widget.open_import_export_requested.connect(self.open_import_export_dialog)
         self._stack.addWidget(self._schedule_widget)
 
         # Scrim Overlay for dialogs (prevents main screen background text leakage)
@@ -184,6 +186,7 @@ class MainWindow(QMainWindow):
             dialog.open_timetable_requested.connect(self.open_timetable_editor)
             dialog.open_targets_requested.connect(self.open_targets_dialog)
             dialog.open_manual_log_requested.connect(self.open_manual_log_dialog)
+            dialog.open_import_export_requested.connect(self.open_import_export_dialog)
             dialog.exec()
         finally:
             self._hide_scrim()
@@ -265,6 +268,18 @@ class MainWindow(QMainWindow):
         try:
             dialog = HistoryDialog(self._engine, parent=self)
             dialog.history_changed.connect(self._dashboard_widget.refresh_dashboard)
+            dialog.exec()
+        finally:
+            self._hide_scrim()
+
+    def open_import_export_dialog(self) -> None:
+        """Open Timetable Import / Export modal dialog with dark scrim."""
+        if not self._engine:
+            return
+        self._show_scrim()
+        try:
+            dialog = ImportExportDialog(self.engine if hasattr(self, "engine") else self._engine, parent=self)
+            dialog.timetable_imported.connect(self._on_timetable_updated)
             dialog.exec()
         finally:
             self._hide_scrim()
@@ -385,6 +400,8 @@ class MainWindow(QMainWindow):
                 self.open_manual_log_dialog()
             elif key == Qt.Key.Key_H:
                 self.open_history_dialog()
+            elif key == Qt.Key.Key_I:
+                self.open_import_export_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
                 self.start_focus_session(self._settings.default_focus_minutes)
             elif key == Qt.Key.Key_1:
@@ -419,6 +436,8 @@ class MainWindow(QMainWindow):
         elif current_idx == self.INDEX_SCHEDULE:
             if key == Qt.Key.Key_Escape:
                 self._show_dashboard_screen()
+            elif key == Qt.Key.Key_I:
+                self.open_import_export_dialog()
             else:
                 super().keyPressEvent(event)
         else:

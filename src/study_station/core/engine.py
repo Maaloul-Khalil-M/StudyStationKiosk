@@ -554,3 +554,54 @@ class ScheduleEngine:
         else:
             return f"{day_str} at {time_str}"
 
+    def export_timetable(self, target_path: Path | str, file_format: str = "json") -> None:
+        """Export current timetable sessions to JSON or CSV."""
+        from study_station.core.timetable_portability import (
+            export_sessions_to_json,
+            export_sessions_to_csv,
+        )
+        if file_format.lower() == "csv":
+            export_sessions_to_csv(self.sessions, target_path)
+        else:
+            export_sessions_to_json(self.sessions, target_path)
+
+    def import_timetable_file(
+        self,
+        file_path: Path | str,
+        replace: bool = False,
+    ) -> tuple[int, list[str], list[tuple[AcademicSession, AcademicSession]]]:
+        """Import timetable sessions from JSON, CSV, or PDF file.
+        
+        Returns (added_count, warnings, collisions).
+        """
+        from study_station.core.timetable_portability import (
+            import_sessions_from_json,
+            import_sessions_from_csv,
+            import_sessions_from_pdf,
+            detect_collisions,
+            merge_sessions,
+        )
+        path = Path(file_path)
+        ext = path.suffix.lower()
+
+        if ext == ".json":
+            incoming, warnings = import_sessions_from_json(path)
+        elif ext in (".csv", ".tsv", ".txt"):
+            incoming, warnings = import_sessions_from_csv(path)
+        elif ext == ".pdf":
+            incoming, warnings = import_sessions_from_pdf(path)
+        else:
+            return 0, [f"Unsupported file format '{ext}'. Supported: .json, .csv, .pdf"], []
+
+        if not incoming:
+            return 0, warnings, []
+
+        merged_sessions, added, duplicates = merge_sessions(self.sessions, incoming, replace=replace)
+        collisions = detect_collisions(merged_sessions)
+
+        self.sessions = merged_sessions
+        if self.repository is not None:
+            self.repository.save_timetable_sessions(self.sessions)
+
+        return added, warnings, collisions
+
