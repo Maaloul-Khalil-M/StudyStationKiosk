@@ -276,19 +276,20 @@ class SubjectDashboardWidget(QWidget):
     def _update_typography(self) -> None:
         """Apply either Evangelion Matisse display serif or Swiss Modern Minimal."""
         is_eva = getattr(self.settings, "typography_style", "eva") == "eva"
+        accent = getattr(self.settings, "accent_color", "") or ("#FF7700" if is_eva else "#38BDF8")
         if is_eva:
             # Matisse EB inspired editorial display serif with tight tracking
             self.lbl_subject_name.setFont(get_modern_font("eva_display", 34, QFont.Weight.Bold))
-            self.lbl_subject_name.setStyleSheet("""
-                QLabel {
+            self.lbl_subject_name.setStyleSheet(f"""
+                QLabel {{
                     color: #FFFFFF;
                     font-size: 34px;
                     font-weight: 800;
                     letter-spacing: -0.5px;
-                }
-                QLabel:hover {
-                    color: #FF7700;
-                }
+                }}
+                QLabel:hover {{
+                    color: {accent};
+                }}
             """)
             self.lbl_subject_hint.setText("Click to open schedule")
             self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500; letter-spacing: 0.3px;")
@@ -296,16 +297,16 @@ class SubjectDashboardWidget(QWidget):
             self.btn_focus_25.setText("25m")
         else:
             self.lbl_subject_name.setFont(get_modern_font("sans", 32, QFont.Weight.Bold))
-            self.lbl_subject_name.setStyleSheet("""
-                QLabel {
+            self.lbl_subject_name.setStyleSheet(f"""
+                QLabel {{
                     color: #FFFFFF;
                     font-size: 32px;
                     font-weight: 800;
                     letter-spacing: -0.5px;
-                }
-                QLabel:hover {
-                    color: #38BDF8;
-                }
+                }}
+                QLabel:hover {{
+                    color: {accent};
+                }}
             """)
             self.lbl_subject_hint.setText("Click to open schedule")
             self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500; letter-spacing: 0.3px;")
@@ -643,6 +644,21 @@ class SubjectDashboardWidget(QWidget):
 
     def apply_settings(self, settings: AppSettings) -> None:
         self.settings = settings
+        bg_hex = getattr(settings, "bg_color", "") or "#09090B"
+        accent_hex = getattr(settings, "accent_color", "") or "#10B981"
+        self.setStyleSheet(f"background-color: {bg_hex};")
+        if hasattr(self, "progress_bar"):
+            self.progress_bar.setStyleSheet(f"""
+                QProgressBar {{
+                    background-color: #1C1C22;
+                    border: none;
+                    border-radius: 2px;
+                }}
+                QProgressBar::chunk {{
+                    background-color: {accent_hex};
+                    border-radius: 2px;
+                }}
+            """)
         self.clock_widget.apply_settings(settings)
         self._update_typography()
         self.refresh_dashboard()

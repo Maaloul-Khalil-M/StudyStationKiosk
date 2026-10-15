@@ -1373,3 +1373,10 @@ class ScheduleScreenWidget(QWidget):
         self._refresh_table()
         self._refresh_calendar_grid()
         self._refresh_cockpit_banners()
+
+    def apply_settings(self, settings: AppSettings) -> None:
+        self.settings = settings
+        bg_hex = getattr(settings, "bg_color", "") or "#09090B"
+        self.setStyleSheet(f"background-color: {bg_hex};")
+        self._refresh_calendar_grid()
+        self._refresh_cockpit_banners()

@@ -1,10 +1,11 @@
 """Customization dialog for Study Station."""
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
+    QColorDialog,
     QDialog,
     QFrame,
     QGridLayout,
@@ -12,13 +13,21 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QRadioButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
 from study_station.core.settings import AppSettings
 from study_station.core.sound_manager import SoundManager
-from study_station.ui.theme import BUTTON_PRIMARY_STYLE, BUTTON_SECONDARY_STYLE, THEMES, get_modern_font
+from study_station.ui.theme import (
+    BUTTON_PRIMARY_STYLE,
+    BUTTON_SECONDARY_STYLE,
+    PRESET_ACCENTS,
+    PRESET_BACKGROUNDS,
+    THEMES,
+    get_modern_font,
+)
 
 
 class CustomizationDialog(QDialog):
@@ -33,11 +42,13 @@ class CustomizationDialog(QDialog):
     def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Clock & Display Customization")
-        self.setFixedSize(500, 700)
+        self.setFixedSize(500, 715)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self._settings = settings
+        self._accent_buttons: dict[str, QPushButton] = {}
+        self._bg_buttons: dict[str, QPushButton] = {}
 
         self._init_ui()
 
@@ -88,31 +99,31 @@ class CustomizationDialog(QDialog):
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(6, 6, 6, 6)
         main_layout.addWidget(container)
 
-        content_layout = QVBoxLayout(container)
-        content_layout.setContentsMargins(24, 18, 24, 18)
-        content_layout.setSpacing(11)
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(24, 14, 24, 14)
+        container_layout.setSpacing(6)
 
         # Header with title and close button
         header_layout = QHBoxLayout()
         title = QLabel("Settings & Customization")
-        title.setFont(get_modern_font("sans", 18, QFont.Weight.Bold))
-        title.setMinimumHeight(32)
-        title.setStyleSheet("padding: 2px 0 4px 0;")
+        title.setFont(get_modern_font("sans", 17, QFont.Weight.Bold))
+        title.setMinimumHeight(28)
+        title.setStyleSheet("padding: 0px 0 2px 0;")
         header_layout.addWidget(title)
         header_layout.addStretch()
 
         btn_close = QPushButton("✕")
-        btn_close.setFixedSize(30, 30)
+        btn_close.setFixedSize(28, 28)
         btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_close.setStyleSheet("""
             QPushButton {
                 background-color: #1C1C1F;
                 color: #A1A1AA;
-                font-size: 15px;
-                border-radius: 15px;
+                font-size: 14px;
+                border-radius: 14px;
                 border: 1px solid #27272A;
             }
             QPushButton:hover {
@@ -122,7 +133,42 @@ class CustomizationDialog(QDialog):
         """)
         btn_close.clicked.connect(self.accept)
         header_layout.addWidget(btn_close)
-        content_layout.addLayout(header_layout)
+        container_layout.addLayout(header_layout)
+
+        # Scroll area for clean content viewing
+        scroll = QScrollArea(container)
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                width: 4px;
+                background: transparent;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #272732;
+                min-height: 24px;
+                border-radius: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #3F3F4E;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                height: 0px;
+                background: transparent;
+            }
+        """)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        scroll_content = QWidget()
+        scroll_content.setStyleSheet("background: transparent;")
+        content_layout = QVBoxLayout(scroll_content)
+        content_layout.setContentsMargins(0, 0, 6, 0)
+        content_layout.setSpacing(8)
 
         # Section 1: Time Format
         sec1_lbl = QLabel("TIME FORMAT")
@@ -202,8 +248,8 @@ class CustomizationDialog(QDialog):
 
         content_layout.addWidget(self._create_divider())
 
-        # Section 3: Theme Palette
-        sec3_lbl = QLabel("CARD THEME")
+        # Section 3: Theme Palette Presets
+        sec3_lbl = QLabel("CARD THEME PRESETS")
         sec3_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
         sec3_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
         content_layout.addWidget(sec3_lbl)
@@ -216,7 +262,6 @@ class CustomizationDialog(QDialog):
         theme_grid.setRowMinimumHeight(1, 26)
         theme_group = QButtonGroup(self)
 
-        # 2x2 theme layout
         items = list(THEMES.items())
         for idx, (theme_key, theme_data) in enumerate(items):
             rb = QRadioButton(theme_data.name)
@@ -231,6 +276,26 @@ class CustomizationDialog(QDialog):
             theme_grid.addWidget(rb, row, col)
 
         content_layout.addLayout(theme_grid)
+
+        content_layout.addWidget(self._create_divider())
+
+        # Section 3.5: Accent Colors Swatches
+        sec_accent_lbl = QLabel("ACCENT COLOR")
+        sec_accent_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
+        sec_accent_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
+        content_layout.addWidget(sec_accent_lbl)
+
+        content_layout.addWidget(self._create_accent_swatches())
+
+        content_layout.addWidget(self._create_divider())
+
+        # Section 3.6: Background Tone Swatches
+        sec_bg_lbl = QLabel("BACKGROUND TONE")
+        sec_bg_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
+        sec_bg_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
+        content_layout.addWidget(sec_bg_lbl)
+
+        content_layout.addWidget(self._create_bg_swatches())
 
         content_layout.addWidget(self._create_divider())
 
@@ -315,9 +380,10 @@ class CustomizationDialog(QDialog):
 
         content_layout.addLayout(tools_layout)
 
-        content_layout.addStretch()
+        scroll.setWidget(scroll_content)
+        container_layout.addWidget(scroll, stretch=1)
 
-        # Done button
+        # Done button pinned at bottom
         done_layout = QHBoxLayout()
         done_layout.addStretch()
         btn_done = QPushButton("Done")
@@ -327,13 +393,165 @@ class CustomizationDialog(QDialog):
         btn_done.clicked.connect(self.accept)
         done_layout.addWidget(btn_done)
         done_layout.addStretch()
-        content_layout.addLayout(done_layout)
+        container_layout.addLayout(done_layout)
+
+    def _create_accent_swatches(self) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        self._accent_buttons = {}
+        for hex_code, name in PRESET_ACCENTS:
+            btn = QPushButton()
+            btn.setFixedSize(28, 28)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setToolTip(f"{name} ({hex_code})")
+            btn.clicked.connect(lambda _, h=hex_code: self._on_accent_selected(h))
+            self._accent_buttons[hex_code.lower()] = btn
+            layout.addWidget(btn)
+
+        self.btn_custom_accent = QPushButton("🎨")
+        self.btn_custom_accent.setFixedSize(28, 28)
+        self.btn_custom_accent.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_custom_accent.setToolTip("Pick Custom Accent Color...")
+        self.btn_custom_accent.clicked.connect(self._on_custom_accent_clicked)
+        layout.addWidget(self.btn_custom_accent)
+        layout.addStretch()
+
+        self._update_accent_swatch_styles()
+        return widget
+
+    def _create_bg_swatches(self) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        self._bg_buttons = {}
+        for hex_code, name in PRESET_BACKGROUNDS:
+            btn = QPushButton()
+            btn.setFixedSize(28, 28)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setToolTip(f"{name} ({hex_code})")
+            btn.clicked.connect(lambda _, h=hex_code: self._on_bg_selected(h))
+            self._bg_buttons[hex_code.lower()] = btn
+            layout.addWidget(btn)
+
+        self.btn_custom_bg = QPushButton("🎨")
+        self.btn_custom_bg.setFixedSize(28, 28)
+        self.btn_custom_bg.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_custom_bg.setToolTip("Pick Custom Background Tone...")
+        self.btn_custom_bg.clicked.connect(self._on_custom_bg_clicked)
+        layout.addWidget(self.btn_custom_bg)
+        layout.addStretch()
+
+        self._update_bg_swatch_styles()
+        return widget
+
+    def _update_accent_swatch_styles(self) -> None:
+        curr = (getattr(self._settings, "accent_color", "") or "#10B981").lower()
+        for hex_code, btn in self._accent_buttons.items():
+            is_active = (hex_code == curr)
+            border_style = "2.5px solid #FFFFFF" if is_active else "1px solid rgba(255, 255, 255, 0.15)"
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {hex_code};
+                    border: {border_style};
+                    border-radius: 14px;
+                }}
+                QPushButton:hover {{
+                    border: 2px solid #E4E4E7;
+                }}
+            """)
+        if curr not in self._accent_buttons:
+            self.btn_custom_accent.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {curr};
+                    border: 2.5px solid #FFFFFF;
+                    border-radius: 14px;
+                    font-size: 13px;
+                }}
+            """)
+        else:
+            self.btn_custom_accent.setStyleSheet("""
+                QPushButton {
+                    background: #18181D;
+                    border: 1px dashed #3F3F4E;
+                    border-radius: 14px;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background: #272730;
+                    border-color: #71717A;
+                }
+            """)
+
+    def _update_bg_swatch_styles(self) -> None:
+        curr = (getattr(self._settings, "bg_color", "") or "#09090B").lower()
+        for hex_code, btn in self._bg_buttons.items():
+            is_active = (hex_code == curr)
+            border_style = "2.5px solid #FFFFFF" if is_active else "1px solid #383842"
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {hex_code};
+                    border: {border_style};
+                    border-radius: 14px;
+                }}
+                QPushButton:hover {{
+                    border: 2px solid #E4E4E7;
+                }}
+            """)
+        if curr not in self._bg_buttons:
+            self.btn_custom_bg.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {curr};
+                    border: 2.5px solid #FFFFFF;
+                    border-radius: 14px;
+                    font-size: 13px;
+                }}
+            """)
+        else:
+            self.btn_custom_bg.setStyleSheet("""
+                QPushButton {
+                    background: #18181D;
+                    border: 1px dashed #3F3F4E;
+                    border-radius: 14px;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background: #272730;
+                    border-color: #71717A;
+                }
+            """)
+
+    def _on_accent_selected(self, hex_code: str) -> None:
+        self._settings.accent_color = hex_code
+        self._update_accent_swatch_styles()
+        self.settings_changed.emit(self._settings)
+
+    def _on_bg_selected(self, hex_code: str) -> None:
+        self._settings.bg_color = hex_code
+        self._update_bg_swatch_styles()
+        self.settings_changed.emit(self._settings)
+
+    def _on_custom_accent_clicked(self) -> None:
+        initial = QColor(getattr(self._settings, "accent_color", "#10B981"))
+        color = QColorDialog.getColor(initial=initial, parent=self, title="Choose Custom Accent Color")
+        if color.isValid():
+            self._on_accent_selected(color.name())
+
+    def _on_custom_bg_clicked(self) -> None:
+        initial = QColor(getattr(self._settings, "bg_color", "#09090B"))
+        color = QColorDialog.getColor(initial=initial, parent=self, title="Choose Custom Background Color")
+        if color.isValid():
+            self._on_bg_selected(color.name())
 
     @staticmethod
     def _create_divider() -> QFrame:
         div = QFrame()
         div.setFixedHeight(1)
-        div.setStyleSheet("background-color: #1E1E26; border: none;")
+        div.setStyleSheet("background-color: #1E1E26; margin: 2px 0; border: none;")
         return div
 
     def showEvent(self, event) -> None:
@@ -382,6 +600,12 @@ class CustomizationDialog(QDialog):
     def _on_theme_toggled(self, checked: bool, theme_key: str) -> None:
         if checked:
             self._settings.theme_id = theme_key
+            theme = THEMES.get(theme_key)
+            if theme:
+                self._settings.bg_color = theme.bg_canvas.name()
+                self._settings.accent_color = theme.text_accent.name()
+                self._update_accent_swatch_styles()
+                self._update_bg_swatch_styles()
             self.settings_changed.emit(self._settings)
 
     def _on_sound_toggled(self, checked: bool) -> None:

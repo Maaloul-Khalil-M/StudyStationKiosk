@@ -141,7 +141,9 @@ class SplitFlapClockWidget(QWidget):
 
         rect = self.rect()
         theme = THEMES.get(self.settings.theme_id, THEMES["noir"])
-        painter.fillRect(rect, theme.bg_canvas)
+        bg_hex = getattr(self.settings, "bg_color", "")
+        bg = QColor(bg_hex) if bg_hex else theme.bg_canvas
+        painter.fillRect(rect, bg)
 
         now = datetime.now()
         card_h, card_w, gap, colon_w, total_w = self._get_layout_metrics()
@@ -190,7 +192,11 @@ class SplitFlapClockWidget(QWidget):
         # Bottom colon pill (centered in bottom flap zone)
         bot_pill = QRect(cx - pill_w // 2, cy + 28 - pill_h // 2, pill_w, pill_h)
 
-        accent = getattr(theme, "text_accent", getattr(theme, "accent_primary", QColor("#10B981")))
+        accent_hex = getattr(self.settings, "accent_color", "")
+        if accent_hex:
+            accent = QColor(accent_hex)
+        else:
+            accent = getattr(theme, "text_accent", getattr(theme, "accent_primary", QColor("#10B981")))
         painter.setBrush(accent)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(top_pill, pill_r, pill_r)
@@ -300,7 +306,9 @@ class SplitFlapClockWidget(QWidget):
         # 7. Side hinge notches & center pivot pins
         painter.save()
         painter.setPen(QPen(theme.card_border, 1.0))
-        painter.setBrush(theme.bg_canvas)
+        bg_hex = getattr(self.settings, "bg_color", "")
+        bg = QColor(bg_hex) if bg_hex else theme.bg_canvas
+        painter.setBrush(bg)
         painter.drawEllipse(QPoint(rect.left(), y_mid), notch_r, notch_r)
         painter.drawEllipse(QPoint(rect.right(), y_mid), notch_r, notch_r)
         # Center pivot pins

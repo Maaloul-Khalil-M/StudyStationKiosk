@@ -165,12 +165,15 @@ class MainWindow(QMainWindow):
             self._stack.setCurrentIndex(self.INDEX_FOCUS)
 
     def _apply_window_palette(self) -> None:
-        theme = THEMES.get(self._settings.theme_id, THEMES["noir"])
+        bg_hex = getattr(self._settings, "bg_color", "") or "#09090B"
+        bg_color = QColor(bg_hex)
         palette = self.palette()
-        palette.setColor(QPalette.ColorRole.Window, theme.bg_canvas)
+        palette.setColor(QPalette.ColorRole.Window, bg_color)
         self.setPalette(palette)
         self.setAutoFillBackground(True)
-        self.setStyleSheet(GLOBAL_QSS)
+        self.setStyleSheet(f"QMainWindow {{ background-color: {bg_hex}; }} {GLOBAL_QSS}")
+        if hasattr(self, "_scrim_overlay"):
+            self._scrim_overlay.setStyleSheet(f"QFrame#scrimOverlay {{ background-color: rgba({bg_color.red()}, {bg_color.green()}, {bg_color.blue()}, 0.96); border: none; }}")
 
     def toggle_fullscreen(self) -> None:
         """Toggle between Fullscreen and Normal window mode."""
@@ -214,6 +217,8 @@ class MainWindow(QMainWindow):
         self._apply_window_palette()
         self._dashboard_widget.apply_settings(settings)
         self._focus_widget.apply_settings(settings)
+        if hasattr(self, "_schedule_widget"):
+            self._schedule_widget.apply_settings(settings)
 
     # -------------------------------------------------------------------------
     # Secondary Management Dialogs & Full-Screen Views

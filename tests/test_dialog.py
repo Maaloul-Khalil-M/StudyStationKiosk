@@ -32,6 +32,27 @@ class TestCustomizationDialog(unittest.TestCase):
         dialog.rb_12h.setChecked(True)
         self.assertFalse(settings.use_24h)
 
+    def test_color_and_background_customization(self) -> None:
+        settings = AppSettings()
+        dialog = CustomizationDialog(settings)
+        emitted = []
+        dialog.settings_changed.connect(lambda s: emitted.append(s))
+
+        # Select custom accent color
+        dialog._on_accent_selected("#38BDF8")
+        self.assertEqual(settings.accent_color, "#38BDF8")
+        self.assertEqual(len(emitted), 1)
+
+        # Select custom background color
+        dialog._on_bg_selected("#0B0F19")
+        self.assertEqual(settings.bg_color, "#0B0F19")
+        self.assertEqual(len(emitted), 2)
+
+        # Theme toggle updates both colors
+        dialog._on_theme_toggled(True, "espresso")
+        self.assertEqual(settings.theme_id, "espresso")
+        self.assertEqual(len(emitted), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

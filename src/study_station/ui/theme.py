@@ -86,6 +86,23 @@ THEMES = {
     ),
 }
 
+PRESET_ACCENTS: list[tuple[str, str]] = [
+    ("#10B981", "Emerald"),
+    ("#38BDF8", "Electric Sky"),
+    ("#F59E0B", "Warm Amber"),
+    ("#FF7700", "NERV Orange"),
+    ("#A855F7", "Amethyst"),
+    ("#F43F5E", "Crimson"),
+]
+
+PRESET_BACKGROUNDS: list[tuple[str, str]] = [
+    ("#09090B", "Obsidian Black"),
+    ("#0B0F19", "Midnight Slate"),
+    ("#14100E", "Warm Espresso"),
+    ("#121316", "Deep Charcoal"),
+    ("#000000", "OLED Pure Black"),
+]
+
 
 def get_modern_font(family_preference: str = "sans", size: int = 14, weight: QFont.Weight = QFont.Weight.Normal) -> QFont:
     """Return a modern font configured with cross-platform fallbacks and tabular figures."""

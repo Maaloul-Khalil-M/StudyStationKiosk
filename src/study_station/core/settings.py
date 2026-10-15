@@ -14,6 +14,8 @@ class AppSettings:
     show_date: bool = True
     date_format: str = "full"  # "full", "compact", "clean"
     theme_id: str = "noir"     # "noir", "slate", "espresso"
+    accent_color: str = "#10B981"  # hex color for focus accents, glowing pills, highlights
+    bg_color: str = "#09090B"      # hex color for global canvas and card backgrounds
     animate_flip: bool = True
     default_focus_minutes: int = 15
     typography_style: str = "eva"  # "eva" (Matisse Serif + HUD) or "modern" (Swiss Sans)
