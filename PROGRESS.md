@@ -606,16 +606,60 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 
 ---
 
-## Complete 6-Milestone Academic Pivot Summary
+### Milestone 16: UI Professionalization, Customization Engine & Academic Sprint Launchpad `[COMPLETED]`
+- [x] **Split-Flap Mechanical Flip Clock Overhaul (`SplitFlapClockWidget`)**:
+  - Rescaled card dimensions to 160×138px (300×168px default / 454×168px with seconds) with authentic desktop flip-card proportions.
+  - Implemented authentic horizontal split crease with lighting depth and subtle gradient shadows.
+  - Added authentic drum cutouts with center pivot pins along outer card edges.
+  - Upgraded typography from retro/decorative serif to crisp, ultra-legible modern sans-serif (`sans`).
+  - Removed colon (`:`) separator between flap cards to create a unified, minimalist mechanical clock aesthetic.
+- [x] **Class Session Management Optimization (`ScheduleScreenWidget`)**:
+  - Eliminated cramped inline add inputs from the Edit Classes view, reclaiming 100% vertical space for the sessions table.
+  - Unified session additions and modifications through the modal `ClassSessionDialog`, eliminating layout overflow on 1366×768 displays.
+  - Retained headless backwards-compatible attributes on `ScheduleScreenWidget` preserving 100% test pass rate.
+- [x] **Dynamic UI Customization Engine (`CustomizationDialog` & `AppSettings`)**:
+  - Expanded `AppSettings` with customizable `accent_color: str = "#10B981"` and `bg_color: str = "#09090B"` with SQLite persistence.
+  - Added curated theme color palettes (`PRESET_ACCENTS`: Emerald, Electric Cyan, Violet, Amber, Coral, Minimal White; `PRESET_BACKGROUNDS`: Midnight Noir, Deep Slate, Espresso, Void Black).
+  - Designed interactive color swatches with active selection indicator rings, native `QColorDialog` custom hex color picker, and dark background scrim.
+  - Real-time live propagation of accents and background canvas colors across `MainWindow`, split-flap cards, hero banners, progress bars, and schedule views.
+- [x] **Active Academic Sprint Launchpad (`SubjectDashboardWidget`)**:
+  - Transformed the clock screen from a passive wall clock into an active starting point for study sprints.
+  - **Urgent Deadline Kicker Badge (`lbl_task_kicker`)**: Displays relative deadline proximity (e.g. `🎯 PRIORITY TASK · DUE IN 14h` or `⚠ OVERDUE · WAS DUE 2h AGO`).
+  - **Actionable Task Headline (`lbl_task_title`)**: High-legibility 22px bold modern sans-serif headline displaying the concrete task (e.g. `Complete buffer overflow exploitation exercise`), with 740px layout width to prevent clipping, and 1-click access to the task backlog.
+  - **1-Click Sprint Launchers**:
+    - `▶ START 15m SPRINT`: 1-click micro-sprint directly tethered to the active task.
+    - `25m POMODORO`: Standard 25-minute Pomodoro study block.
+    - `TASKS`: Quick button to open the Academic Task Backlog modal.
+  - **Cognitive Exit Ticket Tethering**: Emits `start_todo_focus_requested` to `MainWindow`, ensuring the session completion ticket evaluates progress on that exact task upon timer completion.
+  - **Ambient Inactivity Auto-Hide**: Peaceful idle glance mode hiding controls after 3.5s; instantly reveals navigation and sprint buttons on mouse movement or interaction.
+- [x] **Verification & Test Suite**:
+  - **114/114 unit tests passing** (100% pass rate) across all 17 test suites.
+  - Regenerated and verified all high-resolution documentation screenshots in both `docs/screens/` and `docs/SCREENSS/`.
 
-The academic preparation architecture is now **100% complete across 6 comprehensive milestones**:
-1. **Milestone 10: Academic Todo Engine & Schema** `[COMPLETED]` — Granular task models, SQLite tables, migrations, and `StudyLog.todo_id` attribution.
-2. **Milestone 11: Nightly Desk Debrief & Questionnaire** `[COMPLETED]` — Automatic evening check-in wizard stepping through today's attended classes with auto-deadlines.
-3. **Milestone 12: Grid as Main Station (Academic Cockpit)** `[COMPLETED]` — Weekly calendar grid as default home screen, live preparation and question badges, and `SubjectPreparationSheet` task drawer.
-4. **Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket** `[COMPLETED]` — Task-tethered focus gauge, traffic-light confidence ratings, continuation sprints, and next-class question formulation.
-5. **Milestone 14: Night Routine Ambient UX & In-Class Payoff** `[COMPLETED]` — Evening desk mode, prominent debrief banner, "Tonight's Priority Task" with 1-click focus start, and "Ask in Class" HUD question resolution.
-6. **Milestone 15: Academic Task Backlog & Comprehensive Todo CRUD** `[COMPLETED]` — Dedicated task backlog modal (<kbd>T</kbd>), full in-place Create/Edit/Delete/Reopen actions, KPI telemetry, and multi-criteria filtering.
-7. **Milestone 15.5: Runtime Stability, Backlog Polish & Upcoming Class Resolution** `[COMPLETED]` — Complete resolution of runtime signal crashes, font sizing evaluation, upcoming class calculations, and enhanced backlog UX.
+---
+
+## Complete Academic Station Milestone Summary
+
+Study Station is fully realized across 17 comprehensive development milestones:
+1. **Milestone 1: Project Foundation & Screen Framework** `[COMPLETED]` — Window lifecycle, fullscreen, Linux X11/Xfce support.
+2. **Milestone 2: Ambient Flip Clock & Schedule Engine** `[COMPLETED]` — Retro minimal typography, ScheduleEngine timetable parsing.
+3. **Milestone 2.5: Modern UI Redesign & Calm Discipline** `[COMPLETED]` — 3D flip card animations, auto-hiding action bars.
+4. **Milestone 3: Focus Timer & Completion Screens** `[COMPLETED]` — Focus timer engine, micro-durations, celebration feedback.
+5. **Milestone 4: Local Persistence & State Recovery** `[COMPLETED]` — SQLite WAL database, crash/sleep recovery.
+6. **Milestone 5: Secondary Screens** `[COMPLETED]` — Timetable editor, review targets, offline manual logger.
+7. **Milestone 6: Subject-Centric UI Rework** `[COMPLETED]` — Subject summaries, hero subject card, carousel shelf.
+8. **Milestone 6.5: Professional UI Polish** `[COMPLETED]` — Integrated split-station cockpit, upcoming timeline, modern QSS reset.
+9. **Milestone 7: Study Logs & History** `[COMPLETED]` — Full session log viewer, filtering, summary stats.
+10. **Milestone 8: Calibrated Sound Manager** `[COMPLETED]` — Synthesized acoustic harmonic completion chime.
+11. **Milestone 9: Timetable Portability** `[COMPLETED]` — University PDF parsing, RFC 4180 CSV, JSON import/export.
+12. **Milestone 10: Academic Todo Engine & Schema** `[COMPLETED]` — Granular task models, SQLite migrations, `StudyLog.todo_id` attribution.
+13. **Milestone 11: Nightly Desk Debrief & Questionnaire** `[COMPLETED]` — Automatic evening check-in wizard with auto-deadlines.
+14. **Milestone 12: Grid as Main Station (Academic Cockpit)** `[COMPLETED]` — Weekly calendar grid as default home screen, live preparation badges.
+15. **Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket** `[COMPLETED]` — Task-tethered focus gauge, traffic-light confidence ratings, continuation sprints.
+16. **Milestone 14: Night Routine Ambient UX & In-Class Payoff** `[COMPLETED]` — Evening desk mode, prominent debrief banner, Tonight's Priority Task capsule.
+17. **Milestone 15: Academic Task Backlog & Comprehensive CRUD** `[COMPLETED]` — Central backlog (<kbd>T</kbd>), EditTodoDialog, reversible check-offs.
+18. **Milestone 15.5: Runtime Stability & Backlog Polish** `[COMPLETED]` — Signal lifecycle stability, font sizing evaluation, upcoming class calculations.
+19. **Milestone 16: UI Professionalization, Customization Engine & Academic Sprint Launchpad** `[COMPLETED]` — Mechanical clock overhaul, dynamic UI themes, reclaimed session space, and active task sprint launcher.
 
 
 

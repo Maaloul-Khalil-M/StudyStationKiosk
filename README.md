@@ -8,7 +8,7 @@
 [![PySide6 / Qt](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-41CD52?style=flat&logo=qt&logoColor=white)](https://www.qt.io/)
 [![SQLite WAL](https://img.shields.io/badge/Database-SQLite%20(WAL)-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Local-First](https://img.shields.io/badge/Architecture-100%25%20Offline%20%2F%20Local--First-black?style=flat)](#)
-[![Tests Passing](https://img.shields.io/badge/Tests-108%2F108%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
+[![Tests Passing](https://img.shields.io/badge/Tests-114%2F114%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
 [![Zero Cloud](https://img.shields.io/badge/Privacy-Zero%20Cloud%20%2F%20Zero%20Electron-6366F1?style=flat)](#)
 
 </div>
@@ -23,7 +23,7 @@ Traditional productivity apps suffer from a fundamental mismatch with university
 
 > *"Today I had a difficult university class and I feel tired and demotivated to touch it again tonight. But I know with certainty that if I walk into next week's session without having reviewed the material, nothing will stick."*
 
-Study Station bridges the gap between consecutive occurrences of the same subject. It combines an **interactive weekly academic cockpit**, an **automatic nightly debrief ritual**, **task-tethered micro-focus sprints**, **cognitive exit tickets** that formulate questions to ask professors in class, and a **centralized task backlog with full CRUD**.
+Study Station bridges the gap between consecutive occurrences of the same subject. It combines an **interactive weekly academic cockpit**, an **automatic nightly debrief ritual**, an **active academic sprint launchpad**, **task-tethered micro-focus sprints**, **cognitive exit tickets** that formulate questions to ask professors in class, and a **centralized task backlog with full CRUD**.
 
 ---
 
@@ -37,6 +37,11 @@ The weekly schedule grid acts as the student's default mission control, highligh
 <br/>
 
 ### Core Workflow Interfaces
+
+| Academic Sprint Launchpad (<kbd>C</kbd>) | Dynamic Theme & Customization (<kbd>⚙</kbd>) |
+|:---:|:---:|
+| ![Academic Sprint Launchpad](docs/screens/clock_with_hover.png) | ![Theme Customization](docs/screens/settings.png) |
+| *Mechanical flip clock displaying active pending task, deadline kicker, and 1-click sprint launchers.* | *Curated accents, canvas backgrounds, interactive color swatches, and live palette propagation.* |
 
 | Academic Task Backlog (<kbd>T</kbd>) | Subject Preparation Sheet & In-Class HUD |
 |:---:|:---:|
@@ -129,10 +134,20 @@ When arriving at the desk tired at night, looking at a passive clock or complex 
 - **Structured JSON & CSV Support**: RFC 4180 compliant CSV export/import (with UTF-8 BOM and automatic comma/semicolon detection) and structured JSON (`docs/example.json`).
 - **Pre-Import Verification**: Conflict detection for overlapping slots with Replace vs. Merge strategies.
 
-### ⏱ Ambient Split-Flap Clock Screensaver (`AmbientClockWidget`)
-- Fliqlo-inspired mechanical split-flap cards with 3D folding flip animation (~200ms).
-- Dynamic screen-height font scaling (~22%) with Evangelion display typography accents.
-- Accessible via <kbd>C</kbd> / <kbd>A</kbd> or top-bar button `[ ⏱ Clock Station ]`.
+### 🚀 Academic Sprint Launchpad & Split-Flap Clock (`SubjectDashboardWidget` & `SplitFlapClockWidget`)
+- **Mechanical Flip Clock Overhaul**: Realistic split-flap cards with horizontal crease, depth lighting, outer drum pins, clean sans-serif digits, and colon-free minimalist layout.
+- **Active Task Sprint Launcher**: Rather than an isolated decorative clock, the screen functions as an active mission starting point displaying:
+  - **Urgent Deadline Kicker Badge**: Relative countdown to next occurrence (e.g. `🎯 PRIORITY TASK · DUE IN 14h` or `⚠️ OVERDUE · WAS DUE 2h AGO`).
+  - **Actionable Task Headline**: High-visibility 22px bold modern sans headline showing the exact task deliverable (e.g. `Complete buffer overflow exploitation exercise`).
+  - **1-Click Sprint Buttons**: `[ ▶ START 15m SPRINT ]`, `[ 25m POMODORO ]`, and `[ TASKS ]` directly initiating micro-focus sessions tethered to that task.
+  - **Cognitive Exit Ticket Tethering**: Session finish directly passes the active task to the Cognitive Exit Ticket for comprehension and question formulation.
+- **Peaceful Ambient Auto-Hide**: Automatically hides navigation and sprint buttons after 3.5 seconds of inactivity, smoothly revealing controls on mouse movement.
+
+### 🎨 Dynamic UI Customization System (`CustomizationDialog` & `AppSettings`)
+- **Palette Presets & Custom Color Wheel**: Curated accent color swatches (Emerald, Electric Cyan, Violet, Amber, Coral, Minimal White) and deep canvas backgrounds (Midnight Noir, Deep Slate, Espresso, Void Black).
+- **Custom Color Picker**: Native `QColorDialog` for selecting any hex color code.
+- **Real-Time Live Propagation**: Color choices instantly update the canvas, split-flap cards, hero banners, progress bars, and schedule views with SQLite persistence.
+- **Full-Height Session Manager**: Clean tabular schedule editor with 100% vertical space dedicated to academic sessions, free of inline clutter.
 
 ### 🛡 Local Persistence & Hardware Resilience (`StudyStationRepository`)
 - **SQLite Database with WAL Mode**: Fast local storage in `%APPDATA%/StudyStation/` (Windows) or `~/.local/share/study_station/` (Linux).
@@ -257,7 +272,7 @@ Study Station is designed for rapid, keyboard-first workstation operation:
 Study Station is backed by a deterministic, zero-external-dependency test suite running on `unittest`:
 
 ```bash
-# Run all 108 unit tests across all 17 test suites
+# Run all 114 unit tests across all 17 test suites
 $env:PYTHONPATH="src"; python -m unittest discover tests
 ```
 
@@ -265,12 +280,12 @@ $env:PYTHONPATH="src"; python -m unittest discover tests
 - **Engine & Scheduling**: 100% boundary safety on academic week transitions, timezone-free calendar arithmetic, and collision detection.
 - **Persistence & Migrations**: SQLite schema migrations, foreign keys, and sleep/crash recovery verification.
 - **Portability**: PDF grid extraction, CSV parsing with French semicolons and UTF-8 BOM, and JSON round-trips.
-- **Interactive UI**: Headless verification of `ScheduleScreenWidget`, `DebriefDialog`, `ExitTicketDialog`, `SubjectPreparationSheet`, `TasksDialog`, and `FocusWidget`.
+- **Interactive UI**: Headless verification of `ScheduleScreenWidget`, `SubjectDashboardWidget`, `SplitFlapClockWidget`, `DebriefDialog`, `ExitTicketDialog`, `SubjectPreparationSheet`, `TasksDialog`, and `FocusWidget`.
 
 ```
-............................................................................................................
+..................................................................................................................
 ----------------------------------------------------------------------
-Ran 108 tests in 9.981s
+Ran 114 tests in 8.446s
 
 OK (100% passing across 17 test suites)
 ```
@@ -285,12 +300,18 @@ You can programmatically re-generate all high-resolution documentation screensho
 $env:PYTHONPATH="src"; python scripts/capture_screens.py
 ```
 This script renders and grabs:
-- `docs/screens/grid_schedual.png`
-- `docs/screens/debrief_modal.png`
-- `docs/screens/preparation_sheet.png`
-- `docs/screens/tasks_modal.png`
-- `docs/screens/focus.png`
-- `docs/screens/exit_ticket.png`
+- `docs/screens/grid_schedual.png` (Academic Cockpit Grid)
+- `docs/screens/editSchedual.png` (Full-height class session table)
+- `docs/screens/clock_no_hover.png` (Ambient sprint launchpad in idle mode)
+- `docs/screens/clock_with_hover.png` (Sprint launchpad with active launchers)
+- `docs/screens/focus.png` (Radial focus gauge tethered to task)
+- `docs/screens/add_class.png` (Session creation modal with conflict resolution)
+- `docs/screens/preparation_sheet.png` (Subject tasks checklist drawer & in-class HUD)
+- `docs/screens/debrief_modal.png` (Nightly desk debrief wizard)
+- `docs/screens/import_export.png` (Timetable import/export modal)
+- `docs/screens/tasks_modal.png` (Academic task backlog & KPI telemetry)
+- `docs/screens/settings.png` (Theme customization palette & swatches)
+- `docs/screens/exit_ticket.png` (Cognitive exit ticket & question formulation)
 
 ---
 
@@ -314,6 +335,8 @@ This script renders and grabs:
 | **13** | Todo-Driven Focus Loop | Task framing on focus ring, 🔴🟡🟢 exit ticket, Feynman notes | `[COMPLETED]` |
 | **14** | Night Routine Ambient UX | Evening desk mode, Tonight's Priority Task capsule, in-class HUD | `[COMPLETED]` |
 | **15** | Academic Task Backlog & CRUD | Central backlog (<kbd>T</kbd>), EditTodoDialog, reversible check-offs, in-place edit/delete | `[COMPLETED]` |
+| **15.5** | Runtime Stability & Backlog Polish | Signal lifecycle stability, font evaluation, upcoming class calculations | `[COMPLETED]` |
+| **16** | UI Professionalization & Sprint Launchpad | Split-flap mechanical clock, dynamic customization engine, active task sprint launcher | `[COMPLETED]` |
 
 ---
 
