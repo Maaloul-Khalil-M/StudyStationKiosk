@@ -333,8 +333,41 @@ QLineEdit, QSpinBox, QComboBox {
     selection-color: #FFFFFF;
 }
 QLineEdit:focus, QSpinBox:focus, QComboBox:focus {
-    border: 1.5px solid #3B82F6;
+    border: 1.5px solid #10B981;
     background-color: #18181F;
+}
+
+/* Universal Radios and Checkboxes */
+QRadioButton, QCheckBox {
+    color: #D4D4D8;
+    font-size: 12px;
+    font-weight: 500;
+    spacing: 8px;
+}
+QRadioButton:hover, QCheckBox:hover {
+    color: #FFFFFF;
+}
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid #383842;
+    background-color: #18181E;
+}
+QCheckBox::indicator:checked {
+    background-color: #10B981;
+    border-color: #059669;
+}
+QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    border: 1px solid #383842;
+    background-color: #18181E;
+}
+QRadioButton::indicator:checked {
+    background-color: #10B981;
+    border-color: #059669;
 }
 
 /* Dropdown Popup View */
@@ -394,3 +427,5 @@ QProgressBar::chunk {
 }
 """
 
+# Standardised micro-section header style — use on uppercase telemetry QLabels
+SECTION_LABEL_QSS = "color: #A1A1AA; font-size: 10px; font-weight: 700; letter-spacing: 1.5px;"

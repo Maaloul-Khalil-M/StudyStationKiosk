@@ -28,12 +28,16 @@ from study_station.core.models import (
     Subject,
     TimeSlot,
 )
+from study_station.core.settings import AppSettings
 from study_station.core.timer import FocusTimer
 from study_station.persistence.database import Database
 from study_station.persistence.repository import StudyStationRepository
+from study_station.ui.class_session_dialog import ClassSessionDialog
+from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.debrief_dialog import DebriefDialog
 from study_station.ui.exit_ticket_dialog import ExitTicketDialog
 from study_station.ui.focus_widget import FocusWidget
+from study_station.ui.import_export_dialog import ImportExportDialog
 from study_station.ui.main_window import MainWindow
 from study_station.ui.subject_preparation_sheet import SubjectPreparationSheet
 from study_station.ui.tasks_dialog import TasksDialog
@@ -44,6 +48,15 @@ def main():
 
     out_dir = Path(__file__).resolve().parent.parent / "docs" / "screens"
     out_dir.mkdir(parents=True, exist_ok=True)
+    out_screenss = Path(__file__).resolve().parent.parent / "docs" / "SCREENSS"
+    out_screenss.mkdir(parents=True, exist_ok=True)
+
+    def save_both(pixmap, name_screens: str, name_screenss: str | None = None):
+        pixmap.save(str(out_dir / name_screens))
+        print(f"Captured: {out_dir / name_screens}")
+        if name_screenss:
+            pixmap.save(str(out_screenss / name_screenss))
+            print(f"Captured (SCREENSS): {out_screenss / name_screenss}")
 
     # Temporary database
     temp_db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
@@ -136,7 +149,7 @@ def main():
     repo.add_todo(todo_sec)
     engine.add_todo(todo_sec)
 
-    # 1. Capture MainWindow / Grid Cockpit View (grid_schedual.png)
+    # 1. Capture MainWindow / Grid Cockpit View (grid_schedual.png / s1 main-grid.png)
     window = MainWindow(repository=repo, engine=engine)
     window.resize(1366, 768)
     window.show()
@@ -144,33 +157,83 @@ def main():
     window._schedule_widget.debrief_banner.show()
     window._schedule_widget.priority_task_card.show()
     app.processEvents()
+    save_both(window.grab(), "grid_schedual.png", "s1 main-grid.png")
 
-    pix_grid = window.grab()
-    grid_path = out_dir / "grid_schedual.png"
-    pix_grid.save(str(grid_path))
-    print(f"Captured: {grid_path}")
+    # 2. Capture Edit Classes view (editSchedual.png / s4 edit classes.png)
+    window._schedule_widget._set_view_mode(1)
+    app.processEvents()
+    save_both(window.grab(), "editSchedual.png", "s4 edit classes.png")
+    window._schedule_widget._set_view_mode(0)
+    app.processEvents()
 
-    # 2. Capture Focus Screen (focus.png)
+    # 3. Capture Ambient Clock Screensaver (clock_no_hover.png & clock_with_hover.png)
+    window._show_ambient_clock()
+    window._dashboard_widget._set_interactive_mode(False)
+    app.processEvents()
+    save_both(window.grab(), "clock_no_hover.png", "s7 clock_no_hover.png")
+
+    window._dashboard_widget._set_interactive_mode(True)
+    app.processEvents()
+    save_both(window.grab(), "clock_with_hover.png", "s7 clock_with_hover.png")
+
+    # 4. Capture Focus Screen (focus.png)
     window.start_focus_session(duration_minutes=15, todo=todo_prio)
     app.processEvents()
-    pix_focus = window.grab()
-    focus_path = out_dir / "focus.png"
-    pix_focus.save(str(focus_path))
-    print(f"Captured: {focus_path}")
+    save_both(window.grab(), "focus.png")
     window.close()
 
-    # 3. Capture Debrief Dialog (debrief_modal.png)
+    # 5. Capture Add/Edit Class Session Modal (add_class.png / s2 add class.png)
+    add_dlg = ClassSessionDialog(
+        session=sessions[0],
+        existing_subjects=["Entrepôts de données", "Sécurité logicielle", "Visualisation de données"],
+    )
+    add_dlg.resize(480, 520)
+    add_dlg.show()
+    app.processEvents()
+    save_both(add_dlg.grab(), "add_class.png", "s2 add class.png")
+    add_dlg.close()
+
+    # 6. Capture Subject Preparation Sheet (preparation_sheet.png / s2 preparation_sheet.png)
+    prep_sheet = SubjectPreparationSheet(session=sessions[0], engine=engine)
+    prep_sheet.resize(680, 620)
+    prep_sheet.show()
+    app.processEvents()
+    save_both(prep_sheet.grab(), "preparation_sheet.png", "s2 preparation_sheet.png")
+    prep_sheet.close()
+
+    # 7. Capture Debrief Dialog (debrief_modal.png / s3 start debrief.png)
     debrief_dlg = DebriefDialog(engine=engine, ref_dt=now)
     debrief_dlg.resize(640, 560)
     debrief_dlg.show()
     app.processEvents()
-    pix_debrief = debrief_dlg.grab()
-    debrief_path = out_dir / "debrief_modal.png"
-    pix_debrief.save(str(debrief_path))
-    print(f"Captured: {debrief_path}")
+    save_both(debrief_dlg.grab(), "debrief_modal.png", "s3 start debrief.png")
     debrief_dlg.close()
 
-    # 4. Capture Exit Ticket Dialog (exit_ticket.png)
+    # 8. Capture Import / Export Dialog (import_export.png / s5 importExport.png)
+    ie_dlg = ImportExportDialog(engine=engine)
+    ie_dlg.resize(680, 560)
+    ie_dlg.show()
+    app.processEvents()
+    save_both(ie_dlg.grab(), "import_export.png", "s5 importExport.png")
+    ie_dlg.close()
+
+    # 9. Capture Academic Task Backlog Dialog (tasks_modal.png / s6 tasks.png)
+    tasks_dlg = TasksDialog(engine=engine)
+    tasks_dlg.resize(890, 680)
+    tasks_dlg.show()
+    app.processEvents()
+    save_both(tasks_dlg.grab(), "tasks_modal.png", "s6 tasks.png")
+    tasks_dlg.close()
+
+    # 10. Capture Settings / Customization Dialog (settings.png / s8 settings.png)
+    settings_dlg = CustomizationDialog(settings=AppSettings())
+    settings_dlg.resize(500, 680)
+    settings_dlg.show()
+    app.processEvents()
+    save_both(settings_dlg.grab(), "settings.png", "s8 settings.png")
+    settings_dlg.close()
+
+    # 11. Capture Exit Ticket Dialog (exit_ticket.png / s9 exit_ticket.png)
     exit_dlg = ExitTicketDialog(
         subject_name="Entrepôts de données",
         elapsed_minutes=15,
@@ -179,33 +242,8 @@ def main():
     exit_dlg.resize(540, 520)
     exit_dlg.show()
     app.processEvents()
-    pix_exit = exit_dlg.grab()
-    exit_path = out_dir / "exit_ticket.png"
-    pix_exit.save(str(exit_path))
-    print(f"Captured: {exit_path}")
+    save_both(exit_dlg.grab(), "exit_ticket.png", "s9 exit_ticket.png")
     exit_dlg.close()
-
-    # 5. Capture Subject Preparation Sheet (preparation_sheet.png)
-    prep_sheet = SubjectPreparationSheet(session=sessions[0], engine=engine)
-    prep_sheet.resize(680, 620)
-    prep_sheet.show()
-    app.processEvents()
-    pix_prep = prep_sheet.grab()
-    prep_path = out_dir / "preparation_sheet.png"
-    pix_prep.save(str(prep_path))
-    print(f"Captured: {prep_path}")
-    prep_sheet.close()
-
-    # 6. Capture Academic Task Backlog Dialog (tasks_modal.png)
-    tasks_dlg = TasksDialog(engine=engine)
-    tasks_dlg.resize(880, 660)
-    tasks_dlg.show()
-    app.processEvents()
-    pix_tasks = tasks_dlg.grab()
-    tasks_path = out_dir / "tasks_modal.png"
-    pix_tasks.save(str(tasks_path))
-    print(f"Captured: {tasks_path}")
-    tasks_dlg.close()
 
     # Clean up
     db.close()

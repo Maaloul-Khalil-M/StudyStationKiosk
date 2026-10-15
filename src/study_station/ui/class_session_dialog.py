@@ -157,27 +157,28 @@ class ClassSessionDialog(QDialog):
         # Quick Preset Buttons
         preset_row = QHBoxLayout()
         preset_row.setSpacing(6)
-        lbl_presets = QLabel("PRESETS:")
-        lbl_presets.setStyleSheet("color: #52525B; font-size: 9px; font-weight: 700; letter-spacing: 0.5px;")
+        lbl_presets = QLabel("QUICK PICK")
+        lbl_presets.setStyleSheet("color: #52525B; font-size: 9px; font-weight: 700; letter-spacing: 1px;")
         preset_row.addWidget(lbl_presets)
 
         for slot_s, slot_e in [("08:00", "09:30"), ("09:40", "11:10"), ("11:15", "12:45"), ("13:30", "15:00"), ("15:10", "16:40")]:
-            btn_p = QPushButton(f"{slot_s}–{slot_e}")
+            btn_p = QPushButton(slot_s)
+            btn_p.setToolTip(f"{slot_s} – {slot_e} (90m standard slot)")
             btn_p.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_p.setStyleSheet("""
                 QPushButton {
                     background-color: #18181E;
                     color: #A1A1AA;
                     border: 1px solid #27272E;
-                    border-radius: 4px;
-                    padding: 2px 6px;
-                    font-size: 10px;
-                    font-family: monospace;
+                    border-radius: 6px;
+                    padding: 4px 10px;
+                    font-size: 11px;
+                    font-weight: 600;
                 }
                 QPushButton:hover {
                     background-color: #272732;
-                    color: #FFFFFF;
-                    border-color: #3F3F4A;
+                    color: #10B981;
+                    border-color: #10B981;
                 }
             """)
             btn_p.clicked.connect(lambda _, s=slot_s, e=slot_e: self._set_preset_time(s, e))
@@ -252,7 +253,7 @@ class ClassSessionDialog(QDialog):
         actions_layout.addStretch()
 
         self.btn_cancel = QPushButton("Cancel")
-        self.btn_cancel.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_cancel.setStyleSheet(BUTTON_SECONDARY_STYLE)
         self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_cancel.clicked.connect(self.reject)
         actions_layout.addWidget(self.btn_cancel)
@@ -265,6 +266,12 @@ class ClassSessionDialog(QDialog):
         actions_layout.addWidget(self.btn_save)
 
         card_layout.addLayout(actions_layout)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.parent():
+            parent_rect = self.parent().rect()
+            self.move(parent_rect.center() - self.rect().center())
 
     def _set_preset_time(self, start_t: str, end_t: str) -> None:
         self.txt_start.setText(start_t)

@@ -67,6 +67,12 @@ class TasksDialog(QDialog):
         self._build_ui()
         self._refresh_all()
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.parent():
+            parent_rect = self.parent().rect()
+            self.move(parent_rect.center() - self.rect().center())
+
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
@@ -307,24 +313,28 @@ class TasksDialog(QDialog):
 
     def _create_kpi_card(self, title: str, initial_val: str, accent_color: str) -> QFrame:
         card = QFrame()
+        card.setObjectName("kpiCard")
         card.setStyleSheet("""
-            QFrame {
-                background-color: #18181E;
-                border: 1px solid #27272A;
+            QFrame#kpiCard {
+                background-color: #16161C;
+                border: 1px solid #272732;
                 border-radius: 8px;
-                padding: 6px 12px;
+            }
+            QLabel {
+                background: transparent;
+                border: none;
             }
         """)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(2)
 
         lbl_t = QLabel(title)
-        lbl_t.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 700; letter-spacing: 0.8px;")
+        lbl_t.setStyleSheet("color: #8E8EA0; font-size: 10px; font-weight: 700; letter-spacing: 0.8px;")
         layout.addWidget(lbl_t)
 
         lbl_v = QLabel(initial_val)
-        lbl_v.setStyleSheet(f"color: {accent_color}; font-size: 20px; font-weight: 800;")
+        lbl_v.setStyleSheet(f"color: {accent_color}; font-size: 22px; font-weight: 800;")
         layout.addWidget(lbl_v)
 
         card.value_label = lbl_v  # type: ignore
@@ -705,14 +715,20 @@ class TasksDialog(QDialog):
 
     def _create_todo_row(self, todo: StudyTodo) -> QWidget:
         row = QFrame()
+        row.setObjectName("todoRow")
         row.setStyleSheet("""
-            QFrame {
-                background-color: #18181B;
-                border: 1px solid #27272A;
+            QFrame#todoRow {
+                background-color: #16161C;
+                border: 1px solid #272732;
                 border-radius: 8px;
             }
-            QFrame:hover {
-                border-color: #3F3F46;
+            QFrame#todoRow:hover {
+                background-color: #1A1A24;
+                border-color: #383848;
+            }
+            QLabel {
+                background: transparent;
+                border: none;
             }
         """)
         layout = QHBoxLayout(row)

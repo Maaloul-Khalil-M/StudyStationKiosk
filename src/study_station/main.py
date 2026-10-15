@@ -13,6 +13,8 @@ from study_station.ui.main_window import MainWindow
 def run() -> int:
     """Initialise and run the Study Station application."""
     app = QApplication(sys.argv)
+    from study_station.ui.theme import get_modern_font
+    app.setFont(get_modern_font("sans", 13))
     app.setApplicationName("Study Station")
     app.setOrganizationName("StudyStation")
 

@@ -67,6 +67,12 @@ class SubjectPreparationSheet(QDialog):
         self._build_ui()
         self._refresh_content()
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.parent():
+            parent_rect = self.parent().rect()
+            self.move(parent_rect.center() - self.rect().center())
+
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
@@ -407,14 +413,20 @@ class SubjectPreparationSheet(QDialog):
 
     def _create_todo_row(self, todo: StudyTodo, is_done: bool = False) -> QWidget:
         row = QFrame()
+        row.setObjectName("prepTodoRow")
         row.setStyleSheet("""
-            QFrame {
-                background-color: #18181B;
-                border: 1px solid #27272A;
+            QFrame#prepTodoRow {
+                background-color: #16161C;
+                border: 1px solid #262632;
                 border-radius: 8px;
             }
-            QFrame:hover {
-                border-color: #3F3F46;
+            QFrame#prepTodoRow:hover {
+                border-color: #3A3A4A;
+                background-color: #1A1A22;
+            }
+            QLabel {
+                background: transparent;
+                border: none;
             }
         """)
         layout = QHBoxLayout(row)

@@ -65,6 +65,12 @@ class ImportExportDialog(QDialog):
 
         self._init_ui()
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.parent():
+            parent_rect = self.parent().rect()
+            self.move(parent_rect.center() - self.rect().center())
+
     def _init_ui(self) -> None:
         container = QFrame(self)
         container.setObjectName("dialogContainer")
@@ -146,7 +152,7 @@ class ImportExportDialog(QDialog):
         export_layout.setSpacing(10)
 
         lbl_exp_header = QLabel("EXPORT SCHEDULE (BACKUP)")
-        lbl_exp_header.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 700; letter-spacing: 1px;")
+        lbl_exp_header.setStyleSheet("color: #A1A1AA; font-size: 10px; font-weight: 700; letter-spacing: 1.5px;")
         export_layout.addWidget(lbl_exp_header)
 
         session_count = len(self.engine.sessions)
@@ -178,6 +184,11 @@ class ImportExportDialog(QDialog):
         export_layout.addLayout(export_btn_row)
         main_layout.addWidget(card_export)
 
+        sep = QFrame()
+        sep.setFixedHeight(1)
+        sep.setStyleSheet("background-color: #1E1E24; border: none;")
+        main_layout.addWidget(sep)
+
         # ---------------------------------------------------------------------
         # 3. Import Card
         # ---------------------------------------------------------------------
@@ -199,7 +210,7 @@ class ImportExportDialog(QDialog):
         import_layout.setSpacing(10)
 
         lbl_imp_header = QLabel("IMPORT SCHEDULE")
-        lbl_imp_header.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 700; letter-spacing: 1px;")
+        lbl_imp_header.setStyleSheet("color: #A1A1AA; font-size: 10px; font-weight: 700; letter-spacing: 1.5px;")
         import_layout.addWidget(lbl_imp_header)
 
         # Select file row
@@ -279,14 +290,42 @@ class ImportExportDialog(QDialog):
 
         preview_layout.addLayout(mode_row)
 
-        # Confirm Import Button
+        # Confirm Import Button (emerald outline pill, not full-width white)
         self.btn_confirm_import = QPushButton("Import Schedule")
-        self.btn_confirm_import.setStyleSheet(BUTTON_PRIMARY_STYLE)
+        self.btn_confirm_import.setStyleSheet("""
+            QPushButton {
+                background-color: #064E3B;
+                color: #34D399;
+                font-size: 13px;
+                font-weight: 700;
+                height: 36px;
+                border: 1px solid #059669;
+                border-radius: 18px;
+                padding: 0px 24px;
+            }
+            QPushButton:hover {
+                background-color: #065F46;
+                color: #FFFFFF;
+                border-color: #10B981;
+            }
+            QPushButton:pressed {
+                background-color: #047857;
+            }
+            QPushButton:disabled {
+                background-color: #0F1F18;
+                color: #374151;
+                border-color: #1A2E22;
+            }
+        """)
         self.btn_confirm_import.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_confirm_import.setFixedHeight(34)
+        self.btn_confirm_import.setFixedHeight(36)
         self.btn_confirm_import.setEnabled(False)
         self.btn_confirm_import.clicked.connect(self._on_confirm_import)
-        preview_layout.addWidget(self.btn_confirm_import)
+        import_btn_row = QHBoxLayout()
+        import_btn_row.setContentsMargins(0, 0, 0, 0)
+        import_btn_row.addWidget(self.btn_confirm_import)
+        import_btn_row.addStretch()
+        preview_layout.addLayout(import_btn_row)
 
         import_layout.addWidget(self.preview_container)
         main_layout.addWidget(card_import, stretch=1)

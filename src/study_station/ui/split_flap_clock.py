@@ -56,10 +56,10 @@ class SplitFlapClockWidget(QWidget):
 
     def _get_layout_metrics(self) -> tuple[int, int, int, int, int]:
         rect = self.rect()
-        card_h = min(96, max(60, rect.height() - 8))
-        card_w = int(card_h * 0.88)
-        gap = 8
-        colon_w = 16
+        card_h = min(160, max(60, rect.height() - 8))
+        card_w = int(card_h * 0.86)
+        gap = 12
+        colon_w = 22
         if self.settings.show_seconds:
             total_w = 3 * card_w + 2 * colon_w + 4 * gap
         else:
@@ -67,12 +67,12 @@ class SplitFlapClockWidget(QWidget):
         return card_h, card_w, gap, colon_w, total_w
 
     def sizeHint(self) -> QSize:
-        w = 340 if self.settings.show_seconds else 230
-        return QSize(w, 105)
+        w = 516 if self.settings.show_seconds else 330
+        return QSize(w, 168)
 
     def _update_dimensions(self) -> None:
-        w = 340 if self.settings.show_seconds else 230
-        self.setFixedSize(w, 105)
+        w = 516 if self.settings.show_seconds else 330
+        self.setFixedSize(w, 168)
 
     def apply_settings(self, settings: AppSettings) -> None:
         self.settings = settings
@@ -177,17 +177,24 @@ class SplitFlapClockWidget(QWidget):
             self._paint_card(painter, sec_rect, self._curr_second, self._prev_second, self._second_flip_progress, theme)
 
     def _paint_colon(self, painter: QPainter, rect: QRect, theme) -> None:
-        """Render stylish blinking or steady colon dots."""
+        """Render stylish physical glowing pill colon markers."""
         painter.save()
-        dot_r = 3
         cx = rect.center().x()
-        cy1 = rect.center().y() - 14
-        cy2 = rect.center().y() + 14
+        cy = rect.center().y()
+        pill_w = 6
+        pill_h = 14
+        pill_r = 3
 
-        painter.setBrush(theme.text_muted)
+        # Top colon pill (centered in top flap zone)
+        top_pill = QRect(cx - pill_w // 2, cy - 28 - pill_h // 2, pill_w, pill_h)
+        # Bottom colon pill (centered in bottom flap zone)
+        bot_pill = QRect(cx - pill_w // 2, cy + 28 - pill_h // 2, pill_w, pill_h)
+
+        accent = getattr(theme, "text_accent", getattr(theme, "accent_primary", QColor("#10B981")))
+        painter.setBrush(accent)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(QPoint(cx, cy1), dot_r, dot_r)
-        painter.drawEllipse(QPoint(cx, cy2), dot_r, dot_r)
+        painter.drawRoundedRect(top_pill, pill_r, pill_r)
+        painter.drawRoundedRect(bot_pill, pill_r, pill_r)
         painter.restore()
 
     def _paint_card(
@@ -200,15 +207,17 @@ class SplitFlapClockWidget(QWidget):
         theme,
         am_pm: str = "",
     ) -> None:
-        corner_r = 7
-        notch_r = 3
+        corner_r = 8
+        notch_r = 4
         y_mid = rect.center().y()
 
         top_rect = QRect(rect.left(), rect.top(), rect.width(), y_mid - rect.top())
         bottom_rect = QRect(rect.left(), y_mid, rect.width(), rect.bottom() - y_mid + 1)
 
-        font_size = max(1, int(rect.height() * 0.62))
-        digit_font = get_modern_font("mono", size=font_size, weight=QFont.Weight.Bold)
+        # Standard clean sans-serif numeral typography for physical split-flap clarity
+        font_size = max(1, int(rect.height() * 0.46))
+        digit_font = get_modern_font("sans", size=font_size, weight=QFont.Weight.Bold)
+        digit_font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 0)
 
         # 1. Base card (bottom flap)
         bot_grad = QLinearGradient(bottom_rect.topLeft(), bottom_rect.bottomLeft())
@@ -280,20 +289,31 @@ class SplitFlapClockWidget(QWidget):
         painter.drawRoundedRect(rect, corner_r, corner_r)
         painter.restore()
 
-        # 6. Center hinge groove
+        # 6. Physical center hinge groove & crease depth
         groove_rect = QRect(rect.left(), y_mid - 1, rect.width(), 2)
         painter.fillRect(groove_rect, theme.hinge_groove)
+        # Crease shadow line above
+        painter.fillRect(QRect(rect.left() + 2, y_mid - 2, rect.width() - 4, 1), QColor(0, 0, 0, 80))
+        # Crease hairline highlight below
+        painter.fillRect(QRect(rect.left() + 2, y_mid + 1, rect.width() - 4, 1), QColor(255, 255, 255, 18))
 
-        # 7. Side hinge notches
+        # 7. Side hinge notches & center pivot pins
+        painter.save()
         painter.setPen(QPen(theme.card_border, 1.0))
         painter.setBrush(theme.bg_canvas)
         painter.drawEllipse(QPoint(rect.left(), y_mid), notch_r, notch_r)
         painter.drawEllipse(QPoint(rect.right(), y_mid), notch_r, notch_r)
+        # Center pivot pins
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(theme.card_border)
+        painter.drawEllipse(QPoint(rect.left(), y_mid), 2, 2)
+        painter.drawEllipse(QPoint(rect.right(), y_mid), 2, 2)
+        painter.restore()
 
         # 8. AM/PM Indicator
         if am_pm:
             ampm_font = get_modern_font("sans", size=max(9, int(rect.height() * 0.08)), weight=QFont.Weight.Bold)
             painter.setFont(ampm_font)
             painter.setPen(theme.text_muted)
-            ampm_rect = QRect(rect.left() + int(rect.width() * 0.08), rect.bottom() - int(rect.height() * 0.18), 32, 16)
+            ampm_rect = QRect(rect.left() + int(rect.width() * 0.08), rect.bottom() - int(rect.height() * 0.18), 36, 18)
             painter.drawText(ampm_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, am_pm)

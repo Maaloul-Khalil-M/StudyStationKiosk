@@ -278,11 +278,11 @@ class SubjectDashboardWidget(QWidget):
         is_eva = getattr(self.settings, "typography_style", "eva") == "eva"
         if is_eva:
             # Matisse EB inspired editorial display serif with tight tracking
-            self.lbl_subject_name.setFont(get_modern_font("eva_display", 38, QFont.Weight.Bold))
+            self.lbl_subject_name.setFont(get_modern_font("eva_display", 34, QFont.Weight.Bold))
             self.lbl_subject_name.setStyleSheet("""
                 QLabel {
                     color: #FFFFFF;
-                    font-size: 38px;
+                    font-size: 34px;
                     font-weight: 800;
                     letter-spacing: -0.5px;
                 }
@@ -291,15 +291,15 @@ class SubjectDashboardWidget(QWidget):
                 }
             """)
             self.lbl_subject_hint.setText("Click to open schedule")
-            self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500;")
+            self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500; letter-spacing: 0.3px;")
             self.btn_focus_15.setText("START FOCUS")
             self.btn_focus_25.setText("25m")
         else:
-            self.lbl_subject_name.setFont(get_modern_font("sans", 36, QFont.Weight.Bold))
+            self.lbl_subject_name.setFont(get_modern_font("sans", 32, QFont.Weight.Bold))
             self.lbl_subject_name.setStyleSheet("""
                 QLabel {
                     color: #FFFFFF;
-                    font-size: 36px;
+                    font-size: 32px;
                     font-weight: 800;
                     letter-spacing: -0.5px;
                 }
@@ -308,7 +308,7 @@ class SubjectDashboardWidget(QWidget):
                 }
             """)
             self.lbl_subject_hint.setText("Click to open schedule")
-            self.lbl_subject_hint.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 500;")
+            self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500; letter-spacing: 0.3px;")
             self.btn_focus_15.setText("START FOCUS")
             self.btn_focus_25.setText("25m")
 
@@ -320,9 +320,9 @@ class SubjectDashboardWidget(QWidget):
 
         # Date Display (Always visible in both idle and interactive modes)
         now = datetime.now()
-        date_str = now.strftime("%A, %b %d").upper()
+        date_str = now.strftime("%A, %B %d").upper()
         self.lbl_date = QLabel(date_str)
-        self.lbl_date.setStyleSheet("color: #71717A; font-size: 12px; font-weight: 700; letter-spacing: 1.5px;")
+        self.lbl_date.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;")
         layout.addWidget(self.lbl_date)
 
         layout.addStretch()
@@ -465,7 +465,7 @@ class SubjectDashboardWidget(QWidget):
 
     def refresh_dashboard(self, ref_dt: datetime | None = None) -> None:
         now = ref_dt or datetime.now()
-        date_str = now.strftime("%A, %b %d").upper()
+        date_str = now.strftime("%A, %B %d").upper()
         self.lbl_date.setText(date_str)
 
         # Update ambient bottom timeline strip

@@ -51,7 +51,7 @@ class TestDashboardUI(unittest.TestCase):
     def test_split_flap_clock_widget(self) -> None:
         clock = SplitFlapClockWidget(self.settings)
         self.assertIsNotNone(clock)
-        self.assertEqual(clock.height(), 105)
+        self.assertEqual(clock.height(), 168)
 
         # Apply updated settings
         new_settings = AppSettings(use_24h=False, show_seconds=True)

@@ -13,7 +13,6 @@ from datetime import date, datetime, timedelta
 from PySide6.QtCore import QDate, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
-    QDateEdit,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -36,17 +35,71 @@ from study_station.ui.theme import (
 )
 
 
+class DebriefDateSelector(QComboBox):
+    """Custom styled dark dropdown for selecting custom debrief deadlines."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        _today = date.today()
+        for _label, _delta in [("Tomorrow", 1), ("+3 Days", 3), ("+1 Week", 7), ("+2 Weeks", 14), ("+1 Month", 30)]:
+            self.addItem(_label, _today + timedelta(days=_delta))
+        self.setStyleSheet("""
+            QComboBox {
+                background-color: #18181B;
+                color: #52525B;
+                border: 1px solid #27272A;
+                border-radius: 6px;
+                padding: 4px 8px;
+                font-size: 12px;
+                min-width: 110px;
+            }
+            QComboBox:enabled {
+                color: #FFFFFF;
+                border-color: #3F3F46;
+            }
+            QComboBox::drop-down { border: none; }
+            QComboBox QAbstractItemView {
+                background-color: #18181B;
+                color: #FFFFFF;
+                border: 1px solid #27272A;
+                selection-background-color: #272730;
+            }
+        """)
+
+    def setDate(self, qdate_or_date) -> None:
+        if hasattr(qdate_or_date, "year") and callable(qdate_or_date.year):
+            py_date = date(qdate_or_date.year(), qdate_or_date.month(), qdate_or_date.day())
+        elif hasattr(qdate_or_date, "toPython"):
+            py_date = qdate_or_date.toPython()
+        else:
+            py_date = qdate_or_date
+
+        label = py_date.strftime("%d %b %Y")
+        for i in range(self.count()):
+            if self.itemData(i) == py_date:
+                self.setCurrentIndex(i)
+                return
+        self.addItem(label, py_date)
+        self.setCurrentIndex(self.count() - 1)
+
+    def date(self) -> QDate:
+        d = self.currentData()
+        if d:
+            return QDate(d.year, d.month, d.day)
+        return QDate.currentDate()
+
+
 class DebriefDialog(QDialog):
     """Interactive modal stepping through today's classes to generate preparation todos."""
 
     debrief_completed = Signal(list)  # list of StudyTodo created
 
     QUICK_TEMPLATES = [
-        ("💻 Lab Fix", "Fix lab exercise: "),
-        ("📖 Slides", "Review lecture slides: "),
-        ("📝 TD Problem", "Solve TD exercises: "),
-        ("🎯 Exam Prep", "Exam prep: "),
-        ("🚀 Project", "Project milestone: "),
+        ("Lab Fix", "Fix lab exercise: "),
+        ("Slides", "Review lecture slides: "),
+        ("TD Problem", "Solve TD exercises: "),
+        ("Exam Prep", "Exam prep: "),
+        ("Project", "Project milestone: "),
     ]
 
     def __init__(
@@ -77,6 +130,12 @@ class DebriefDialog(QDialog):
 
         self._build_ui()
         self._load_current_step()
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.parent():
+            parent_rect = self.parent().rect()
+            self.move(parent_rect.center() - self.rect().center())
 
     def _resolve_today_sessions(self) -> list[AcademicSession]:
         """Fetch today's scheduled classes from engine."""
@@ -321,20 +380,8 @@ class DebriefDialog(QDialog):
         """)
         deadline_layout.addWidget(self.radio_custom_date)
 
-        self.date_custom = QDateEdit()
-        self.date_custom.setCalendarPopup(True)
-        self.date_custom.setDate(QDate.currentDate().addDays(7))
+        self.date_custom = DebriefDateSelector()
         self.date_custom.setEnabled(False)
-        self.date_custom.setStyleSheet("""
-            QDateEdit {
-                background-color: #18181B;
-                color: #FFFFFF;
-                border: 1px solid #27272A;
-                border-radius: 6px;
-                padding: 4px 8px;
-                font-size: 12px;
-            }
-        """)
         deadline_layout.addWidget(self.date_custom)
         deadline_layout.addStretch()
         self.step_layout.addLayout(deadline_layout)
@@ -455,8 +502,9 @@ class DebriefDialog(QDialog):
 
     def _resolve_active_due_date(self, subject_name: str) -> datetime:
         if self.radio_custom_date.isChecked():
-            qd = self.date_custom.date()
-            return datetime(qd.year(), qd.month(), qd.day(), 23, 59)
+            selected = self.date_custom.currentData()
+            if selected:
+                return datetime(selected.year, selected.month, selected.day, 23, 59)
 
         # Default: next class start datetime
         deadline = self.engine.get_next_class_deadline_for_subject(subject_name, self.ref_dt)

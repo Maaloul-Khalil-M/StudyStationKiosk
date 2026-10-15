@@ -205,7 +205,7 @@ class ExitTicketDialog(QDialog):
                 font-size: 12px;
             }
             QLineEdit:focus {
-                border-color: #38BDF8;
+                border-color: #10B981;
             }
         """)
         if self.todo and self.todo.next_class_question:
@@ -259,7 +259,7 @@ class ExitTicketDialog(QDialog):
 
         bottom_row.addStretch()
 
-        self.btn_save = QPushButton("Done & Save")
+        self.btn_save = QPushButton("Done && Save")
         self.btn_save.setStyleSheet(BUTTON_PRIMARY_STYLE)
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_save.setFixedHeight(36)
@@ -272,6 +272,12 @@ class ExitTicketDialog(QDialog):
         self._update_action_styles()
         self._update_confidence_styles()
 
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.parent():
+            parent_rect = self.parent().rect()
+            self.move(parent_rect.center() - self.rect().center())
+
     def _set_action(self, action: str) -> None:
         self.selected_action = action
         self._update_action_styles()
@@ -279,15 +285,16 @@ class ExitTicketDialog(QDialog):
     def _update_action_styles(self) -> None:
         style_default = """
             QPushButton {
-                background-color: #18181B;
-                color: #A1A1AA;
-                border: 1px solid #27272A;
+                background-color: #16161D;
+                color: #D4D4D8;
+                border: 1px solid #2B2B36;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #27272A;
+                background-color: #22222C;
+                border-color: #3F3F50;
                 color: #FFFFFF;
             }
         """
@@ -295,8 +302,8 @@ class ExitTicketDialog(QDialog):
         style_complete = """
             QPushButton {
                 background-color: #064E3B;
-                color: #34D399;
-                border: 1px solid #059669;
+                color: #6EE7B7;
+                border: 1.5px solid #10B981;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 700;
@@ -306,8 +313,8 @@ class ExitTicketDialog(QDialog):
         style_extend = """
             QPushButton {
                 background-color: #082F49;
-                color: #38BDF8;
-                border: 1px solid #0284C7;
+                color: #7DD3FC;
+                border: 1.5px solid #38BDF8;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 700;
@@ -317,8 +324,8 @@ class ExitTicketDialog(QDialog):
         style_aside = """
             QPushButton {
                 background-color: #38240D;
-                color: #FBBF24;
-                border: 1px solid #B45309;
+                color: #FDE047;
+                border: 1.5px solid #F59E0B;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 700;
@@ -336,15 +343,16 @@ class ExitTicketDialog(QDialog):
     def _update_confidence_styles(self) -> None:
         style_default = """
             QPushButton {
-                background-color: #18181B;
-                color: #A1A1AA;
-                border: 1px solid #27272A;
+                background-color: #16161D;
+                color: #D4D4D8;
+                border: 1px solid #2B2B36;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 600;
             }
             QPushButton:hover {
-                background-color: #27272A;
+                background-color: #22222C;
+                border-color: #3F3F50;
                 color: #FFFFFF;
             }
         """
@@ -352,8 +360,8 @@ class ExitTicketDialog(QDialog):
         style_foggy = """
             QPushButton {
                 background-color: #451A1A;
-                color: #F87171;
-                border: 1px solid #991B1B;
+                color: #FCA5A5;
+                border: 1.5px solid #EF4444;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 700;
@@ -363,8 +371,8 @@ class ExitTicketDialog(QDialog):
         style_prog = """
             QPushButton {
                 background-color: #451A03;
-                color: #FCD34D;
-                border: 1px solid #78350F;
+                color: #FDE047;
+                border: 1.5px solid #F59E0B;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 700;
@@ -374,8 +382,8 @@ class ExitTicketDialog(QDialog):
         style_solid = """
             QPushButton {
                 background-color: #064E3B;
-                color: #34D399;
-                border: 1px solid #059669;
+                color: #6EE7B7;
+                border: 1.5px solid #10B981;
                 border-radius: 8px;
                 font-size: 12px;
                 font-weight: 700;

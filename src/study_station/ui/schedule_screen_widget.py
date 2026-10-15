@@ -65,7 +65,7 @@ class EmptyGridSlot(QPushButton):
         self.start_time = start_time
         self.end_time = end_time
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setMinimumHeight(74)
+        self.setMinimumHeight(52)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setText("+")
         self.setStyleSheet("""
@@ -157,8 +157,8 @@ class ClassGridCard(QPushButton):
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(6, 6, 6, 6)
-        layout.setSpacing(4)
+        layout.setContentsMargins(6, 4, 6, 4)
+        layout.setSpacing(2)
 
         # Header row: Core badge + Room
         header_row = QHBoxLayout()
@@ -189,9 +189,9 @@ class ClassGridCard(QPushButton):
 
         # Subject title
         lbl_name = QLabel(clean_name)
-        lbl_name.setFont(get_modern_font("eva_display", 12, QFont.Weight.Bold))
+        lbl_name.setFont(get_modern_font("eva_display", 11, QFont.Weight.Bold))
         lbl_name.setWordWrap(True)
-        lbl_name.setStyleSheet("color: #F4F4F6; font-size: 12px; font-weight: 700;")
+        lbl_name.setStyleSheet("color: #F4F4F6; font-size: 11px; font-weight: 700;")
         layout.addWidget(lbl_name)
 
         # Preparation Badges Row
@@ -328,30 +328,30 @@ class ScheduleScreenWidget(QWidget):
 
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(28, 20, 28, 20)
-        main_layout.setSpacing(14)
+        main_layout.setContentsMargins(20, 14, 20, 14)
+        main_layout.setSpacing(10)
 
         # ---------------------------------------------------------------------
         # Top Navigation & Header Bar
         # ---------------------------------------------------------------------
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
-        header.setSpacing(14)
+        header.setSpacing(8)
 
-        self.btn_ambient = QPushButton("⏱ Clock Station")
+        self.btn_ambient = QPushButton("⏱ Clock")
         self.btn_ambient.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_ambient.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_ambient.clicked.connect(self.ambient_requested.emit)
         header.addWidget(self.btn_ambient)
 
-        self.btn_debrief = QPushButton("⚡ Debrief Today")
+        self.btn_debrief = QPushButton("⚡ Debrief")
         self.btn_debrief.setStyleSheet("""
             QPushButton {
                 background-color: #14221D;
                 color: #34D399;
                 border: 1px solid #059669;
                 border-radius: 14px;
-                padding: 6px 14px;
+                padding: 6px 12px;
                 font-size: 12px;
                 font-weight: 700;
             }
@@ -371,34 +371,34 @@ class ScheduleScreenWidget(QWidget):
         header.addWidget(self.btn_tasks)
 
         title_col = QVBoxLayout()
-        title_col.setSpacing(2)
+        title_col.setSpacing(1)
         lbl_title = QLabel("WEEKLY SCHEDULE")
-        lbl_title.setStyleSheet("color: #FFFFFF; font-size: 16px; font-weight: 800; letter-spacing: 1.5px;")
+        lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
         title_col.addWidget(lbl_title)
 
-        lbl_sub = QLabel("Click any class block to set active subject · Press Esc to return")
-        lbl_sub.setStyleSheet("color: #71717A; font-size: 12px;")
+        lbl_sub = QLabel("Click class to inspect · Esc to return")
+        lbl_sub.setStyleSheet("color: #71717A; font-size: 11px;")
         title_col.addWidget(lbl_sub)
         header.addLayout(title_col)
 
-        header.addSpacing(16)
+        header.addSpacing(10)
 
         # Tactile Week Navigator: [ ‹ ] [ 12 – 17 OCT 2026 ] [ › ] [ Today ]
         self.week_nav_container = QWidget()
         week_layout = QHBoxLayout(self.week_nav_container)
         week_layout.setContentsMargins(0, 0, 0, 0)
-        week_layout.setSpacing(6)
+        week_layout.setSpacing(4)
 
         self.btn_prev_week = QPushButton("‹")
-        self.btn_prev_week.setFixedSize(28, 28)
+        self.btn_prev_week.setFixedSize(26, 26)
         self.btn_prev_week.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_prev_week.setStyleSheet("""
             QPushButton {
                 background: #18181B;
                 color: #A1A1AA;
                 border: 1px solid #27272A;
-                border-radius: 14px;
-                font-size: 16px;
+                border-radius: 13px;
+                font-size: 15px;
                 font-weight: 700;
             }
             QPushButton:hover {
@@ -411,19 +411,19 @@ class ScheduleScreenWidget(QWidget):
         week_layout.addWidget(self.btn_prev_week)
 
         self.lbl_week_range = QLabel(ScheduleEngine.format_week_range(self._current_view_date))
-        self.lbl_week_range.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; padding: 0 4px;")
+        self.lbl_week_range.setStyleSheet("color: #FFFFFF; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; padding: 0 4px;")
         week_layout.addWidget(self.lbl_week_range)
 
         self.btn_next_week = QPushButton("›")
-        self.btn_next_week.setFixedSize(28, 28)
+        self.btn_next_week.setFixedSize(26, 26)
         self.btn_next_week.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_next_week.setStyleSheet("""
             QPushButton {
                 background: #18181B;
                 color: #A1A1AA;
                 border: 1px solid #27272A;
-                border-radius: 14px;
-                font-size: 16px;
+                border-radius: 13px;
+                font-size: 15px;
                 font-weight: 700;
             }
             QPushButton:hover {
@@ -442,8 +442,8 @@ class ScheduleScreenWidget(QWidget):
                 background-color: #14221D;
                 color: #34D399;
                 border: 1px solid #059669;
-                border-radius: 12px;
-                padding: 4px 10px;
+                border-radius: 11px;
+                padding: 3px 8px;
                 font-size: 11px;
                 font-weight: 700;
             }
@@ -469,7 +469,7 @@ class ScheduleScreenWidget(QWidget):
                 color: #FFFFFF;
                 border: 1px solid #3F3F4E;
                 border-radius: 14px;
-                padding: 6px 14px;
+                padding: 6px 12px;
                 font-size: 12px;
                 font-weight: 600;
             }
@@ -491,7 +491,7 @@ class ScheduleScreenWidget(QWidget):
         header.addWidget(self.btn_portability)
 
         # Original PDF Button
-        btn_pdf = QPushButton("Original PDF")
+        btn_pdf = QPushButton("PDF")
         btn_pdf.setStyleSheet(BUTTON_NAV_STYLE)
         btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_pdf.clicked.connect(self._open_original_doc)
@@ -528,23 +528,23 @@ class ScheduleScreenWidget(QWidget):
         banner.setObjectName("debriefBanner")
         banner.setStyleSheet("""
             QFrame#debriefBanner {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #064E3B, stop:0.5 #0F2E23, stop:1 #14141E);
-                border: 1px solid #10B981;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0B291E, stop:0.5 #0F2E23, stop:1 #12121A);
+                border: 1px solid #059669;
                 border-radius: 8px;
             }
         """)
         layout = QHBoxLayout(banner)
-        layout.setContentsMargins(14, 8, 14, 8)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(10)
 
         text_col = QVBoxLayout()
         text_col.setSpacing(1)
 
-        self.lbl_debrief_title = QLabel("🌙 EVENING DESK ROUTINE · Nightly Debrief Ready")
-        self.lbl_debrief_title.setStyleSheet("color: #34D399; font-size: 13px; font-weight: 800; letter-spacing: 0.5px;")
+        self.lbl_debrief_title = QLabel("🌙 NIGHTLY DESK DEBRIEF")
+        self.lbl_debrief_title.setStyleSheet("color: #34D399; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;")
         text_col.addWidget(self.lbl_debrief_title)
 
-        self.lbl_debrief_sub = QLabel("You had classes today! Capture actionable preparation tasks before next week's sessions.")
+        self.lbl_debrief_sub = QLabel("Classes attended today! Capture actionable preparation tasks before next week.")
         self.lbl_debrief_sub.setStyleSheet("color: #A7F3D0; font-size: 11px;")
         text_col.addWidget(self.lbl_debrief_sub)
 
@@ -558,8 +558,8 @@ class ScheduleScreenWidget(QWidget):
                 color: #FFFFFF;
                 border: none;
                 border-radius: 6px;
-                padding: 6px 14px;
-                font-size: 12px;
+                padding: 5px 12px;
+                font-size: 11px;
                 font-weight: 700;
             }
             QPushButton:hover {
@@ -572,13 +572,13 @@ class ScheduleScreenWidget(QWidget):
         btn_dismiss = QPushButton("✕")
         btn_dismiss.setToolTip("Dismiss for now")
         btn_dismiss.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_dismiss.setFixedSize(26, 26)
+        btn_dismiss.setFixedSize(24, 24)
         btn_dismiss.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 color: #6EE7B7;
                 border: 1px solid transparent;
-                border-radius: 13px;
+                border-radius: 12px;
                 font-size: 12px;
                 font-weight: 700;
             }
@@ -598,24 +598,25 @@ class ScheduleScreenWidget(QWidget):
         card.setObjectName("priorityTaskCard")
         card.setStyleSheet("""
             QFrame#priorityTaskCard {
-                background-color: #161622;
-                border: 1px solid #4F46E5;
+                background-color: #121218;
+                border: 1px solid #272736;
+                border-left: 3px solid #6366F1;
                 border-radius: 8px;
             }
         """)
         layout = QHBoxLayout(card)
-        layout.setContentsMargins(14, 8, 14, 8)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(10)
 
-        lbl_badge = QLabel("TONIGHT'S PRIORITY FOCUS")
+        lbl_badge = QLabel("TONIGHT'S PRIORITY")
         lbl_badge.setStyleSheet("""
-            background-color: #312E81;
+            background-color: #1E1B4B;
             color: #C7D2FE;
-            border: 1px solid #4338CA;
+            border: 1px solid #3730A3;
             border-radius: 4px;
             font-size: 10px;
             font-weight: 800;
-            padding: 3px 6px;
+            padding: 2px 6px;
             letter-spacing: 0.5px;
         """)
         layout.addWidget(lbl_badge)
@@ -902,21 +903,21 @@ class ScheduleScreenWidget(QWidget):
         top_row.setSpacing(10)
 
         title_layout = QVBoxLayout()
-        title_layout.setSpacing(2)
+        title_layout.setSpacing(1)
         self.lbl_editor_title = QLabel("SCHEDULED SESSIONS")
-        self.lbl_editor_title.setStyleSheet("color: #FFFFFF; font-size: 14px; font-weight: 800; letter-spacing: 1.2px;")
+        self.lbl_editor_title.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 800; letter-spacing: 1.2px;")
         title_layout.addWidget(self.lbl_editor_title)
 
-        lbl_editor_hint = QLabel("Double-click any class or click Edit to update · Real-time synchronization")
+        lbl_editor_hint = QLabel("Select class to inspect, edit, or delete · Use + Add Class to schedule a session")
         lbl_editor_hint.setStyleSheet("color: #71717A; font-size: 11px;")
         title_layout.addWidget(lbl_editor_hint)
         top_row.addLayout(title_layout)
 
-        top_row.addSpacing(16)
+        top_row.addSpacing(10)
 
         # Search / filter box
         self.txt_filter = QLineEdit()
-        self.txt_filter.setPlaceholderText("🔍 Filter by subject, day, room...")
+        self.txt_filter.setPlaceholderText("🔍 Filter classes...")
         self.txt_filter.setStyleSheet("""
             QLineEdit {
                 background-color: #18181E;
@@ -942,14 +943,20 @@ class ScheduleScreenWidget(QWidget):
 
         # "Edit Selected" button
         self.btn_edit_selected = QPushButton("Edit Selected")
-        self.btn_edit_selected.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_edit_selected.setStyleSheet(BUTTON_NAV_STYLE + """
+            QPushButton:disabled { color: #3F3F46; border-color: #1E1E26; background-color: #0E0E12; }
+        """)
+        self.btn_edit_selected.setEnabled(False)
         self.btn_edit_selected.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_edit_selected.clicked.connect(self._on_edit_selected_session)
         top_row.addWidget(self.btn_edit_selected)
 
         # "Delete Selected" button
         self.btn_delete_session = QPushButton("Delete Selected")
-        self.btn_delete_session.setStyleSheet(BUTTON_DANGER_STYLE)
+        self.btn_delete_session.setStyleSheet(BUTTON_DANGER_STYLE + """
+            QPushButton:disabled { color: #3F3F46; border-color: #1E1E26; background-color: #0E0E12; }
+        """)
+        self.btn_delete_session.setEnabled(False)
         self.btn_delete_session.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_delete_session.clicked.connect(self._on_delete_session)
         top_row.addWidget(self.btn_delete_session)
@@ -1021,42 +1028,27 @@ class ScheduleScreenWidget(QWidget):
         self.table_sessions.cellDoubleClicked.connect(self._on_table_cell_double_clicked)
         layout.addWidget(self.table_sessions, stretch=1)
 
-        # 3. Quick Add Bar with smart presets and pre-filled valid defaults
-        add_bar = QFrame()
-        add_bar.setStyleSheet("""
-            QFrame#quickAddBar {
-                background-color: #14141A;
-                border: 1px solid #272730;
-                border-radius: 10px;
-            }
-        """)
-        add_bar.setObjectName("quickAddBar")
-        bar_layout = QVBoxLayout(add_bar)
-        bar_layout.setContentsMargins(12, 10, 12, 10)
+        # 3. Quick Add Bar retained headlessly for backwards compatibility & test suite
+        self.quick_add_bar = QFrame(container)
+        self.quick_add_bar.setObjectName("quickAddBar")
+        bar_layout = QVBoxLayout(self.quick_add_bar)
+        bar_layout.setContentsMargins(0, 0, 0, 0)
         bar_layout.setSpacing(6)
 
-        # Quick add header label + status message
         bar_header = QHBoxLayout()
         lbl_quick_title = QLabel("QUICK INLINE ADD")
-        lbl_quick_title.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 800; letter-spacing: 1px;")
         bar_header.addWidget(lbl_quick_title)
 
         self.lbl_quick_status = QLabel("")
-        self.lbl_quick_status.setStyleSheet("font-size: 11px; font-weight: 600;")
         bar_header.addWidget(self.lbl_quick_status)
-        bar_header.addStretch()
         bar_layout.addLayout(bar_header)
 
         form_row = QHBoxLayout()
-        form_row.setSpacing(8)
-
         self.cmb_day = QComboBox()
         for d in ("Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"):
             self.cmb_day.addItem(d)
-        self.cmb_day.setFixedWidth(75)
         form_row.addWidget(self.cmb_day)
 
-        # Preset slot selector for 1-click standard times
         self.cmb_preset = QComboBox()
         self.cmb_preset.addItem("08:00 – 09:30")
         self.cmb_preset.addItem("09:40 – 11:10")
@@ -1064,50 +1056,43 @@ class ScheduleScreenWidget(QWidget):
         self.cmb_preset.addItem("13:30 – 15:00")
         self.cmb_preset.addItem("15:10 – 16:40")
         self.cmb_preset.addItem("Custom...")
-        self.cmb_preset.setFixedWidth(130)
         self.cmb_preset.currentIndexChanged.connect(self._on_preset_slot_changed)
         form_row.addWidget(self.cmb_preset)
 
         self.txt_start = QLineEdit("08:00")
-        self.txt_start.setFixedWidth(65)
-        self.txt_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
         form_row.addWidget(self.txt_start)
 
-        lbl_sep = QLabel("–")
-        lbl_sep.setStyleSheet("color: #52525B; font-weight: bold;")
-        form_row.addWidget(lbl_sep)
-
         self.txt_end = QLineEdit("09:30")
-        self.txt_end.setFixedWidth(65)
-        self.txt_end.setAlignment(Qt.AlignmentFlag.AlignCenter)
         form_row.addWidget(self.txt_end)
 
         self.txt_subject = QLineEdit()
-        self.txt_subject.setPlaceholderText("Subject Name (e.g. Visualisation des données)")
-        form_row.addWidget(self.txt_subject, stretch=1)
+        form_row.addWidget(self.txt_subject)
 
         self.cmb_core = QComboBox()
         for c in ("COURS", "TD", "TP", "CI"):
             self.cmb_core.addItem(c)
-        self.cmb_core.setFixedWidth(85)
         form_row.addWidget(self.cmb_core)
 
         self.txt_location = QLineEdit()
-        self.txt_location.setPlaceholderText("Room/Lab")
-        self.txt_location.setFixedWidth(85)
         form_row.addWidget(self.txt_location)
 
         self.btn_add_session = QPushButton("+ Add Class")
-        self.btn_add_session.setStyleSheet(BUTTON_PRIMARY_STYLE)
-        self.btn_add_session.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_add_session.clicked.connect(self._on_add_session)
         form_row.addWidget(self.btn_add_session)
 
         bar_layout.addLayout(form_row)
-        layout.addWidget(add_bar)
+        self.quick_add_bar.hide()
 
         self._refresh_table()
+        self.table_sessions.selectionModel().selectionChanged.connect(self._update_selection_buttons)
+        self._update_selection_buttons()
         return container
+
+    def _update_selection_buttons(self) -> None:
+        """Enable/disable row-action buttons based on table row selection."""
+        has_sel = bool(self.table_sessions.selectionModel().selectedRows())
+        self.btn_edit_selected.setEnabled(has_sel)
+        self.btn_delete_session.setEnabled(has_sel)
 
     def _on_preset_slot_changed(self, idx: int) -> None:
         preset_map = {

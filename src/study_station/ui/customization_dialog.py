@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -32,7 +33,7 @@ class CustomizationDialog(QDialog):
     def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Clock & Display Customization")
-        self.setFixedSize(500, 680)
+        self.setFixedSize(500, 700)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -91,13 +92,15 @@ class CustomizationDialog(QDialog):
         main_layout.addWidget(container)
 
         content_layout = QVBoxLayout(container)
-        content_layout.setContentsMargins(28, 22, 28, 22)
-        content_layout.setSpacing(16)
+        content_layout.setContentsMargins(24, 18, 24, 18)
+        content_layout.setSpacing(11)
 
         # Header with title and close button
         header_layout = QHBoxLayout()
         title = QLabel("Settings & Customization")
         title.setFont(get_modern_font("sans", 18, QFont.Weight.Bold))
+        title.setMinimumHeight(32)
+        title.setStyleSheet("padding: 2px 0 4px 0;")
         header_layout.addWidget(title)
         header_layout.addStretch()
 
@@ -145,6 +148,8 @@ class CustomizationDialog(QDialog):
         time_layout.addStretch()
         content_layout.addLayout(time_layout)
 
+        content_layout.addWidget(self._create_divider())
+
         # Section 2: Display Cards & Elements
         sec2_lbl = QLabel("DISPLAY ELEMENTS")
         sec2_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
@@ -165,6 +170,8 @@ class CustomizationDialog(QDialog):
         self.cb_anim.setChecked(self._settings.animate_flip)
         self.cb_anim.toggled.connect(self._on_anim_toggled)
         content_layout.addWidget(self.cb_anim)
+
+        content_layout.addWidget(self._create_divider())
 
         # Section 2.5: Typography System
         sec_typo_lbl = QLabel("TYPOGRAPHY SYSTEM")
@@ -193,38 +200,39 @@ class CustomizationDialog(QDialog):
         typo_layout.addStretch()
         content_layout.addLayout(typo_layout)
 
+        content_layout.addWidget(self._create_divider())
+
         # Section 3: Theme Palette
         sec3_lbl = QLabel("CARD THEME")
         sec3_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
         sec3_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
         content_layout.addWidget(sec3_lbl)
 
-        theme_layout = QVBoxLayout()
-        theme_layout.setSpacing(8)
+        theme_grid = QGridLayout()
+        theme_grid.setContentsMargins(0, 0, 0, 0)
+        theme_grid.setHorizontalSpacing(24)
+        theme_grid.setVerticalSpacing(10)
+        theme_grid.setRowMinimumHeight(0, 26)
+        theme_grid.setRowMinimumHeight(1, 26)
         theme_group = QButtonGroup(self)
 
         # 2x2 theme layout
-        row1 = QHBoxLayout()
-        row2 = QHBoxLayout()
         items = list(THEMES.items())
-
         for idx, (theme_key, theme_data) in enumerate(items):
             rb = QRadioButton(theme_data.name)
             rb.setProperty("theme_key", theme_key)
+            rb.setFixedHeight(24)
             if self._settings.theme_id == theme_key:
                 rb.setChecked(True)
             rb.toggled.connect(lambda checked, k=theme_key: self._on_theme_toggled(checked, k))
             theme_group.addButton(rb)
-            if idx < 2:
-                row1.addWidget(rb)
-            else:
-                row2.addWidget(rb)
+            row = idx // 2
+            col = idx % 2
+            theme_grid.addWidget(rb, row, col)
 
-        row1.addStretch()
-        row2.addStretch()
-        theme_layout.addLayout(row1)
-        theme_layout.addLayout(row2)
-        content_layout.addLayout(theme_layout)
+        content_layout.addLayout(theme_grid)
+
+        content_layout.addWidget(self._create_divider())
 
         # Section 4: Audio Cues & Calm Feedback
         sec_audio_lbl = QLabel("AUDIO & CALM CUES")
@@ -266,6 +274,8 @@ class CustomizationDialog(QDialog):
 
         content_layout.addLayout(audio_row)
 
+        content_layout.addWidget(self._create_divider())
+
         # Section 5: Secondary Tools
         sec5_lbl = QLabel("STUDY MANAGEMENT")
         sec5_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
@@ -276,24 +286,28 @@ class CustomizationDialog(QDialog):
         tools_layout.setSpacing(8)
 
         btn_timetable = QPushButton("Timetable")
+        btn_timetable.setFixedHeight(30)
         btn_timetable.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_timetable.setStyleSheet(BUTTON_SECONDARY_STYLE)
         btn_timetable.clicked.connect(self._on_timetable_clicked)
         tools_layout.addWidget(btn_timetable)
 
         btn_targets = QPushButton("Targets")
+        btn_targets.setFixedHeight(30)
         btn_targets.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_targets.setStyleSheet(BUTTON_SECONDARY_STYLE)
         btn_targets.clicked.connect(self._on_targets_clicked)
         tools_layout.addWidget(btn_targets)
 
         btn_manual = QPushButton("Log Time")
+        btn_manual.setFixedHeight(30)
         btn_manual.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_manual.setStyleSheet(BUTTON_SECONDARY_STYLE)
         btn_manual.clicked.connect(self._on_manual_clicked)
         tools_layout.addWidget(btn_manual)
 
         btn_import_export = QPushButton("Import/Export")
+        btn_import_export.setFixedHeight(30)
         btn_import_export.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_import_export.setStyleSheet(BUTTON_SECONDARY_STYLE)
         btn_import_export.clicked.connect(self._on_import_export_clicked)
@@ -304,12 +318,29 @@ class CustomizationDialog(QDialog):
         content_layout.addStretch()
 
         # Done button
+        done_layout = QHBoxLayout()
+        done_layout.addStretch()
         btn_done = QPushButton("Done")
-        btn_done.setFixedHeight(38)
+        btn_done.setFixedSize(160, 36)
         btn_done.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_done.setStyleSheet(BUTTON_PRIMARY_STYLE)
         btn_done.clicked.connect(self.accept)
-        content_layout.addWidget(btn_done)
+        done_layout.addWidget(btn_done)
+        done_layout.addStretch()
+        content_layout.addLayout(done_layout)
+
+    @staticmethod
+    def _create_divider() -> QFrame:
+        div = QFrame()
+        div.setFixedHeight(1)
+        div.setStyleSheet("background-color: #1E1E26; border: none;")
+        return div
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.parent():
+            parent_rect = self.parent().rect()
+            self.move(parent_rect.center() - self.rect().center())
 
     def _on_timetable_clicked(self) -> None:
         self.accept()
