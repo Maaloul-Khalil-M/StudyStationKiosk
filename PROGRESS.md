@@ -472,11 +472,25 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 - [x] Added dedicated unit test suite in [`tests/test_debrief_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_debrief_dialog.py).
 - [x] **100% test pass rate:** **80/80 unit tests passing** across 13 test suites.
 
-### Milestone 12: Grid as Main Station (Academic Cockpit)
-- [ ] Set `ScheduleScreenWidget` as the primary main view (`INDEX_MAIN = 0`).
-- [ ] Render dynamic Todo and Question badges directly on weekly class cards (`● X TODOS`, `✓ READY`, `❓ X QUESTIONS`).
-- [ ] Build `SubjectPreparationSheet` (modal or slide-out drawer) for inspecting and checking off subject tasks.
-- [ ] Unit test coverage in `tests/test_grid_main_screen.py`.
+### Milestone 12: Grid as Main Station (Academic Cockpit) `[COMPLETED]`
+- [x] Set `ScheduleScreenWidget` as the primary default main station view (`INDEX_GRID = 0`, `INDEX_DASHBOARD = 0` alias).
+- [x] Transformed Ambient Split-Flap Clock into a dedicated screensaver mode (`INDEX_AMBIENT_CLOCK = 3`), accessible via top-bar `[ ⏱ Clock Station ]` button or keyboard shortcuts <kbd>C</kbd> / <kbd>A</kbd>.
+- [x] Added `[ ⚡ Debrief Today ]` button in the Weekly Schedule top bar connecting directly to `DebriefDialog`.
+- [x] Dynamic preparation badge rendering on `ClassGridCard`:
+  - `● X DUE` (amber/red) when pending tasks are overdue or due before next session (< 24h).
+  - `● X TODO` (slate blue) when pending tasks exist.
+  - `✓ READY` (emerald) when all tasks for that subject are completed.
+  - `❓ X` (sky blue) when in-class questions have been formulated.
+- [x] Built [`SubjectPreparationSheet`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/subject_preparation_sheet.py) drawer dialog:
+  - Subject header with core badge and room number.
+  - Next class occurrence countdown (`NEXT CLASS: Thursday at 08:00 (in 3 days)`).
+  - Preparation tasks checklist with inline check-offs.
+  - 1-click focus launcher tethered to that task (`▶ 15m`).
+  - Quick inline task addition with automatic next-class deadline calculation.
+  - Direct access to class time/room timetable editor via `ClassSessionDialog`.
+- [x] Updated `MainWindow` focus loop to track `_active_todo` and attribute focus sessions to `StudyLog.todo_id`.
+- [x] Added dedicated unit test suite in [`tests/test_grid_main_screen.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_grid_main_screen.py) (4 tests).
+- [x] **100% test pass rate:** **84/84 unit tests passing** across 14 test suites.
 
 ### Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket
 - [ ] Focus screen frames specific `StudyTodo` title within the radial ring gauge.

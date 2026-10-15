@@ -13,7 +13,7 @@ from PySide6.QtGui import QColor, QKeyEvent, QPalette
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
 from study_station.core.engine import ScheduleEngine
-from study_station.core.models import AcademicSession, StudyLog
+from study_station.core.models import AcademicSession, StudyLog, StudyTodo
 from study_station.core.settings import AppSettings
 from study_station.core.timer import FocusTimer
 from study_station.persistence.repository import StudyStationRepository
@@ -35,10 +35,12 @@ from study_station.ui.weekly_schedule_dialog import WeeklyScheduleGridDialog
 class MainWindow(QMainWindow):
     """Full-screen application window hosting ambient, focus, completion, and management screens."""
 
-    INDEX_DASHBOARD = 0
+    INDEX_GRID = 0
+    INDEX_DASHBOARD = 0  # Primary Cockpit Grid
     INDEX_FOCUS = 1
     INDEX_COMPLETION = 2
-    INDEX_SCHEDULE = 3
+    INDEX_AMBIENT_CLOCK = 3
+    INDEX_SCHEDULE = 0   # Alias for backward compatibility
 
     def __init__(
         self,
@@ -60,7 +62,29 @@ class MainWindow(QMainWindow):
         self._stack = QStackedWidget(self)
         self.setCentralWidget(self._stack)
 
-        # 1. Subject-Centric Dashboard Screen (Subject is Centerpiece)
+        # 1. Primary Cockpit Screen: Full-Screen Weekly Schedule & Task Badges
+        sessions = self._engine.sessions if self._engine else []
+        self._schedule_widget = ScheduleScreenWidget(sessions=sessions, parent=self, engine=self._engine)
+        self._schedule_widget.ambient_requested.connect(self._show_ambient_clock)
+        self._schedule_widget.open_debrief_requested.connect(self.open_debrief_dialog)
+        self._schedule_widget.start_focus_requested.connect(self._on_start_focus_requested)
+        self._schedule_widget.start_todo_focus_requested.connect(self._on_start_todo_focus)
+        self._schedule_widget.timetable_changed.connect(self._on_timetable_updated)
+        self._schedule_widget.open_import_export_requested.connect(self.open_import_export_dialog)
+        self._stack.addWidget(self._schedule_widget)
+
+        # 2. Focus Screen
+        self._focus_widget = FocusWidget(self._timer, self)
+        self._focus_widget.apply_settings(self._settings)
+        self._focus_widget.session_finished.connect(self._on_session_finished)
+        self._stack.addWidget(self._focus_widget)
+
+        # 3. Completion Screen
+        self._completion_widget = CompletionWidget(self)
+        self._completion_widget.dismissed.connect(self._show_cockpit_screen)
+        self._stack.addWidget(self._completion_widget)
+
+        # 4. Secondary Screen: Ambient Split-Flap Clock & Quick Switcher
         self._dashboard_widget = SubjectDashboardWidget(self._engine, self._settings, self)
         self._dashboard_widget.start_focus_requested.connect(self._on_start_focus_requested)
         self._dashboard_widget.open_settings_requested.connect(self.open_customization_dialog)
@@ -72,26 +96,6 @@ class MainWindow(QMainWindow):
         self._dashboard_widget.toggle_fullscreen_requested.connect(self.toggle_fullscreen)
         self._stack.addWidget(self._dashboard_widget)
 
-        # 2. Focus Screen
-        self._focus_widget = FocusWidget(self._timer, self)
-        self._focus_widget.apply_settings(self._settings)
-        self._focus_widget.session_finished.connect(self._on_session_finished)
-        self._stack.addWidget(self._focus_widget)
-
-        # 3. Completion Screen
-        self._completion_widget = CompletionWidget(self)
-        self._completion_widget.dismissed.connect(self._show_dashboard_screen)
-        self._stack.addWidget(self._completion_widget)
-
-        # 4. Full-Screen Weekly Schedule & Class Editor Screen
-        sessions = self._engine.sessions if self._engine else []
-        self._schedule_widget = ScheduleScreenWidget(sessions=sessions, parent=self, engine=self._engine)
-        self._schedule_widget.back_requested.connect(self._show_dashboard_screen)
-        self._schedule_widget.subject_selected.connect(self._dashboard_widget.set_selected_subject)
-        self._schedule_widget.timetable_changed.connect(self._on_timetable_updated)
-        self._schedule_widget.open_import_export_requested.connect(self.open_import_export_dialog)
-        self._stack.addWidget(self._schedule_widget)
-
         # Scrim Overlay for dialogs (prevents main screen background text leakage)
         from PySide6.QtWidgets import QFrame
         self._scrim_overlay = QFrame(self)
@@ -100,8 +104,8 @@ class MainWindow(QMainWindow):
         self._scrim_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._scrim_overlay.hide()
 
-        # Default to Subject Dashboard screen
-        self._stack.setCurrentIndex(self.INDEX_DASHBOARD)
+        # Default to Weekly Schedule Cockpit screen
+        self._stack.setCurrentIndex(self.INDEX_GRID)
 
         # Background status update timer (every 30 seconds)
         if self._engine:
@@ -205,11 +209,24 @@ class MainWindow(QMainWindow):
     # Secondary Management Dialogs & Full-Screen Views
     # -------------------------------------------------------------------------
 
-    def open_timetable_editor(self) -> None:
-        """Switch to full-screen Weekly Schedule and Class Editor view."""
+    def _show_ambient_clock(self) -> None:
+        """Switch to ambient split-flap clock screensaver mode."""
+        self._dashboard_widget.refresh_dashboard()
+        self._stack.setCurrentIndex(self.INDEX_AMBIENT_CLOCK)
+
+    def _show_cockpit_screen(self) -> None:
+        """Return to primary Weekly Schedule Cockpit screen."""
         if self._engine:
             self._schedule_widget.update_sessions(self._engine.sessions)
-        self._stack.setCurrentIndex(self.INDEX_SCHEDULE)
+        self._stack.setCurrentIndex(self.INDEX_GRID)
+
+    def _show_dashboard_screen(self) -> None:
+        """Alias for returning to main station screen."""
+        self._show_cockpit_screen()
+
+    def open_timetable_editor(self) -> None:
+        """Switch to full-screen Weekly Schedule and Class Cockpit view."""
+        self._show_cockpit_screen()
 
     def open_timetable_form_editor(self) -> None:
         """Open raw tabular timetable editor dialog."""
@@ -293,7 +310,10 @@ class MainWindow(QMainWindow):
         self._show_scrim()
         try:
             dialog = DebriefDialog(self._engine, ref_dt=ref_dt, parent=self)
-            dialog.debrief_completed.connect(lambda todos: self._dashboard_widget.refresh_dashboard())
+            def _on_debrief_done(todos):
+                self._dashboard_widget.refresh_dashboard()
+                self._schedule_widget.update_sessions(self._engine.sessions)
+            dialog.debrief_completed.connect(_on_debrief_done)
             dialog.exec()
         finally:
             self._hide_scrim()
@@ -309,17 +329,23 @@ class MainWindow(QMainWindow):
     def _on_start_focus_requested(self, subject_name: str, duration_minutes: int) -> None:
         self.start_focus_session(duration_minutes=duration_minutes, subject_name=subject_name)
 
+    def _on_start_todo_focus(self, todo: StudyTodo, duration_minutes: int = 15) -> None:
+        """Handle 1-click focus session initiated for a specific StudyTodo task."""
+        self.start_focus_session(duration_minutes=duration_minutes, subject_name=todo.subject_name, todo=todo)
+
     def start_focus_session(
         self,
         duration_minutes: int = 15,
         subject_name: str | None = None,
+        todo: StudyTodo | None = None,
     ) -> None:
         """Low-friction start of a focus session for the chosen or suggested subject."""
-        target_name = subject_name or self._dashboard_widget.selected_subject or "STUDY"
+        self._active_todo = todo
+        target_name = subject_name or (todo.subject_name if todo else None) or self._dashboard_widget.selected_subject or "STUDY"
         cycle_info = ""
 
         if self._engine:
-            if not subject_name and not self._dashboard_widget.selected_subject:
+            if not subject_name and not todo and not self._dashboard_widget.selected_subject:
                 suggested = self._engine.get_suggested_cycle(datetime.now())
                 if suggested:
                     target_name = suggested.subject_name
@@ -347,18 +373,20 @@ class MainWindow(QMainWindow):
             self._repo.clear_timer_state()
 
         if elapsed_minutes <= 0:
-            self._show_dashboard_screen()
+            self._show_cockpit_screen()
             return
 
         target = 60
         completed = elapsed_minutes
         if self._engine:
+            todo_id = self._active_todo.id if getattr(self, "_active_todo", None) else None
             self._engine.add_study_log(
                 StudyLog(
                     subject_name=subject_name,
                     started_at=datetime.now(),
                     duration_minutes=elapsed_minutes,
                     source=source,
+                    todo_id=todo_id,
                 )
             )
             cycle = self._engine.get_active_cycle(subject_name, datetime.now())
@@ -367,6 +395,7 @@ class MainWindow(QMainWindow):
                 target = cycle.target_minutes
 
             self._dashboard_widget.refresh_dashboard()
+            self._schedule_widget.update_sessions(self._engine.sessions)
 
         self._completion_widget.show_completion(
             subject_name=subject_name,
@@ -382,11 +411,6 @@ class MainWindow(QMainWindow):
 
         self._stack.setCurrentIndex(self.INDEX_COMPLETION)
 
-    def _show_dashboard_screen(self) -> None:
-        """Return to Subject Dashboard."""
-        self._dashboard_widget.refresh_dashboard()
-        self._stack.setCurrentIndex(self.INDEX_DASHBOARD)
-
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """Central keyboard shortcut dispatch."""
         key = event.key()
@@ -401,23 +425,23 @@ class MainWindow(QMainWindow):
             return
 
         # Screen-specific shortcuts
-        if current_idx == self.INDEX_DASHBOARD:
+        if current_idx == self.INDEX_GRID:
             if key == Qt.Key.Key_Escape:
                 self.close()
-            elif key == Qt.Key.Key_C:
-                self.open_customization_dialog()
+            elif key in (Qt.Key.Key_C, Qt.Key.Key_A):
+                self._show_ambient_clock()
+            elif key == Qt.Key.Key_D:
+                self.open_debrief_dialog()
             elif key == Qt.Key.Key_E:
                 self.open_timetable_editor()
+            elif key == Qt.Key.Key_I:
+                self.open_import_export_dialog()
             elif key == Qt.Key.Key_S:
                 self.open_targets_dialog()
             elif key == Qt.Key.Key_M:
                 self.open_manual_log_dialog()
             elif key == Qt.Key.Key_H:
                 self.open_history_dialog()
-            elif key == Qt.Key.Key_D:
-                self.open_debrief_dialog()
-            elif key == Qt.Key.Key_I:
-                self.open_import_export_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
                 self.start_focus_session(self._settings.default_focus_minutes)
             elif key == Qt.Key.Key_1:
@@ -448,12 +472,35 @@ class MainWindow(QMainWindow):
                 super().keyPressEvent(event)
 
         elif current_idx == self.INDEX_COMPLETION:
-            self._show_dashboard_screen()
-        elif current_idx == self.INDEX_SCHEDULE:
-            if key == Qt.Key.Key_Escape:
-                self._show_dashboard_screen()
+            self._show_cockpit_screen()
+
+        elif current_idx == self.INDEX_AMBIENT_CLOCK:
+            if key in (Qt.Key.Key_Escape, Qt.Key.Key_G):
+                self._show_cockpit_screen()
+            elif key == Qt.Key.Key_C:
+                self.open_customization_dialog()
+            elif key == Qt.Key.Key_E:
+                self.open_timetable_editor()
+            elif key == Qt.Key.Key_S:
+                self.open_targets_dialog()
+            elif key == Qt.Key.Key_M:
+                self.open_manual_log_dialog()
+            elif key == Qt.Key.Key_H:
+                self.open_history_dialog()
+            elif key == Qt.Key.Key_D:
+                self.open_debrief_dialog()
             elif key == Qt.Key.Key_I:
                 self.open_import_export_dialog()
+            elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
+                self.start_focus_session(self._settings.default_focus_minutes)
+            elif key == Qt.Key.Key_1:
+                self.start_focus_session(5)
+            elif key == Qt.Key.Key_2:
+                self.start_focus_session(10)
+            elif key == Qt.Key.Key_3:
+                self.start_focus_session(15)
+            elif key == Qt.Key.Key_4:
+                self.start_focus_session(25)
             else:
                 super().keyPressEvent(event)
         else:

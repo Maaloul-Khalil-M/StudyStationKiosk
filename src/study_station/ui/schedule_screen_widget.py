@@ -37,6 +37,7 @@ from study_station.core.models import (
     normalize_time_str,
 )
 from study_station.ui.class_session_dialog import ClassSessionDialog
+from study_station.ui.subject_preparation_sheet import SubjectPreparationSheet
 from study_station.ui.theme import (
     BUTTON_DANGER_STYLE,
     BUTTON_NAV_STYLE,
@@ -97,17 +98,33 @@ class ClassGridCard(QPushButton):
         self,
         session: AcademicSession,
         is_current: bool = False,
+        engine: ScheduleEngine | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.session = session
         self.is_current = is_current
+        self.engine = engine
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         clean_name = ScheduleEngine.clean_subject_name(session.subject.name)
         core_type = session.subject.core.upper()
         room = session.location or "Class"
+
+        # Preparation Metrics
+        pending_todos_count = 0
+        questions_count = 0
+        has_due_soon = False
+        completed_todos_count = 0
+
+        if self.engine:
+            pending = self.engine.get_pending_todos(clean_name)
+            pending_todos_count = len(pending)
+            has_due_soon = any(t.is_due_soon(24) or t.is_overdue() for t in pending)
+            questions = self.engine.get_subject_questions(clean_name)
+            questions_count = len(questions)
+            completed_todos_count = sum(1 for t in self.engine.get_todos(subject_filter=clean_name) if t.is_completed)
 
         # Refined calm badge colors
         core_colors = {
@@ -176,12 +193,71 @@ class ClassGridCard(QPushButton):
         lbl_name.setStyleSheet("color: #F4F4F6; font-size: 12px; font-weight: 700;")
         layout.addWidget(lbl_name)
 
+        # Preparation Badges Row
+        badge_row = QHBoxLayout()
+        badge_row.setContentsMargins(0, 2, 0, 0)
+        badge_row.setSpacing(4)
+
+        if pending_todos_count > 0:
+            badge_text = f"● {pending_todos_count} DUE" if has_due_soon else f"● {pending_todos_count} TODO"
+            lbl_todo = QLabel(badge_text)
+            if has_due_soon:
+                lbl_todo.setStyleSheet("""
+                    background-color: #451A03;
+                    color: #FCD34D;
+                    border: 1px solid #78350F;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    font-weight: 700;
+                    padding: 1px 4px;
+                """)
+            else:
+                lbl_todo.setStyleSheet("""
+                    background-color: #1E293B;
+                    color: #93C5FD;
+                    border: 1px solid #334155;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    font-weight: 700;
+                    padding: 1px 4px;
+                """)
+            badge_row.addWidget(lbl_todo)
+        elif completed_todos_count > 0:
+            lbl_ready = QLabel("✓ READY")
+            lbl_ready.setStyleSheet("""
+                background-color: #064E3B;
+                color: #6EE7B7;
+                border: 1px solid #047857;
+                border-radius: 3px;
+                font-size: 9px;
+                font-weight: 700;
+                padding: 1px 4px;
+            """)
+            badge_row.addWidget(lbl_ready)
+
+        if questions_count > 0:
+            lbl_q = QLabel(f"❓ {questions_count}")
+            lbl_q.setStyleSheet("""
+                background-color: #082F49;
+                color: #38BDF8;
+                border: 1px solid #0369A1;
+                border-radius: 3px;
+                font-size: 9px;
+                font-weight: 700;
+                padding: 1px 4px;
+            """)
+            badge_row.addWidget(lbl_q)
+
+        badge_row.addStretch()
+        layout.addLayout(badge_row)
+
         layout.addStretch()
 
         # Time footer
         lbl_time = QLabel(f"{session.time_slot.start} - {session.time_slot.end}")
         lbl_time.setFont(get_modern_font("mono", 10, QFont.Weight.Medium))
         lbl_time.setStyleSheet("color: #52525B; font-size: 10px;")
+        layout.addWidget(lbl_time)
         self.clicked.connect(self._on_card_clicked)
 
     def _on_card_clicked(self) -> None:
@@ -193,7 +269,11 @@ class ScheduleScreenWidget(QWidget):
     """Full-Screen edge-to-edge weekly timetable and schedule management screen."""
 
     back_requested = Signal()
+    ambient_requested = Signal()
+    open_debrief_requested = Signal()
     subject_selected = Signal(str)
+    start_focus_requested = Signal(str, int)
+    start_todo_focus_requested = Signal(object, int)
     timetable_changed = Signal(list)  # list[AcademicSession]
     open_import_export_requested = Signal()
 
@@ -242,11 +322,31 @@ class ScheduleScreenWidget(QWidget):
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(14)
 
-        btn_back = QPushButton("← Station")
-        btn_back.setStyleSheet(BUTTON_NAV_STYLE)
-        btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_back.clicked.connect(self.back_requested.emit)
-        header.addWidget(btn_back)
+        self.btn_ambient = QPushButton("⏱ Clock Station")
+        self.btn_ambient.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_ambient.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_ambient.clicked.connect(self.ambient_requested.emit)
+        header.addWidget(self.btn_ambient)
+
+        self.btn_debrief = QPushButton("⚡ Debrief Today")
+        self.btn_debrief.setStyleSheet("""
+            QPushButton {
+                background-color: #14221D;
+                color: #34D399;
+                border: 1px solid #059669;
+                border-radius: 14px;
+                padding: 6px 14px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #064E3B;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_debrief.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_debrief.clicked.connect(self.open_debrief_requested.emit)
+        header.addWidget(self.btn_debrief)
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
@@ -555,7 +655,7 @@ class ScheduleScreenWidget(QWidget):
                         is_today
                         and session.time_slot.start <= now_str <= session.time_slot.end
                     )
-                    card = ClassGridCard(session, is_current=is_current_session)
+                    card = ClassGridCard(session, is_current=is_current_session, engine=self.engine)
                     card.clicked_session_card.connect(self._open_session_manager)
                     self.grid_layout.addWidget(card, row_idx, col_idx)
                 else:
@@ -994,6 +1094,16 @@ class ScheduleScreenWidget(QWidget):
             self.timetable_changed.emit(self._sessions)
 
     def _open_session_manager(self, session: AcademicSession) -> None:
+        if self.engine is not None:
+            sheet = SubjectPreparationSheet(session, self.engine, parent=self)
+            sheet.start_task_focus_requested.connect(self.start_todo_focus_requested.emit)
+            sheet.start_subject_focus_requested.connect(self.start_focus_requested.emit)
+            sheet.session_modified.connect(self._on_session_edited)
+            sheet.session_deleted.connect(self._on_session_deleted)
+            sheet.exec()
+            self._refresh_calendar_grid()
+            return
+
         existing_names = sorted({s.subject.name for s in self._sessions})
         dialog = ClassSessionDialog(session=session, existing_subjects=existing_names, parent=self)
         dialog.start_focus_requested.connect(self._on_session_card_clicked)
