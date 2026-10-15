@@ -115,6 +115,39 @@ class StudyLog:
     started_at: datetime = field(default_factory=datetime.now)
     duration_minutes: int = 0
     source: str = "timer"  # "timer" or "manual"
+    todo_id: str | None = None
+
+
+@dataclass
+class StudyTodo:
+    """Represents an actionable preparation task or project milestone for a subject."""
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    subject_name: str = ""
+    title: str = ""
+    notes: str = ""
+    created_at: datetime = field(default_factory=datetime.now)
+    due_date: datetime = field(default_factory=datetime.now)
+    status: str = "pending"  # "pending", "in_progress", "completed"
+    completed_at: datetime | None = None
+    confidence: str | None = None  # "foggy", "getting_there", "solid"
+    next_class_question: str | None = None  # Formulated question for next class
+    session_ref_id: str | None = None  # Reference to the session/class that generated this todo
+
+    @property
+    def is_completed(self) -> bool:
+        return self.status == "completed"
+
+    def is_overdue(self, ref_dt: datetime | None = None) -> bool:
+        now = ref_dt or datetime.now()
+        return not self.is_completed and self.due_date < now
+
+    def is_due_soon(self, hours: int = 24, ref_dt: datetime | None = None) -> bool:
+        now = ref_dt or datetime.now()
+        if self.is_completed or self.due_date < now:
+            return False
+        from datetime import timedelta
+        return (self.due_date - now) <= timedelta(hours=hours)
 
 
 @dataclass
@@ -133,4 +166,7 @@ class SubjectSummary:
     next_session_text: str
     is_target_met: bool
     is_current_class: bool = False
+    pending_todos_count: int = 0
+    questions_count: int = 0
+
 

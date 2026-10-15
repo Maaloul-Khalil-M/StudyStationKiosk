@@ -95,7 +95,31 @@ class Database:
                     is_paused INTEGER NOT NULL DEFAULT 0,
                     paused_remaining_seconds INTEGER NOT NULL DEFAULT 0
                 );
+
+                CREATE TABLE IF NOT EXISTS study_todos (
+                    id TEXT PRIMARY KEY,
+                    subject_name TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    notes TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    due_date TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    completed_at TEXT,
+                    confidence TEXT,
+                    next_class_question TEXT,
+                    session_ref_id TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_study_todos_subject ON study_todos(subject_name);
+                CREATE INDEX IF NOT EXISTS idx_study_todos_status ON study_todos(status);
+                CREATE INDEX IF NOT EXISTS idx_study_todos_due ON study_todos(due_date);
             """)
+
+            # Run migration for existing databases: check if todo_id exists in study_logs
+            cursor = self._conn.execute("PRAGMA table_info(study_logs);")
+            columns = [row["name"] for row in cursor.fetchall()]
+            if "todo_id" not in columns:
+                self._conn.execute("ALTER TABLE study_logs ADD COLUMN todo_id TEXT;")
 
     @property
     def connection(self) -> sqlite3.Connection:

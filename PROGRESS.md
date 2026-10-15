@@ -446,13 +446,48 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 
 ---
 
-## Next Steps Roadmap & Recommended Work
+## Next Steps Roadmap: Academic Preparation & Nightly Desk Station
 
-### Milestone 10: Dedicated Kiosk Mode & Packaging `[RECOMMENDED NEXT]`
-- [ ] **Custom Duration Presets in Settings:**
-  - Configure preferred primary focus duration (e.g., 20m, 30m) directly in Settings.
-- [ ] **Linux / Fedora Dedicated Machine Deployment:**
-  - Autostart `.desktop` entry for Xfce / X11 kiosk setup.
-  - Standalone binary build script with PyInstaller for one-click deployment.
+Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.md`](file:///c:/Users/marj/Music/Study%20Station/docs/ACADEMIC_PREPARATION_SPEC.md):
+
+### Milestone 10: Academic Todo Engine & Schema `[COMPLETED]`
+- [x] Implemented `StudyTodo` dataclass in [`src/study_station/core/models.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/models.py) with `id`, `subject_name`, `title`, `notes`, `due_date`, `status`, `confidence`, `next_class_question`, `session_ref_id`, `is_completed`, `is_overdue`, and `is_due_soon`.
+- [x] Updated `StudyLog` model to accept optional `todo_id: str | None` for task-level time attribution.
+- [x] Expanded `SubjectSummary` to include `pending_todos_count` and `questions_count`.
+- [x] Created `study_todos` table and indexes (`idx_study_todos_subject`, `idx_study_todos_status`, `idx_study_todos_due`) with automatic schema migration in [`src/study_station/persistence/database.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/persistence/database.py).
+- [x] Added `todo_id` column migration to existing `study_logs` tables in SQLite.
+- [x] Implemented full CRUD and query operations in [`StudyStationRepository`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/persistence/repository.py): `add_todo`, `update_todo`, `delete_todo`, `get_todo_by_id`, `get_all_todos`, `get_todos_by_subject`, `get_pending_todos`, `mark_todo_completed`, `get_questions_by_subject`.
+- [x] Integrated Todo operations and queries into [`ScheduleEngine`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/engine.py): `add_todo`, `update_todo`, `delete_todo`, `mark_todo_completed`, `get_todos`, `get_pending_todos`, `get_todos_due_before`, `get_subject_pending_todos_count`, `get_subject_questions`, and `get_next_class_deadline_for_subject`.
+- [x] Added dedicated unit test suite in [`tests/test_todo_engine.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_todo_engine.py).
+- [x] **100% test pass rate:** **74/74 unit tests passing** across 12 test suites.
+
+### Milestone 11: Nightly Desk Debrief & Questionnaire
+- [ ] Build `DebriefDialog` (`src/study_station/ui/debrief_dialog.py`) auto-populated with today's attended classes.
+- [ ] Guided multi-step check-in: "What was covered?" + "What must be prepared before next class?".
+- [ ] Automatically calculate default deadline as the exact start datetime of next week's session.
+- [ ] Batch-generate actionable preparation `StudyTodo` items into SQLite.
+- [ ] Unit test suite in `tests/test_debrief_dialog.py`.
+
+### Milestone 12: Grid as Main Station (Academic Cockpit)
+- [ ] Set `ScheduleScreenWidget` as the primary main view (`INDEX_MAIN = 0`).
+- [ ] Render dynamic Todo and Question badges directly on weekly class cards (`● X TODOS`, `✓ READY`, `❓ X QUESTIONS`).
+- [ ] Build `SubjectPreparationSheet` (modal or slide-out drawer) for inspecting and checking off subject tasks.
+- [ ] Unit test coverage in `tests/test_grid_main_screen.py`.
+
+### Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket
+- [ ] Focus screen frames specific `StudyTodo` title within the radial ring gauge.
+- [ ] Build `ExitTicketDialog`:
+  - Completion prompt: `[ Complete ]`, `[ +10m More ]`, `[ Put Aside ]`.
+  - Confidence rating: 🔴 Foggy, 🟡 Getting There, 🟢 Solid.
+  - Formulate "1 Question for Next Class" (pinned to next lecture's card).
+  - 1-sentence Feynman takeaway summary.
+- [ ] Unit test suite in `tests/test_exit_ticket.py`.
+
+### Milestone 14: Night Routine Ambient UX & In-Class Payoff
+- [ ] Evening desk mode detection (after 18:00 local time) with persistent, ready-to-click action buttons.
+- [ ] Prominent nightly debrief banner on the main grid when today's sessions are unreviewed.
+- [ ] Tonight's Priority Task capsule with instant 1-click focus start.
+- [ ] In-class HUD: show questions formulated during night study when viewing today's live class (`● NOW`).
+- [ ] Automated screen capture refresh in `docs/screens/`.
 
 

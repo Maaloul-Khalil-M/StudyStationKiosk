@@ -15,6 +15,7 @@ from study_station.core.models import (
     DAY_INDEX_MAP,
     StudyCycle,
     StudyLog,
+    StudyTodo,
     Subject,
     SubjectSummary,
     TimeSlot,
@@ -38,9 +39,11 @@ class ScheduleEngine:
             self.sessions: list[AcademicSession] = list(loaded_sessions if loaded_sessions else (sessions or []))
             self._target_overrides: dict[str, int] = self.repository.get_all_subject_targets()
             self.study_logs: list[StudyLog] = self.repository.get_all_study_logs()
+            self.todos: list[StudyTodo] = self.repository.get_all_todos()
         else:
             self.sessions = list(sessions or [])
             self.study_logs = []
+            self.todos = []
             self._target_overrides = {}
 
     @classmethod
@@ -173,6 +176,108 @@ class ScheduleEngine:
         total = len(active_cycles)
         pct = int((completed / total) * 100) if total > 0 else 0
         return completed, total, pct
+
+    # -------------------------------------------------------------------------
+    # Study Todos & Academic Preparation
+    # -------------------------------------------------------------------------
+
+    def add_todo(self, todo: StudyTodo) -> None:
+        """Add or update a study todo."""
+        existing_idx = next((i for i, t in enumerate(self.todos) if t.id == todo.id), None)
+        if existing_idx is not None:
+            self.todos[existing_idx] = todo
+        else:
+            self.todos.append(todo)
+        if self.repository is not None:
+            self.repository.add_todo(todo)
+
+    def delete_todo(self, todo_id: str) -> bool:
+        """Delete a study todo by ID."""
+        idx = next((i for i, t in enumerate(self.todos) if t.id == todo_id), None)
+        if idx is not None:
+            self.todos.pop(idx)
+            if self.repository is not None:
+                self.repository.delete_todo(todo_id)
+            return True
+        return False
+
+    def update_todo(self, todo: StudyTodo) -> bool:
+        """Update a study todo."""
+        idx = next((i for i, t in enumerate(self.todos) if t.id == todo.id), None)
+        if idx is not None:
+            self.todos[idx] = todo
+            if self.repository is not None:
+                self.repository.update_todo(todo)
+            return True
+        return False
+
+    def mark_todo_completed(
+        self,
+        todo_id: str,
+        confidence: str | None = None,
+        next_class_question: str | None = None,
+        completed_at: datetime | None = None,
+    ) -> bool:
+        """Mark a todo as completed in memory and persistence."""
+        now = completed_at or datetime.now()
+        for t in self.todos:
+            if t.id == todo_id:
+                t.status = "completed"
+                t.completed_at = now
+                if confidence is not None:
+                    t.confidence = confidence
+                if next_class_question is not None:
+                    t.next_class_question = next_class_question
+                if self.repository is not None:
+                    self.repository.mark_todo_completed(todo_id, confidence, next_class_question, now)
+                return True
+        return False
+
+    def get_todos(
+        self,
+        subject_filter: str | None = None,
+        status_filter: str | None = None,
+    ) -> list[StudyTodo]:
+        """Return study todos with optional filtering, sorted by due_date ASC."""
+        res = list(self.todos)
+        if subject_filter:
+            res = [t for t in res if t.subject_name.lower() == subject_filter.lower()]
+        if status_filter:
+            res = [t for t in res if t.status.lower() == status_filter.lower()]
+        res.sort(key=lambda t: t.due_date)
+        return res
+
+    def get_pending_todos(self, subject_name: str | None = None) -> list[StudyTodo]:
+        """Return all pending study todos, optionally filtered by subject."""
+        return self.get_todos(subject_filter=subject_name, status_filter="pending")
+
+    def get_todos_due_before(self, dt: datetime, subject_name: str | None = None) -> list[StudyTodo]:
+        """Return pending todos due on or before dt."""
+        pending = self.get_pending_todos(subject_name)
+        return [t for t in pending if t.due_date <= dt]
+
+    def get_subject_pending_todos_count(self, subject_name: str) -> int:
+        """Count pending todos for a subject."""
+        return len(self.get_pending_todos(subject_name))
+
+    def get_subject_questions(self, subject_name: str) -> list[str]:
+        """Return list of non-empty next_class_questions for a subject."""
+        questions = []
+        for t in self.todos:
+            if t.subject_name.lower() == subject_name.lower():
+                if t.next_class_question and t.next_class_question.strip():
+                    questions.append(t.next_class_question.strip())
+        return questions
+
+    def get_next_class_deadline_for_subject(
+        self, subject_name: str, current_dt: datetime
+    ) -> datetime | None:
+        """Calculate the start datetime of the next occurrence of a subject, ideal as default task deadline."""
+        next_info = self.get_next_occurrence_of_subject(subject_name, current_dt)
+        if next_info:
+            _, next_start = next_info
+            return next_start
+        return None
 
     def get_distinct_subjects(self) -> list[str]:
         """Return sorted list of distinct subject names in timetable."""
@@ -504,6 +609,8 @@ class ScheduleEngine:
             met = False
 
         pct = min(100, int((completed / target) * 100)) if target > 0 else 0
+        pending_count = self.get_subject_pending_todos_count(subject_name)
+        questions_count = len(self.get_subject_questions(subject_name))
 
         return SubjectSummary(
             name=clean_name,
@@ -518,6 +625,8 @@ class ScheduleEngine:
             next_session_text=next_text,
             is_target_met=met,
             is_current_class=is_current_class,
+            pending_todos_count=pending_count,
+            questions_count=questions_count,
         )
 
     def get_all_subjects_summary(self, current_dt: datetime) -> list[SubjectSummary]:

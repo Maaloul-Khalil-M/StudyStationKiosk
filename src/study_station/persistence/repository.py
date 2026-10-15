@@ -8,6 +8,7 @@ from typing import Sequence
 from study_station.core.models import (
     AcademicSession,
     StudyLog,
+    StudyTodo,
     Subject,
     TimeSlot,
 )
@@ -29,14 +30,15 @@ class StudyStationRepository:
     def add_study_log(self, log: StudyLog) -> None:
         """Insert or update a study session record."""
         query = """
-            INSERT INTO study_logs (id, subject_name, study_cycle_id, started_at, duration_minutes, source)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO study_logs (id, subject_name, study_cycle_id, started_at, duration_minutes, source, todo_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 subject_name = excluded.subject_name,
                 study_cycle_id = excluded.study_cycle_id,
                 started_at = excluded.started_at,
                 duration_minutes = excluded.duration_minutes,
-                source = excluded.source;
+                source = excluded.source,
+                todo_id = excluded.todo_id;
         """
         with self.db.connection as conn:
             conn.execute(
@@ -48,15 +50,17 @@ class StudyStationRepository:
                     log.started_at.isoformat(),
                     log.duration_minutes,
                     log.source,
+                    log.todo_id,
                 ),
             )
 
     def get_all_study_logs(self) -> list[StudyLog]:
         """Return all study logs ordered chronologically."""
-        query = "SELECT id, subject_name, study_cycle_id, started_at, duration_minutes, source FROM study_logs ORDER BY started_at ASC"
+        query = "SELECT id, subject_name, study_cycle_id, started_at, duration_minutes, source, todo_id FROM study_logs ORDER BY started_at ASC"
         cursor = self.db.connection.execute(query)
         logs: list[StudyLog] = []
         for row in cursor.fetchall():
+            todo_val = row["todo_id"] if "todo_id" in row.keys() else None
             logs.append(
                 StudyLog(
                     id=row["id"],
@@ -65,6 +69,7 @@ class StudyStationRepository:
                     started_at=datetime.fromisoformat(row["started_at"]),
                     duration_minutes=row["duration_minutes"],
                     source=row["source"],
+                    todo_id=todo_val,
                 )
             )
         return logs
@@ -81,13 +86,15 @@ class StudyStationRepository:
         subject_name: str,
         duration_minutes: int,
         started_at: datetime | None = None,
+        todo_id: str | None = None,
     ) -> bool:
         """Update an existing study log's details. Returns True if updated."""
         query = """
             UPDATE study_logs
             SET subject_name = ?,
                 duration_minutes = ?,
-                started_at = COALESCE(?, started_at)
+                started_at = COALESCE(?, started_at),
+                todo_id = COALESCE(?, todo_id)
             WHERE id = ?;
         """
         with self.db.connection as conn:
@@ -97,6 +104,7 @@ class StudyStationRepository:
                     subject_name,
                     max(1, duration_minutes),
                     started_at.isoformat() if started_at else None,
+                    todo_id,
                     log_id,
                 ),
             )
@@ -311,3 +319,177 @@ class StudyStationRepository:
             # Session is still running!
             remaining_seconds = max(1, int((target_end - now).total_seconds()))
             return (subject_name, remaining_seconds, total_duration)
+
+    # -------------------------------------------------------------------------
+    # Study Todos & Academic Preparation
+    # -------------------------------------------------------------------------
+
+    def _row_to_todo(self, row) -> StudyTodo:
+        """Convert a database row into a StudyTodo model."""
+        return StudyTodo(
+            id=row["id"],
+            subject_name=row["subject_name"],
+            title=row["title"],
+            notes=row["notes"] or "",
+            created_at=datetime.fromisoformat(row["created_at"]),
+            due_date=datetime.fromisoformat(row["due_date"]),
+            status=row["status"],
+            completed_at=datetime.fromisoformat(row["completed_at"]) if row["completed_at"] else None,
+            confidence=row["confidence"],
+            next_class_question=row["next_class_question"],
+            session_ref_id=row["session_ref_id"],
+        )
+
+    def add_todo(self, todo: StudyTodo) -> None:
+        """Insert or update a preparation task / todo."""
+        query = """
+            INSERT INTO study_todos (
+                id, subject_name, title, notes, created_at, due_date, status,
+                completed_at, confidence, next_class_question, session_ref_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                subject_name = excluded.subject_name,
+                title = excluded.title,
+                notes = excluded.notes,
+                created_at = excluded.created_at,
+                due_date = excluded.due_date,
+                status = excluded.status,
+                completed_at = excluded.completed_at,
+                confidence = excluded.confidence,
+                next_class_question = excluded.next_class_question,
+                session_ref_id = excluded.session_ref_id;
+        """
+        with self.db.connection as conn:
+            conn.execute(
+                query,
+                (
+                    todo.id,
+                    todo.subject_name,
+                    todo.title,
+                    todo.notes,
+                    todo.created_at.isoformat(),
+                    todo.due_date.isoformat(),
+                    todo.status,
+                    todo.completed_at.isoformat() if todo.completed_at else None,
+                    todo.confidence,
+                    todo.next_class_question,
+                    todo.session_ref_id,
+                ),
+            )
+
+    def get_todo_by_id(self, todo_id: str) -> StudyTodo | None:
+        """Return a single todo by its ID, or None if not found."""
+        query = "SELECT * FROM study_todos WHERE id = ?"
+        cursor = self.db.connection.execute(query, (todo_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return self._row_to_todo(row)
+
+    def get_all_todos(self, status: str | None = None) -> list[StudyTodo]:
+        """Return all study todos, optionally filtered by status, ordered by due_date ASC."""
+        if status:
+            query = "SELECT * FROM study_todos WHERE status = ? ORDER BY due_date ASC"
+            cursor = self.db.connection.execute(query, (status,))
+        else:
+            query = "SELECT * FROM study_todos ORDER BY due_date ASC"
+            cursor = self.db.connection.execute(query)
+        return [self._row_to_todo(row) for row in cursor.fetchall()]
+
+    def get_todos_by_subject(self, subject_name: str, status: str | None = None) -> list[StudyTodo]:
+        """Return todos for a specific subject, optionally filtered by status, ordered by due_date ASC."""
+        if status:
+            query = "SELECT * FROM study_todos WHERE subject_name = ? AND status = ? ORDER BY due_date ASC"
+            cursor = self.db.connection.execute(query, (subject_name, status))
+        else:
+            query = "SELECT * FROM study_todos WHERE subject_name = ? ORDER BY due_date ASC"
+            cursor = self.db.connection.execute(query, (subject_name,))
+        return [self._row_to_todo(row) for row in cursor.fetchall()]
+
+    def get_pending_todos(self, subject_name: str | None = None) -> list[StudyTodo]:
+        """Return pending (non-completed) todos, optionally filtered by subject, ordered by due_date ASC."""
+        if subject_name:
+            return self.get_todos_by_subject(subject_name, status="pending")
+        return self.get_all_todos(status="pending")
+
+    def delete_todo(self, todo_id: str) -> bool:
+        """Delete a study todo by ID. Returns True if deleted."""
+        with self.db.connection as conn:
+            cursor = conn.execute("DELETE FROM study_todos WHERE id = ?", (todo_id,))
+            return cursor.rowcount > 0
+
+    def update_todo(self, todo: StudyTodo) -> bool:
+        """Update an existing study todo's attributes. Returns True if updated."""
+        query = """
+            UPDATE study_todos
+            SET subject_name = ?,
+                title = ?,
+                notes = ?,
+                due_date = ?,
+                status = ?,
+                completed_at = ?,
+                confidence = ?,
+                next_class_question = ?,
+                session_ref_id = ?
+            WHERE id = ?;
+        """
+        with self.db.connection as conn:
+            cursor = conn.execute(
+                query,
+                (
+                    todo.subject_name,
+                    todo.title,
+                    todo.notes,
+                    todo.due_date.isoformat(),
+                    todo.status,
+                    todo.completed_at.isoformat() if todo.completed_at else None,
+                    todo.confidence,
+                    todo.next_class_question,
+                    todo.session_ref_id,
+                    todo.id,
+                ),
+            )
+            return cursor.rowcount > 0
+
+    def mark_todo_completed(
+        self,
+        todo_id: str,
+        confidence: str | None = None,
+        next_class_question: str | None = None,
+        completed_at: datetime | None = None,
+    ) -> bool:
+        """Mark a todo as completed with optional confidence rating and next-class question."""
+        now = completed_at or datetime.now()
+        query = """
+            UPDATE study_todos
+            SET status = 'completed',
+                completed_at = ?,
+                confidence = COALESCE(?, confidence),
+                next_class_question = COALESCE(?, next_class_question)
+            WHERE id = ?;
+        """
+        with self.db.connection as conn:
+            cursor = conn.execute(
+                query,
+                (
+                    now.isoformat(),
+                    confidence,
+                    next_class_question,
+                    todo_id,
+                ),
+            )
+            return cursor.rowcount > 0
+
+    def get_questions_by_subject(self, subject_name: str) -> list[str]:
+        """Return non-empty next_class_question entries for a subject."""
+        query = """
+            SELECT next_class_question
+            FROM study_todos
+            WHERE subject_name = ?
+              AND next_class_question IS NOT NULL
+              AND trim(next_class_question) != ''
+            ORDER BY due_date ASC
+        """
+        cursor = self.db.connection.execute(query, (subject_name,))
+        return [row["next_class_question"] for row in cursor.fetchall()]
+
