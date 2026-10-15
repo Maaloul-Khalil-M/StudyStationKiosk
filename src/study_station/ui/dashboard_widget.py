@@ -38,9 +38,10 @@ from study_station.ui.theme import (
 
 
 class SubjectDashboardWidget(QWidget):
-    """Primary Ambient Kiosk Screen of Study Station."""
+    """Primary Ambient Kiosk Screen & Study Sprint Launchpad of Study Station."""
 
     start_focus_requested = Signal(str, int)  # (subject_name, duration_minutes)
+    start_todo_focus_requested = Signal(object, int)  # (todo, duration_minutes)
     open_settings_requested = Signal()
     open_timetable_requested = Signal()
     open_targets_requested = Signal(str)  # subject_name
@@ -60,6 +61,7 @@ class SubjectDashboardWidget(QWidget):
         self.engine = engine
         self.settings = settings or AppSettings()
         self.selected_subject: str | None = None
+        self.active_todo = None
 
         self._chip_buttons: dict[str | None, QPushButton] = {}
         self._carousel_index = 0
@@ -111,30 +113,58 @@ class SubjectDashboardWidget(QWidget):
         self.clock_widget = SplitFlapClockWidget(self.settings, self)
         main_layout.addWidget(self.clock_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        main_layout.addSpacing(28)
+        main_layout.addSpacing(20)
 
         # ---------------------------------------------------------------------
-        # 3. Giant Subject Name & Dropdown Hint
+        # 3. Mission Hub: Task Kicker, Task Headline, Subject Name
         # ---------------------------------------------------------------------
-        subject_container = QWidget(self)
-        subject_layout = QVBoxLayout(subject_container)
-        subject_layout.setContentsMargins(0, 0, 0, 0)
-        subject_layout.setSpacing(4)
-        subject_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mission_container = QWidget(self)
+        mission_container.setFixedWidth(740)
+        mission_layout = QVBoxLayout(mission_container)
+        mission_layout.setContentsMargins(0, 0, 0, 0)
+        mission_layout.setSpacing(6)
+        mission_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # Task urgency kicker pill badge
+        self.lbl_task_kicker = QLabel("🎯 ACTIVE STUDY SPRINT")
+        self.lbl_task_kicker.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_task_kicker.setStyleSheet("""
+            QLabel {
+                background-color: #18181B;
+                color: #71717A;
+                border: 1px solid #27272A;
+                border-radius: 11px;
+                padding: 3px 12px;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 1px;
+            }
+        """)
+        mission_layout.addWidget(self.lbl_task_kicker, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Actionable task verb headline
+        self.lbl_task_title = QLabel("Preparation & Practice Sprint")
+        self.lbl_task_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_task_title.setWordWrap(True)
+        self.lbl_task_title.setFixedWidth(740)
+        self.lbl_task_title.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_task_title.mousePressEvent = lambda e: self.open_tasks_requested.emit()
+        mission_layout.addWidget(self.lbl_task_title)
+
+        # Subject / Module context & hint
         self.lbl_subject_name = QLabel("LOADING...")
         self.lbl_subject_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_subject_name.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lbl_subject_name.mousePressEvent = lambda e: self.open_timetable_requested.emit()
-        subject_layout.addWidget(self.lbl_subject_name)
+        mission_layout.addWidget(self.lbl_subject_name)
 
         self.lbl_subject_hint = QLabel("▾ Click to open schedule")
         self.lbl_subject_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subject_layout.addWidget(self.lbl_subject_hint)
+        mission_layout.addWidget(self.lbl_subject_hint)
 
-        main_layout.addWidget(subject_container)
+        main_layout.addWidget(mission_container, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        main_layout.addSpacing(16)
+        main_layout.addSpacing(14)
 
         # ---------------------------------------------------------------------
         # 4. Single-Line Info Carousel
@@ -232,18 +262,28 @@ class SubjectDashboardWidget(QWidget):
         action_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Primary Start Focus Button
-        self.btn_focus_15 = QPushButton("START FOCUS")
+        self.btn_focus_15 = QPushButton("▶ START 15m SPRINT")
         self.btn_focus_15.setStyleSheet(BUTTON_PRIMARY_STYLE)
         self.btn_focus_15.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_focus_15.setToolTip("Launch a 15-minute high-focus sprint on this mission")
         self.btn_focus_15.clicked.connect(lambda: self._on_start_focus(15))
         action_layout.addWidget(self.btn_focus_15)
 
         # 25m Focus Button
-        self.btn_focus_25 = QPushButton("25m")
+        self.btn_focus_25 = QPushButton("25m POMODORO")
         self.btn_focus_25.setStyleSheet(BUTTON_SECONDARY_STYLE)
         self.btn_focus_25.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_focus_25.setToolTip("Launch a 25-minute Pomodoro study block")
         self.btn_focus_25.clicked.connect(lambda: self._on_start_focus(25))
         action_layout.addWidget(self.btn_focus_25)
+
+        # Quick Backlog Button
+        self.btn_quick_tasks = QPushButton("TASKS")
+        self.btn_quick_tasks.setStyleSheet(BUTTON_SECONDARY_STYLE)
+        self.btn_quick_tasks.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_quick_tasks.setToolTip("Open Academic Task Backlog to select or manage tasks")
+        self.btn_quick_tasks.clicked.connect(self.open_tasks_requested.emit)
+        action_layout.addWidget(self.btn_quick_tasks)
 
         # Backwards compatibility triggers (accessible via top bar)
         self.btn_hero_log = QPushButton(self)
@@ -276,42 +316,66 @@ class SubjectDashboardWidget(QWidget):
     def _update_typography(self) -> None:
         """Apply either Evangelion Matisse display serif or Swiss Modern Minimal."""
         is_eva = getattr(self.settings, "typography_style", "eva") == "eva"
-        accent = getattr(self.settings, "accent_color", "") or ("#FF7700" if is_eva else "#38BDF8")
+        accent = getattr(self.settings, "accent_color", "") or ("#FF7700" if is_eva else "#10B981")
         if is_eva:
             # Matisse EB inspired editorial display serif with tight tracking
-            self.lbl_subject_name.setFont(get_modern_font("eva_display", 34, QFont.Weight.Bold))
-            self.lbl_subject_name.setStyleSheet(f"""
+            self.lbl_task_title.setFont(get_modern_font("sans", 22, QFont.Weight.Bold))
+            self.lbl_task_title.setStyleSheet(f"""
                 QLabel {{
                     color: #FFFFFF;
-                    font-size: 34px;
-                    font-weight: 800;
-                    letter-spacing: -0.5px;
+                    font-size: 22px;
+                    font-weight: 700;
+                    letter-spacing: -0.2px;
                 }}
                 QLabel:hover {{
                     color: {accent};
                 }}
             """)
+            self.lbl_subject_name.setFont(get_modern_font("eva_body", 13, QFont.Weight.Bold))
+            self.lbl_subject_name.setStyleSheet(f"""
+                QLabel {{
+                    color: #A1A1AA;
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 1.2px;
+                }}
+                QLabel:hover {{
+                    color: #FFFFFF;
+                }}
+            """)
             self.lbl_subject_hint.setText("Click to open schedule")
             self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500; letter-spacing: 0.3px;")
-            self.btn_focus_15.setText("START FOCUS")
-            self.btn_focus_25.setText("25m")
+            self.btn_focus_15.setText("▶ START 15m SPRINT")
+            self.btn_focus_25.setText("25m POMODORO")
         else:
-            self.lbl_subject_name.setFont(get_modern_font("sans", 32, QFont.Weight.Bold))
-            self.lbl_subject_name.setStyleSheet(f"""
+            self.lbl_task_title.setFont(get_modern_font("sans", 22, QFont.Weight.Bold))
+            self.lbl_task_title.setStyleSheet(f"""
                 QLabel {{
                     color: #FFFFFF;
-                    font-size: 32px;
-                    font-weight: 800;
-                    letter-spacing: -0.5px;
+                    font-size: 22px;
+                    font-weight: 700;
+                    letter-spacing: -0.2px;
                 }}
                 QLabel:hover {{
                     color: {accent};
                 }}
             """)
+            self.lbl_subject_name.setFont(get_modern_font("sans", 13, QFont.Weight.Bold))
+            self.lbl_subject_name.setStyleSheet(f"""
+                QLabel {{
+                    color: #A1A1AA;
+                    font-size: 13px;
+                    font-weight: 700;
+                    letter-spacing: 1.2px;
+                }}
+                QLabel:hover {{
+                    color: #FFFFFF;
+                }}
+            """)
             self.lbl_subject_hint.setText("Click to open schedule")
             self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500; letter-spacing: 0.3px;")
-            self.btn_focus_15.setText("START FOCUS")
-            self.btn_focus_25.setText("25m")
+            self.btn_focus_15.setText("▶ START 15m SPRINT")
+            self.btn_focus_25.setText("25m POMODORO")
 
     def _create_top_bar(self) -> QWidget:
         bar = QWidget(self)
@@ -474,8 +538,11 @@ class SubjectDashboardWidget(QWidget):
 
         if not self.engine:
             self.lbl_subject_name.setText("STUDY STATION")
+            self.lbl_task_title.setText("Ready to Focus")
+            self.lbl_task_kicker.setText("⚡ AMBIENT LAUNCHPAD")
             self._carousel_slides = ["● READY TO FOCUS"]
             self.lbl_carousel_text.setText(self._carousel_slides[0])
+            self.active_todo = None
             return
 
         # Build virtual chip buttons dict for unit test backwards compatibility
@@ -490,21 +557,113 @@ class SubjectDashboardWidget(QWidget):
             summary = self.engine.get_subject_summary(self.selected_subject, now)
 
         if not summary:
-            # Auto-suggest
-            suggested = self.engine.get_suggested_cycle(now)
-            if suggested:
-                summary = self.engine.get_subject_summary(suggested.subject_name, now)
-            elif all_summaries:
-                summary = all_summaries[0]
+            # Auto-suggest: check for priority study todo across subjects
+            priority_todo = self.engine.get_priority_study_todo(now)
+            if priority_todo:
+                summary = self.engine.get_subject_summary(priority_todo.subject_name, now)
+                self.active_todo = priority_todo
+
+            if not summary:
+                suggested = self.engine.get_suggested_cycle(now)
+                if suggested:
+                    summary = self.engine.get_subject_summary(suggested.subject_name, now)
+                elif all_summaries:
+                    summary = all_summaries[0]
 
         if not summary:
             self.lbl_subject_name.setText("NO ACTIVE CLASSES")
+            self.lbl_task_title.setText("Add sessions in Schedule Cockpit")
+            self.lbl_task_kicker.setText("NO ACTIVE SESSIONS")
             self._carousel_slides = ["● ADD SESSIONS IN SCHEDULE GRID"]
             self.lbl_carousel_text.setText(self._carousel_slides[0])
+            self.active_todo = None
             return
 
         clean_name = ScheduleEngine.clean_subject_name(summary.name)
         self.lbl_subject_name.setText(clean_name)
+
+        # Resolve active pending task for this subject
+        subject_todos = self.engine.get_pending_todos(summary.name)
+        if subject_todos:
+            def todo_urgency(t):
+                return (0 if t.is_overdue(now) else 1, t.due_date)
+            subject_todos.sort(key=todo_urgency)
+            self.active_todo = subject_todos[0]
+        elif not self.selected_subject and not getattr(self, "active_todo", None):
+            self.active_todo = self.engine.get_priority_study_todo(now)
+        elif self.selected_subject and (not self.active_todo or self.engine.clean_subject_name(self.active_todo.subject_name).lower() != clean_name.lower()):
+            self.active_todo = None
+
+        clean_next = summary.next_session_text.replace("📅 ", "").replace("📅", "") if summary.next_session_text else "No upcoming session"
+        accent_color = getattr(self.settings, "accent_color", "") or "#10B981"
+
+        if self.active_todo:
+            self.lbl_task_title.setText(self.active_todo.title)
+            due_fmt = self.active_todo.due_date.strftime('%a %d %b %H:%M')
+            self.lbl_task_title.setToolTip(f"Active Mission: {self.active_todo.title}\nDue: {due_fmt}\nClick to view Task Backlog")
+
+            if self.active_todo.is_overdue(now):
+                delta = now - self.active_todo.due_date
+                total_hours = int(delta.total_seconds() // 3600)
+                if total_hours >= 24:
+                    time_str = f"{total_hours // 24}d {total_hours % 24}h AGO"
+                elif total_hours > 0:
+                    time_str = f"{total_hours}h AGO"
+                else:
+                    time_str = "JUST NOW"
+                self.lbl_task_kicker.setText(f"⚠ OVERDUE · WAS DUE {time_str}")
+                self.lbl_task_kicker.setStyleSheet("""
+                    QLabel {
+                        background-color: rgba(239, 68, 68, 0.15);
+                        color: #F87171;
+                        border: 1px solid rgba(239, 68, 68, 0.35);
+                        border-radius: 11px;
+                        padding: 3px 12px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 1px;
+                    }
+                """)
+            else:
+                delta = self.active_todo.due_date - now
+                total_hours = int(delta.total_seconds() // 3600)
+                if total_hours < 24:
+                    mins = int((delta.total_seconds() % 3600) // 60)
+                    time_str = f"IN {total_hours}h {mins}m" if total_hours > 0 else f"IN {mins}m"
+                elif total_hours < 48:
+                    time_str = "TOMORROW"
+                else:
+                    days = total_hours // 24
+                    time_str = f"IN {days} DAYS"
+                self.lbl_task_kicker.setText(f"🎯 PRIORITY TASK · DUE {time_str}")
+                self.lbl_task_kicker.setStyleSheet(f"""
+                    QLabel {{
+                        background-color: rgba(16, 185, 129, 0.12);
+                        color: {accent_color};
+                        border: 1px solid rgba(16, 185, 129, 0.28);
+                        border-radius: 11px;
+                        padding: 3px 12px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 1px;
+                    }}
+                """)
+        else:
+            self.lbl_task_title.setText("Preparation & Practice Sprint")
+            self.lbl_task_title.setToolTip("No pending tasks recorded for this module. Click to add or manage tasks.")
+            self.lbl_task_kicker.setText(f"ACTIVE MODULE · NEXT CLASS: {clean_next.upper()}")
+            self.lbl_task_kicker.setStyleSheet("""
+                QLabel {
+                    background-color: #18181B;
+                    color: #71717A;
+                    border: 1px solid #27272A;
+                    border-radius: 11px;
+                    padding: 3px 12px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                }
+            """)
 
         # Build info carousel slides
         comp = summary.completed_minutes
@@ -517,13 +676,16 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_cycle_progress.setText(f"{comp} / {tgt} MIN")
 
         slide_progress = f"● {comp} / {tgt} MIN COMPLETED · {pct}%"
-        clean_next = summary.next_session_text.replace("📅 ", "").replace("📅", "") if summary.next_session_text else "No upcoming session"
         slide_next = f"NEXT CLASS · {clean_next}"
         slide_format = f"{summary.core} · {summary.location or 'Class'}"
         if summary.is_current_class:
             slide_progress = f"● IN CLASS NOW · {summary.core}"
 
-        self._carousel_slides = [slide_progress, slide_next, slide_format]
+        # If there are unresolved questions for this subject, highlight as carousel slide!
+        questions = self.engine.get_subject_questions(summary.name)
+        slide_question = f"❓ QUESTION: {questions[0]}" if questions else f"{len(subject_todos)} PENDING TASKS FOR {clean_name.upper()}"
+
+        self._carousel_slides = [slide_progress, slide_next, slide_question]
         self._carousel_index = 0
         self.lbl_carousel_text.setText(self._carousel_slides[0])
 
@@ -635,12 +797,19 @@ class SubjectDashboardWidget(QWidget):
     def _on_start_focus(self, minutes: int) -> None:
         subject = self.selected_subject
         if not subject and self.engine:
-            suggested = self.engine.get_suggested_cycle(datetime.now())
-            if suggested:
-                subject = suggested.subject_name
-            elif self.engine.sessions:
-                subject = self.engine.sessions[0].subject.name
-        self.start_focus_requested.emit(subject or "STUDY", minutes)
+            if self.active_todo:
+                subject = self.active_todo.subject_name
+            else:
+                suggested = self.engine.get_suggested_cycle(datetime.now())
+                if suggested:
+                    subject = suggested.subject_name
+                elif self.engine.sessions:
+                    subject = self.engine.sessions[0].subject.name
+
+        if self.active_todo is not None:
+            self.start_todo_focus_requested.emit(self.active_todo, minutes)
+        else:
+            self.start_focus_requested.emit(subject or "STUDY", minutes)
 
     def apply_settings(self, settings: AppSettings) -> None:
         self.settings = settings

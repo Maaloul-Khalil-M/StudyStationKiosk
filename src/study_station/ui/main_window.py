@@ -96,6 +96,7 @@ class MainWindow(QMainWindow):
         # 4. Secondary Screen: Ambient Split-Flap Clock & Quick Switcher
         self._dashboard_widget = SubjectDashboardWidget(self._engine, self._settings, self)
         self._dashboard_widget.start_focus_requested.connect(self._on_start_focus_requested)
+        self._dashboard_widget.start_todo_focus_requested.connect(self._on_start_todo_focus)
         self._dashboard_widget.open_settings_requested.connect(self.open_customization_dialog)
         self._dashboard_widget.open_timetable_requested.connect(self.open_timetable_editor)
         self._dashboard_widget.open_targets_requested.connect(self.open_targets_dialog)

@@ -90,6 +90,30 @@ class TestDashboardUI(unittest.TestCase):
         dashboard.btn_history.click()
         self.assertEqual(len(history_emitted), 1)
 
+        # Test active task sprint integration
+        from study_station.core.models import StudyTodo
+        from datetime import timedelta
+        todo = StudyTodo(
+            subject_name="Math",
+            title="Calculus Problem Set 4",
+            due_date=datetime.now() + timedelta(hours=5),
+            status="pending",
+        )
+        self.engine.add_todo(todo)
+        dashboard.refresh_dashboard()
+
+        self.assertIsNotNone(dashboard.active_todo)
+        self.assertEqual(dashboard.active_todo.title, "Calculus Problem Set 4")
+        self.assertEqual(dashboard.lbl_task_title.text(), "Calculus Problem Set 4")
+        self.assertIn("PRIORITY TASK", dashboard.lbl_task_kicker.text())
+
+        todo_emitted = []
+        dashboard.start_todo_focus_requested.connect(lambda t, m: todo_emitted.append((t, m)))
+        dashboard._on_start_focus(25)
+        self.assertEqual(len(todo_emitted), 1)
+        self.assertEqual(todo_emitted[0][0].id, todo.id)
+        self.assertEqual(todo_emitted[0][1], 25)
+
     def test_ambient_date_and_nav_toggle(self) -> None:
         dashboard = SubjectDashboardWidget(self.engine, self.settings)
         # In idle mode: top_bar and lbl_date remain visible; nav_container is hidden
