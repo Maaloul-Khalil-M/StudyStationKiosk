@@ -33,6 +33,7 @@ from study_station.ui.import_export_dialog import ImportExportDialog
 from study_station.ui.manual_log_dialog import ManualLogDialog
 from study_station.ui.schedule_screen_widget import ScheduleScreenWidget
 from study_station.ui.targets_dialog import TargetsDialog
+from study_station.ui.tasks_dialog import TasksDialog
 from study_station.ui.theme import GLOBAL_QSS, THEMES
 from study_station.ui.timetable_dialog import TimetableDialog
 from study_station.ui.weekly_schedule_dialog import WeeklyScheduleGridDialog
@@ -78,6 +79,7 @@ class MainWindow(QMainWindow):
         self._schedule_widget.start_todo_focus_requested.connect(self._on_start_todo_focus)
         self._schedule_widget.timetable_changed.connect(self._on_timetable_updated)
         self._schedule_widget.open_import_export_requested.connect(self.open_import_export_dialog)
+        self._schedule_widget.open_tasks_requested.connect(self.open_tasks_dialog)
         self._stack.addWidget(self._schedule_widget)
 
         # 2. Focus Screen
@@ -100,6 +102,7 @@ class MainWindow(QMainWindow):
         self._dashboard_widget.open_manual_log_requested.connect(self.open_manual_log_dialog)
         self._dashboard_widget.open_history_requested.connect(self.open_history_dialog)
         self._dashboard_widget.open_debrief_requested.connect(self.open_debrief_dialog)
+        self._dashboard_widget.open_tasks_requested.connect(self.open_tasks_dialog)
         self._dashboard_widget.toggle_fullscreen_requested.connect(self.toggle_fullscreen)
         self._stack.addWidget(self._dashboard_widget)
 
@@ -322,6 +325,24 @@ class MainWindow(QMainWindow):
                 self._schedule_widget.update_sessions(self._engine.sessions)
             dialog.debrief_completed.connect(_on_debrief_done)
             dialog.exec()
+        finally:
+            self._hide_scrim()
+
+    def open_tasks_dialog(self) -> None:
+        """Open Academic Task Backlog dialog with dark scrim."""
+        if not self._engine:
+            return
+        self._show_scrim()
+        try:
+            dialog = TasksDialog(self._engine, parent=self)
+            dialog.start_task_focus_requested.connect(self._on_start_todo_focus)
+            def _on_tasks_changed():
+                self._dashboard_widget.refresh_dashboard()
+                self._schedule_widget.update_sessions(self._engine.sessions)
+            dialog.tasks_changed.connect(_on_tasks_changed)
+            dialog.exec()
+            self._dashboard_widget.refresh_dashboard()
+            self._schedule_widget.update_sessions(self._engine.sessions)
         finally:
             self._hide_scrim()
 
@@ -548,6 +569,8 @@ class MainWindow(QMainWindow):
                 self.open_manual_log_dialog()
             elif key == Qt.Key.Key_H:
                 self.open_history_dialog()
+            elif key == Qt.Key.Key_T:
+                self.open_tasks_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
                 self.start_focus_session(self._settings.default_focus_minutes)
             elif key == Qt.Key.Key_1:
@@ -597,6 +620,8 @@ class MainWindow(QMainWindow):
                 self.open_debrief_dialog()
             elif key == Qt.Key.Key_I:
                 self.open_import_export_dialog()
+            elif key == Qt.Key.Key_T:
+                self.open_tasks_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
                 self.start_focus_session(self._settings.default_focus_minutes)
             elif key == Qt.Key.Key_1:

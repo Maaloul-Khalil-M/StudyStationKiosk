@@ -8,7 +8,7 @@
 [![PySide6 / Qt](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-41CD52?style=flat&logo=qt&logoColor=white)](https://www.qt.io/)
 [![SQLite WAL](https://img.shields.io/badge/Database-SQLite%20(WAL)-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Local-First](https://img.shields.io/badge/Architecture-100%25%20Offline%20%2F%20Local--First-black?style=flat)](#)
-[![Tests Passing](https://img.shields.io/badge/Tests-96%2F96%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
+[![Tests Passing](https://img.shields.io/badge/Tests-108%2F108%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
 [![Zero Cloud](https://img.shields.io/badge/Privacy-Zero%20Cloud%20%2F%20Zero%20Electron-6366F1?style=flat)](#)
 
 </div>
@@ -23,7 +23,7 @@ Traditional productivity apps suffer from a fundamental mismatch with university
 
 > *"Today I had a difficult university class and I feel tired and demotivated to touch it again tonight. But I know with certainty that if I walk into next week's session without having reviewed the material, nothing will stick."*
 
-Study Station bridges the gap between consecutive occurrences of the same subject. It combines an **interactive weekly academic cockpit**, an **automatic nightly debrief ritual**, **task-tethered micro-focus sprints**, and **cognitive exit tickets** that formulate questions to ask professors in class.
+Study Station bridges the gap between consecutive occurrences of the same subject. It combines an **interactive weekly academic cockpit**, an **automatic nightly debrief ritual**, **task-tethered micro-focus sprints**, **cognitive exit tickets** that formulate questions to ask professors in class, and a **centralized task backlog with full CRUD**.
 
 ---
 
@@ -38,15 +38,15 @@ The weekly schedule grid acts as the student's default mission control, highligh
 
 ### Core Workflow Interfaces
 
-| Nightly Desk Debrief Modal | Subject Preparation Sheet & In-Class HUD |
+| Academic Task Backlog (<kbd>T</kbd>) | Subject Preparation Sheet & In-Class HUD |
 |:---:|:---:|
-| ![Nightly Debrief](docs/screens/debrief_modal.png) | ![Preparation Sheet](docs/screens/preparation_sheet.png) |
-| *Multi-step evening ritual auto-calculating deadlines to next week's classes.* | *Preparation checklists with 1-click focus and in-class question payoffs.* |
+| ![Task Backlog](docs/screens/tasks_modal.png) | ![Preparation Sheet](docs/screens/preparation_sheet.png) |
+| *Macro backlog with live KPIs, multi-criteria filtering, in-place CRUD, and 1-click focus.* | *Preparation checklists with reversible check-offs, in-place edit/delete, & questions.* |
 
-| Task-Tethered Focus Gauge | Cognitive Exit Ticket |
+| Nightly Desk Debrief Modal | Task-Tethered Focus Gauge |
 |:---:|:---:|
-| ![Focus Screen](docs/screens/focus.png) | ![Exit Ticket](docs/screens/exit_ticket.png) |
-| *Distraction-free radial focus gauge with task title and deadline context.* | *Traffic-light confidence rating (🔴🟡🟢), continuation sprints, & questions.* |
+| ![Nightly Debrief](docs/screens/debrief_modal.png) | ![Focus Screen](docs/screens/focus.png) |
+| *Multi-step evening ritual auto-calculating deadlines to next week's classes.* | *Distraction-free radial focus gauge with task title and deadline context.* |
 
 ---
 
@@ -99,9 +99,17 @@ When arriving at the desk tired at night, looking at a passive clock or complex 
 ### 🎯 Subject Preparation Sheet (`SubjectPreparationSheet`)
 - Click any class card on the grid to open its preparation drawer.
 - Shows live relative countdown: `NEXT CLASS: Thursday at 08:00 (in 3 days)`.
-- Interactive checklist of tasks with inline check-offs.
+- Interactive checklist of tasks with reversible check-offs, in-place `[ ✏ ]` edit, and `[ ✕ ]` delete.
 - Quick inline task input bar with automatic next-class deadline calculation.
 - **In-Class HUD Payoff**: Lists all questions formulated during nightly exit tickets with `[ 📋 Copy ]` to clipboard and `[ ✓ Asked ]` resolution buttons.
+
+### 📋 Academic Task Backlog & Comprehensive CRUD (`TasksDialog` & `EditTodoDialog`)
+- **Centralized Workstation Backlog**: Accessible via <kbd>T</kbd> or top-bar button `[ ✓ Tasks ]`. Inspect and manage all active and completed deliverables across all modules.
+- **Telemetry KPI Summary Cards**: Real-time counters for `TOTAL PENDING`, `DUE THIS WEEK`, `OVERDUE`, and `COMPLETED`.
+- **Multi-Criteria Filter Engine**: Instant live search, subject course dropdown, and status segmented pills (`All`, `Pending`, `Due Soon (<24h)`, `Overdue`, `Completed`).
+- **Full Task Lifecycle & In-Place Editing**: Dedicated modal (`EditTodoDialog`) for updating titles, notes, subjects, and deadlines with smart presets (`Next Class`, `Tomorrow`, `+3 Days`, `+1 Wk`).
+- **Reversible Check-offs & Safe Deletion**: Reopen completed tasks at any time; delete mistaken tasks with confirmation.
+- **1-Click Task-Tethered Focus Sprint**: `[ ▶ 15m ]` button on any task row immediately launches the focused countdown gauge.
 
 ### ⏱ Task-Tethered Focus Gauge (`FocusWidget` 2.0)
 - **Radial Ring Gauge**: Custom `QPainter` drawing elapsed/remaining progress arcs.
@@ -235,6 +243,7 @@ Study Station is designed for rapid, keyboard-first workstation operation:
 | <kbd>S</kbd> | Cockpit Grid / Clock | Open **Review Targets** configuration dialog |
 | <kbd>M</kbd> | Cockpit Grid / Clock | Open **Manual Offline Study Time** logger |
 | <kbd>H</kbd> | Cockpit Grid / Clock | Open **Study History & Logs** viewer |
+| <kbd>T</kbd> | Cockpit Grid / Clock | Open **Academic Task Backlog** dialog |
 | <kbd>F11</kbd> | Any Screen | Toggle **Fullscreen Mode** |
 | <kbd>Space</kbd> | Focus Screen | **Pause / Resume** active countdown |
 | <kbd>+</kbd> or <kbd>=</kbd> or <kbd>5</kbd> | Focus Screen | **Add +5 Minutes** to active session |
@@ -248,7 +257,7 @@ Study Station is designed for rapid, keyboard-first workstation operation:
 Study Station is backed by a deterministic, zero-external-dependency test suite running on `unittest`:
 
 ```bash
-# Run all 96 unit tests across all 16 test suites
+# Run all 108 unit tests across all 17 test suites
 $env:PYTHONPATH="src"; python -m unittest discover tests
 ```
 
@@ -256,14 +265,14 @@ $env:PYTHONPATH="src"; python -m unittest discover tests
 - **Engine & Scheduling**: 100% boundary safety on academic week transitions, timezone-free calendar arithmetic, and collision detection.
 - **Persistence & Migrations**: SQLite schema migrations, foreign keys, and sleep/crash recovery verification.
 - **Portability**: PDF grid extraction, CSV parsing with French semicolons and UTF-8 BOM, and JSON round-trips.
-- **Interactive UI**: Headless verification of `ScheduleScreenWidget`, `DebriefDialog`, `ExitTicketDialog`, `SubjectPreparationSheet`, and `FocusWidget`.
+- **Interactive UI**: Headless verification of `ScheduleScreenWidget`, `DebriefDialog`, `ExitTicketDialog`, `SubjectPreparationSheet`, `TasksDialog`, and `FocusWidget`.
 
 ```
-................................................................................................
+............................................................................................................
 ----------------------------------------------------------------------
-Ran 96 tests in 7.562s
+Ran 108 tests in 9.981s
 
-OK (100% passing across 16 test suites)
+OK (100% passing across 17 test suites)
 ```
 
 ---
@@ -279,6 +288,7 @@ This script renders and grabs:
 - `docs/screens/grid_schedual.png`
 - `docs/screens/debrief_modal.png`
 - `docs/screens/preparation_sheet.png`
+- `docs/screens/tasks_modal.png`
 - `docs/screens/focus.png`
 - `docs/screens/exit_ticket.png`
 
@@ -303,6 +313,7 @@ This script renders and grabs:
 | **12** | Academic Cockpit Grid | Grid as main station, live preparation badges, task drawer sheet | `[COMPLETED]` |
 | **13** | Todo-Driven Focus Loop | Task framing on focus ring, 🔴🟡🟢 exit ticket, Feynman notes | `[COMPLETED]` |
 | **14** | Night Routine Ambient UX | Evening desk mode, Tonight's Priority Task capsule, in-class HUD | `[COMPLETED]` |
+| **15** | Academic Task Backlog & CRUD | Central backlog (<kbd>T</kbd>), EditTodoDialog, reversible check-offs, in-place edit/delete | `[COMPLETED]` |
 
 ---
 

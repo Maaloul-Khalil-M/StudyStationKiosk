@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -29,6 +30,7 @@ from PySide6.QtWidgets import (
 from study_station.core.engine import ScheduleEngine
 from study_station.core.models import AcademicSession, StudyTodo
 from study_station.ui.class_session_dialog import ClassSessionDialog
+from study_station.ui.edit_todo_dialog import EditTodoDialog
 from study_station.ui.theme import (
     BUTTON_DANGER_STYLE,
     BUTTON_NAV_STYLE,
@@ -45,6 +47,7 @@ class SubjectPreparationSheet(QDialog):
     start_subject_focus_requested = Signal(str, int)  # (subject_name, minutes)
     session_modified = Signal(object, object)  # (old_session, new_session)
     session_deleted = Signal(object)  # (session)
+    todo_changed = Signal()  # emitted when tasks are added, edited, deleted, or toggled
 
     def __init__(
         self,
@@ -412,12 +415,10 @@ class SubjectPreparationSheet(QDialog):
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(10)
 
-        # Checkbox to complete
+        # Checkbox: reversible toggle
         chk = QCheckBox()
         chk.setChecked(is_done)
-        chk.setEnabled(not is_done)
-        if not is_done:
-            chk.toggled.connect(lambda checked, t=todo: self._on_mark_completed(t))
+        chk.toggled.connect(lambda checked, t=todo: self._on_toggle_completed(t, checked))
         layout.addWidget(chk)
 
         # Text column
@@ -431,11 +432,14 @@ class SubjectPreparationSheet(QDialog):
         text_layout.addWidget(lbl_task_title)
 
         meta_parts = []
-        if todo.due_date:
+        if todo.due_date and not is_done:
             due_str = todo.due_date.strftime("%a, %b %d")
             is_overdue = todo.is_overdue()
             color = "#EF4444" if is_overdue else "#71717A"
             meta_parts.append(f"<span style='color: {color};'>Due: {due_str}</span>")
+        elif is_done:
+            meta_parts.append("<span style='color: #10B981; font-weight: 600;'>✓ Completed</span>")
+
         if todo.notes:
             meta_parts.append(f"<span style='color: #52525B;'>{todo.notes}</span>")
 
@@ -446,7 +450,7 @@ class SubjectPreparationSheet(QDialog):
 
         layout.addLayout(text_layout, stretch=1)
 
-        # Action button (only for pending tasks)
+        # 1. Focus button (only for pending tasks)
         if not is_done:
             btn_focus_task = QPushButton("▶ 15m")
             btn_focus_task.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -468,6 +472,51 @@ class SubjectPreparationSheet(QDialog):
             btn_focus_task.clicked.connect(lambda _, t=todo: self._on_focus_task(t))
             layout.addWidget(btn_focus_task)
 
+        # 2. Edit button
+        btn_edit = QPushButton("✏")
+        btn_edit.setToolTip("Edit Task")
+        btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_edit.setFixedSize(28, 28)
+        btn_edit.setStyleSheet("""
+            QPushButton {
+                background-color: #18181B;
+                color: #A1A1AA;
+                border: 1px solid #27272A;
+                border-radius: 14px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #27272A;
+                color: #FFFFFF;
+                border-color: #3F3F46;
+            }
+        """)
+        btn_edit.clicked.connect(lambda _, t=todo: self._on_edit_task(t))
+        layout.addWidget(btn_edit)
+
+        # 3. Delete button
+        btn_delete = QPushButton("✕")
+        btn_delete.setToolTip("Delete Task")
+        btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_delete.setFixedSize(28, 28)
+        btn_delete.setStyleSheet("""
+            QPushButton {
+                background-color: #18181B;
+                color: #71717A;
+                border: 1px solid #27272A;
+                border-radius: 14px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #451A1A;
+                color: #EF4444;
+                border-color: #991B1B;
+            }
+        """)
+        btn_delete.clicked.connect(lambda _, t=todo: self._on_delete_task(t))
+        layout.addWidget(btn_delete)
+
         return row
 
     def _on_add_task(self) -> None:
@@ -487,11 +536,45 @@ class SubjectPreparationSheet(QDialog):
         )
         self.engine.add_todo(todo)
         self.txt_new_task.clear()
+        self.todo_changed.emit()
+        self._refresh_content()
+
+    def _on_toggle_completed(self, todo: StudyTodo, checked: bool) -> None:
+        if checked:
+            self.engine.mark_todo_completed(todo.id, confidence="solid")
+        else:
+            self.engine.mark_todo_pending(todo.id)
+        self.todo_changed.emit()
         self._refresh_content()
 
     def _on_mark_completed(self, todo: StudyTodo) -> None:
-        self.engine.mark_todo_completed(todo.id, confidence="solid")
-        self._refresh_content()
+        self._on_toggle_completed(todo, True)
+
+    def _on_edit_task(self, todo: StudyTodo) -> None:
+        dialog = EditTodoDialog(
+            engine=self.engine,
+            todo=todo,
+            parent=self,
+        )
+        def on_changed(_):
+            self.todo_changed.emit()
+            self._refresh_content()
+        dialog.todo_saved.connect(on_changed)
+        dialog.todo_deleted.connect(on_changed)
+        dialog.exec()
+
+    def _on_delete_task(self, todo: StudyTodo) -> None:
+        confirm = QMessageBox.question(
+            self,
+            "Delete Task",
+            f"Are you sure you want to delete this task?\n\n\"{todo.title}\"",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirm == QMessageBox.StandardButton.Yes:
+            self.engine.delete_todo(todo.id)
+            self.todo_changed.emit()
+            self._refresh_content()
 
     def _on_focus_task(self, todo: StudyTodo) -> None:
         self.start_task_focus_requested.emit(todo, 15)

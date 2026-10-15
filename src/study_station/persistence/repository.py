@@ -480,6 +480,18 @@ class StudyStationRepository:
             )
             return cursor.rowcount > 0
 
+    def mark_todo_pending(self, todo_id: str) -> bool:
+        """Mark a completed todo back as pending."""
+        query = """
+            UPDATE study_todos
+            SET status = 'pending',
+                completed_at = NULL
+            WHERE id = ?;
+        """
+        with self.db.connection as conn:
+            cursor = conn.execute(query, (todo_id,))
+            return cursor.rowcount > 0
+
     def get_questions_by_subject(self, subject_name: str) -> list[str]:
         """Return non-empty next_class_question entries for a subject."""
         query = """

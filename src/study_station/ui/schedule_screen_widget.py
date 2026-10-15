@@ -289,6 +289,7 @@ class ScheduleScreenWidget(QWidget):
     start_todo_focus_requested = Signal(object, int)
     timetable_changed = Signal(list)  # list[AcademicSession]
     open_import_export_requested = Signal()
+    open_tasks_requested = Signal()
 
     TIME_SLOTS = [
         ("08:00", "09:30", "08h - 09h30"),
@@ -363,6 +364,12 @@ class ScheduleScreenWidget(QWidget):
         self.btn_debrief.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_debrief.clicked.connect(self.open_debrief_requested.emit)
         header.addWidget(self.btn_debrief)
+
+        self.btn_tasks = QPushButton("✓ Tasks")
+        self.btn_tasks.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_tasks.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_tasks.clicked.connect(self.open_tasks_requested.emit)
+        header.addWidget(self.btn_tasks)
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
@@ -1312,8 +1319,10 @@ class ScheduleScreenWidget(QWidget):
             sheet.start_subject_focus_requested.connect(self.start_focus_requested.emit)
             sheet.session_modified.connect(self._on_session_edited)
             sheet.session_deleted.connect(self._on_session_deleted)
+            sheet.todo_changed.connect(lambda: (self._refresh_calendar_grid(), self._refresh_cockpit_banners()))
             sheet.exec()
             self._refresh_calendar_grid()
+            self._refresh_cockpit_banners()
             return
 
         existing_names = sorted({s.subject.name for s in self._sessions})

@@ -233,6 +233,17 @@ class ScheduleEngine:
                 return True
         return False
 
+    def mark_todo_pending(self, todo_id: str) -> bool:
+        """Mark a completed todo back as pending in memory and persistence."""
+        for t in self.todos:
+            if t.id == todo_id:
+                t.status = "pending"
+                t.completed_at = None
+                if self.repository is not None:
+                    self.repository.mark_todo_pending(todo_id)
+                return True
+        return False
+
     def get_todos(
         self,
         subject_filter: str | None = None,

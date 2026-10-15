@@ -546,16 +546,55 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
   - Added dedicated unit test suite in [`tests/test_night_routine_hud.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_night_routine_hud.py) (6 tests) covering prompt logic, debrief persistence, priority task ranking, question resolution, banner dismissals, and in-class card HUD badges.
   - **100% test pass rate:** **96/96 unit tests passing** across 16 test suites.
 
+### Milestone 15: Academic Task Backlog & Comprehensive Todo CRUD `[COMPLETED]`
+- [x] **Full Task Lifecycle & Reversible Check-offs**:
+  - Implemented `mark_todo_pending(todo_id)` in [`StudyStationRepository`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/persistence/repository.py) and [`ScheduleEngine`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/engine.py), enabling completed tasks to be unchecked/reopened.
+- [x] **Individual Task Edit & Create Modal ([`EditTodoDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/edit_todo_dialog.py))**:
+  - Dual-mode modal supporting both creating new tasks and editing existing tasks.
+  - Actionable title and context notes editing.
+  - Subject selector dropdown (enrolled subjects + free-form typing).
+  - Due date selector with quick presets (`Next Class`, `Tomorrow`, `+3 Days`, `+1 Wk`, and calendar popup).
+  - Status toggle (`Pending` vs `Completed`).
+  - Next-class formulated question viewing and editing.
+  - Safe task deletion with `QMessageBox` confirmation.
+- [x] **Centralized Academic Task Backlog ([`TasksDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/tasks_dialog.py))**:
+  - Accessible via top navigation bar `[ ✓ Tasks ]` or dedicated keyboard shortcut <kbd>T</kbd>.
+  - **KPI Telemetry Cards**: Real-time counts for `TOTAL PENDING`, `DUE THIS WEEK`, `OVERDUE`, and `COMPLETED`.
+  - **Multi-Criteria Filter Bar**:
+    - Live search box filtering by title, notes, and course.
+    - Subject dropdown (`All Subjects` + distinct courses).
+    - Status segmented filter pills (`All`, `Pending`, `Due Soon (<24h)`, `Overdue`, `Completed`).
+  - **Task Row Actions**:
+    - Reversible completion checkbox.
+    - Subject module pill badge (`[ENTREPÔTS]`, `[DATA VIS]`).
+    - Relative due date badges with dynamic color coding (`⚠️ OVERDUE`, `● Due Soon`, `Due: Thu, Oct 22`).
+    - 1-click focus launcher pill `[ ▶ 15m ]` directly engaging a task-tethered focus sprint.
+    - In-place `[ ✏ ]` Edit button opening `EditTodoDialog`.
+    - In-place `[ ✕ ]` Delete button with confirmation.
+- [x] **In-Place Drawer CRUD in [`SubjectPreparationSheet`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/subject_preparation_sheet.py)**:
+  - Enabled reversible check-offs on all task items.
+  - Added `[ ✏ ]` and `[ ✕ ]` buttons on every preparation task row.
+  - Added `todo_changed` signal triggering automatic real-time updates of cockpit grid badges (`● X TODO`, `● X DUE`, `✓ READY`) and tonight's priority task card.
+- [x] **Top Navigation & Keyboard Shortcuts**:
+  - Added `[ ✓ Tasks ]` button to the `ScheduleScreenWidget` top header.
+  - Added `[ Tasks ]` button to the `SubjectDashboardWidget` top navigation bar.
+  - Connected global keyboard shortcut <kbd>T</kbd> in `MainWindow` for instant backlog access.
+- [x] **Verification & Test Suite**:
+  - Added dedicated unit test suite in [`tests/test_tasks_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_tasks_dialog.py) (12 tests) covering KPI calculations, subject filters, status filters, search filters, completion toggling, 1-click focus signals, EditTodoDialog save/update/delete, and SubjectPreparationSheet in-place CRUD.
+  - **100% test pass rate:** **108/108 unit tests passing** across 17 test suites.
+  - Refreshed high-resolution documentation screenshots: [`docs/screens/tasks_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/tasks_modal.png) and [`docs/screens/preparation_sheet.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/preparation_sheet.png).
+
 ---
 
-## Complete 5-Milestone Academic Pivot Summary
+## Complete 6-Milestone Academic Pivot Summary
 
-The entire 5-milestone academic preparation pivot defined in [`docs/ACADEMIC_PREPARATION_SPEC.md`](file:///c:/Users/marj/Music/Study%20Station/docs/ACADEMIC_PREPARATION_SPEC.md) is now **100% complete**:
+The academic preparation architecture is now **100% complete across 6 comprehensive milestones**:
 1. **Milestone 10: Academic Todo Engine & Schema** `[COMPLETED]` — Granular task models, SQLite tables, migrations, and `StudyLog.todo_id` attribution.
 2. **Milestone 11: Nightly Desk Debrief & Questionnaire** `[COMPLETED]` — Automatic evening check-in wizard stepping through today's attended classes with auto-deadlines.
 3. **Milestone 12: Grid as Main Station (Academic Cockpit)** `[COMPLETED]` — Weekly calendar grid as default home screen, live preparation and question badges, and `SubjectPreparationSheet` task drawer.
 4. **Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket** `[COMPLETED]` — Task-tethered focus gauge, traffic-light confidence ratings, continuation sprints, and next-class question formulation.
 5. **Milestone 14: Night Routine Ambient UX & In-Class Payoff** `[COMPLETED]` — Evening desk mode, prominent debrief banner, "Tonight's Priority Task" with 1-click focus start, and "Ask in Class" HUD question resolution.
+6. **Milestone 15: Academic Task Backlog & Comprehensive Todo CRUD** `[COMPLETED]` — Dedicated task backlog modal (<kbd>T</kbd>), full in-place Create/Edit/Delete/Reopen actions, KPI telemetry, and multi-criteria filtering.
 
 
 

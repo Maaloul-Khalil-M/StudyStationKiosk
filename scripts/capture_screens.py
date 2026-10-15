@@ -32,6 +32,7 @@ from study_station.ui.exit_ticket_dialog import ExitTicketDialog
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.main_window import MainWindow
 from study_station.ui.subject_preparation_sheet import SubjectPreparationSheet
+from study_station.ui.tasks_dialog import TasksDialog
 
 
 def main():
@@ -190,6 +191,17 @@ def main():
     pix_prep.save(str(prep_path))
     print(f"Captured: {prep_path}")
     prep_sheet.close()
+
+    # 6. Capture Academic Task Backlog Dialog (tasks_modal.png)
+    tasks_dlg = TasksDialog(engine=engine)
+    tasks_dlg.resize(880, 660)
+    tasks_dlg.show()
+    app.processEvents()
+    pix_tasks = tasks_dlg.grab()
+    tasks_path = out_dir / "tasks_modal.png"
+    pix_tasks.save(str(tasks_path))
+    print(f"Captured: {tasks_path}")
+    tasks_dlg.close()
 
     # Clean up
     db.close()

@@ -152,6 +152,12 @@ class TestTodoPersistence(unittest.TestCase):
         )
         self.assertEqual(completed_todo.completed_at, completed_at)
 
+        # Reopen todo
+        self.assertTrue(self.repo.mark_todo_pending(todo.id))
+        reopened = self.repo.get_todo_by_id(todo.id)
+        self.assertEqual(reopened.status, "pending")
+        self.assertIsNone(reopened.completed_at)
+
         # Questions retrieval
         questions = self.repo.get_questions_by_subject("Entrepôts de données")
         self.assertEqual(len(questions), 1)
@@ -265,6 +271,10 @@ class TestScheduleEngineTodoIntegration(unittest.TestCase):
         questions = self.engine.get_subject_questions("Entrepôts de données")
         self.assertEqual(len(questions), 1)
         self.assertEqual(questions[0], "How to partition fact table?")
+
+        # Reopen todo
+        self.assertTrue(self.engine.mark_todo_pending(todo.id))
+        self.assertEqual(self.engine.get_subject_pending_todos_count("Entrepôts de données"), 1)
 
     def test_next_class_deadline_calculation(self) -> None:
         # Thursday Oct 15, 2026 at 12:00 (after 09:40 class)
