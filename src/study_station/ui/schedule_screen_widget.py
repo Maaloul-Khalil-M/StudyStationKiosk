@@ -101,7 +101,7 @@ class ClassGridCard(QPushButton):
         header_row = QHBoxLayout()
         header_row.setContentsMargins(0, 0, 0, 0)
 
-        lbl_core = QLabel(f"[{core_type}]")
+        lbl_core = QLabel(core_type)
         lbl_core.setStyleSheet(f"""
             background-color: {bg_badge};
             color: {fg_badge};
@@ -113,13 +113,13 @@ class ClassGridCard(QPushButton):
         header_row.addWidget(lbl_core)
 
         if is_current:
-            lbl_now = QLabel("● ACTIVE")
-            lbl_now.setStyleSheet("color: #10B981; font-size: 10px; font-weight: 700; letter-spacing: 1px;")
+            lbl_now = QLabel("● NOW")
+            lbl_now.setStyleSheet("color: #10B981; font-size: 10px; font-weight: 700;")
             header_row.addWidget(lbl_now)
 
         header_row.addStretch()
 
-        lbl_room = QLabel(f"[{room}]")
+        lbl_room = QLabel(room)
         lbl_room.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 600;")
         header_row.addWidget(lbl_room)
         layout.addLayout(header_row)
@@ -199,19 +199,19 @@ class ScheduleScreenWidget(QWidget):
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
-        lbl_title = QLabel("WEEKLY SCHEDULE // OPERATION GRID")
-        lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
+        lbl_title = QLabel("WEEKLY SCHEDULE")
+        lbl_title.setStyleSheet("color: #FFFFFF; font-size: 16px; font-weight: 800; letter-spacing: 1.5px;")
         title_col.addWidget(lbl_title)
 
-        lbl_sub = QLabel("SELECT CLASS BLOCK TO ENGAGE SUBJECT · ESC TO RETURN")
-        lbl_sub.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;")
+        lbl_sub = QLabel("Click any class block to set active subject · Press Esc to return")
+        lbl_sub.setStyleSheet("color: #71717A; font-size: 12px;")
         title_col.addWidget(lbl_sub)
         header.addLayout(title_col)
 
         header.addStretch()
 
-        # View Mode Toggle: [ ▦ Grid View | ✏ Edit Classes ]
-        self.btn_mode_grid = QPushButton("▦ Grid View")
+        # View Mode Toggle: [ Grid View | Edit Classes ]
+        self.btn_mode_grid = QPushButton("Grid View")
         self.btn_mode_grid.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_mode_grid.setStyleSheet("""
             QPushButton {
@@ -227,14 +227,14 @@ class ScheduleScreenWidget(QWidget):
         self.btn_mode_grid.clicked.connect(lambda: self._set_view_mode(0))
         header.addWidget(self.btn_mode_grid)
 
-        self.btn_mode_edit = QPushButton("✏ Edit Classes")
+        self.btn_mode_edit = QPushButton("Edit Classes")
         self.btn_mode_edit.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_mode_edit.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_mode_edit.clicked.connect(lambda: self._set_view_mode(1))
         header.addWidget(self.btn_mode_edit)
 
         # Original PDF Button
-        btn_pdf = QPushButton("📄 Original PDF")
+        btn_pdf = QPushButton("Original PDF")
         btn_pdf.setStyleSheet(BUTTON_NAV_STYLE)
         btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_pdf.clicked.connect(self._open_original_doc)
@@ -307,10 +307,10 @@ class ScheduleScreenWidget(QWidget):
                 w.setParent(None)
                 w.deleteLater()
 
-        # Corner: TIME // SLOT
-        lbl_corner = QLabel("TIME // SLOT")
+        # Corner: TIME
+        lbl_corner = QLabel("TIME")
         lbl_corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl_corner.setStyleSheet("color: #52525B; font-size: 10px; font-weight: 800; letter-spacing: 1px;")
+        lbl_corner.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 800; letter-spacing: 1px;")
         self.grid_layout.addWidget(lbl_corner, 0, 0)
 
         # Day Headers (Col 1..6)
@@ -326,9 +326,9 @@ class ScheduleScreenWidget(QWidget):
             day_box_layout.setContentsMargins(2, 2, 2, 2)
             day_box_layout.setSpacing(0)
 
-            lbl_day = QLabel(f"// {day_code.upper()}")
+            lbl_day = QLabel(day_code.upper())
             lbl_day.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl_day.setStyleSheet(f"{today_color}; font-size: 12px; font-weight: 800; letter-spacing: 1px;")
+            lbl_day.setStyleSheet(f"{today_color}; font-size: 13px; font-weight: 800;")
             day_box_layout.addWidget(lbl_day)
 
             self.grid_layout.addWidget(day_box, 0, col_idx)
@@ -430,12 +430,12 @@ class ScheduleScreenWidget(QWidget):
         bar_layout.addWidget(self.cmb_day)
 
         self.txt_start = QLineEdit()
-        self.txt_start.setPlaceholderText("Start (08:00)")
+        self.txt_start.setPlaceholderText("08:00")
         self.txt_start.setFixedWidth(90)
         bar_layout.addWidget(self.txt_start)
 
         self.txt_end = QLineEdit()
-        self.txt_end.setPlaceholderText("End (09:30)")
+        self.txt_end.setPlaceholderText("09:30")
         self.txt_end.setFixedWidth(90)
         bar_layout.addWidget(self.txt_end)
 

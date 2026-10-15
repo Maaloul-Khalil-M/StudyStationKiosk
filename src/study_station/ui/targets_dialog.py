@@ -70,8 +70,8 @@ class TargetsDialog(QDialog):
         # UI References
         self.lbl_title: QLabel = self.ui.findChild(QLabel, "lblTitle")
         if self.lbl_title:
-            self.lbl_title.setText("SUBJECT TARGETS // PROTOCOL CONFIG")
-            self.lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
+            self.lbl_title.setText("SUBJECT TARGETS")
+            self.lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 700; letter-spacing: 1.5px;")
 
         self.scroll_layout: QVBoxLayout = self.ui.findChild(QVBoxLayout, "subjectsListLayout")
         self.btn_cancel: QPushButton = self.ui.findChild(QPushButton, "btnCancel")

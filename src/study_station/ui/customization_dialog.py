@@ -126,8 +126,8 @@ class CustomizationDialog(QDialog):
         content_layout.addWidget(sec1_lbl)
 
         time_layout = QHBoxLayout()
-        self.rb_24h = QRadioButton("24-Hour (21:08)")
-        self.rb_12h = QRadioButton("12-Hour (9:08 PM)")
+        self.rb_24h = QRadioButton("24-Hour")
+        self.rb_12h = QRadioButton("12-Hour")
         if self._settings.use_24h:
             self.rb_24h.setChecked(True)
         else:
@@ -176,13 +176,13 @@ class CustomizationDialog(QDialog):
 
         current_typo = getattr(self._settings, "typography_style", "eva")
 
-        self.rb_typo_eva = QRadioButton("Evangelion / NERV HUD")
+        self.rb_typo_eva = QRadioButton("Evangelion Serif")
         self.rb_typo_eva.setChecked(current_typo == "eva")
         self.rb_typo_eva.toggled.connect(lambda c: self._on_typo_toggled(c, "eva"))
         typo_group.addButton(self.rb_typo_eva)
         typo_layout.addWidget(self.rb_typo_eva)
 
-        self.rb_typo_modern = QRadioButton("Swiss Modern Sans")
+        self.rb_typo_modern = QRadioButton("Modern Sans")
         self.rb_typo_modern.setChecked(current_typo == "modern")
         self.rb_typo_modern.toggled.connect(lambda c: self._on_typo_toggled(c, "modern"))
         typo_group.addButton(self.rb_typo_modern)

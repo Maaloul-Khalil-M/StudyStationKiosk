@@ -81,7 +81,7 @@ QComboBox QAbstractItemView {
       <string notr="true">color: #71717A;</string>
      </property>
      <property name="text">
-      <string>Record review done away from the screen (books, paper, library).</string>
+      <string>Record review completed away from the screen.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

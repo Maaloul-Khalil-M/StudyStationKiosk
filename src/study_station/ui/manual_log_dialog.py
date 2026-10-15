@@ -66,8 +66,12 @@ class ManualLogDialog(QDialog):
         # Widget references
         self.lbl_title: QLabel = self.ui.findChild(QLabel, "lblTitle")
         if self.lbl_title:
-            self.lbl_title.setText("MANUAL LOG // OFFLINE SESSION")
-            self.lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
+            self.lbl_title.setText("LOG STUDY TIME")
+            self.lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 700; letter-spacing: 1.5px;")
+
+        self.lbl_subtitle: QLabel = self.ui.findChild(QLabel, "lblSubtitle")
+        if self.lbl_subtitle:
+            self.lbl_subtitle.setText("Record review completed away from the screen.")
 
         self.cmb_subject: QComboBox = self.ui.findChild(QComboBox, "cmbSubject")
         self.spn_minutes: QSpinBox = self.ui.findChild(QSpinBox, "spnMinutes")

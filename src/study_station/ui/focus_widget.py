@@ -74,8 +74,8 @@ class FocusWidget(QWidget):
         self.btn_end.setStyleSheet(BUTTON_DANGER_STYLE)
         self.btn_end.setText("END SESSION")
         if self.lbl_shortcuts_hint:
-            self.lbl_shortcuts_hint.setText("SPACE // PAUSE · [+] // +5M · ESC // ABORT")
-            self.lbl_shortcuts_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
+            self.lbl_shortcuts_hint.setText("Space to pause · +5m · Esc to end")
+            self.lbl_shortcuts_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 500;")
 
         # Connect controls
         self.btn_pause.clicked.connect(self._on_pause_clicked)
@@ -126,22 +126,22 @@ class FocusWidget(QWidget):
         clean_name = ScheduleEngine.clean_subject_name(subject_name)
         self.lbl_subject.setText(clean_name.upper())
         self.lbl_subject.setFont(get_modern_font("eva_display", 26, QFont.Weight.Bold))
-        self.lbl_subject.setStyleSheet("color: #FFFFFF; letter-spacing: 1px;")
+        self.lbl_subject.setStyleSheet("color: #FFFFFF; letter-spacing: 0.5px;")
 
-        self.lbl_state.setText("● ACTIVE // FOCUSING")
+        self.lbl_state.setText("● FOCUSING")
         self.lbl_state.setStyleSheet("""
             background-color: #064E3B;
             color: #34D399;
             font-size: 11px;
             font-weight: 700;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
             padding: 4px 14px;
             border-radius: 10px;
         """)
         self.btn_pause.setText("Pause")
 
         if cycle_info:
-            self.lbl_cycle.setText(f"{cycle_info} // CYCLE TARGET")
+            self.lbl_cycle.setText(cycle_info)
         else:
             self.lbl_cycle.setText("")
 
@@ -169,25 +169,25 @@ class FocusWidget(QWidget):
             self.progress_bar.setValue(min(100, max(0, progress_pct)))
 
         if snap.is_paused:
-            self.lbl_state.setText("⏸ SUSPENDED // PAUSED")
+            self.lbl_state.setText("⏸ PAUSED")
             self.lbl_state.setStyleSheet("""
                 background-color: #38240D;
                 color: #FBBF24;
                 font-size: 11px;
                 font-weight: 700;
-                letter-spacing: 2px;
+                letter-spacing: 1.5px;
                 padding: 4px 14px;
                 border-radius: 10px;
             """)
             self.btn_pause.setText("Resume")
         else:
-            self.lbl_state.setText("● ACTIVE // FOCUSING")
+            self.lbl_state.setText("● FOCUSING")
             self.lbl_state.setStyleSheet("""
                 background-color: #064E3B;
                 color: #34D399;
                 font-size: 11px;
                 font-weight: 700;
-                letter-spacing: 2px;
+                letter-spacing: 1.5px;
                 padding: 4px 14px;
                 border-radius: 10px;
             """)

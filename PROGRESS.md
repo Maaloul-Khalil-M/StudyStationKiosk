@@ -211,24 +211,46 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 - [x] **Typographic Analysis & Dual Typeface Architecture:**
   - Studied `/docs/typography Evangelion.md` (Peiran Tan's study of Matisse EB display serif + tight-tracked Helvetica/grotesque telemetry).
   - Expanded `get_modern_font()` in `theme.py` with `eva_display` (high stroke contrast editorial serif with mechanical compression tracking at 96%) and `hud_telemetry` (tracked uppercase monospace/condensed grotesque).
-- [x] **Screen 1 (Ambient Station):**
-  - Subject title transformed into an imposing editorial statement using high-contrast display serif typography.
-  - Telemetry date header (`// THURSDAY, OCT 15`), mission selector hint (`▼ SELECT MISSION // SCHEDULE GRID`), and technical carousel slides (`● CYCLE // 0 / 60 MIN [0% COMPLETED]`, `NEXT CLASS // ...`).
-  - Action button: `▶ ENGAGE FOCUS (Space)` and duration badge `[ 25M ]`.
-- [x] **Screen 2 (Schedule Grid):**
-  - Header: `WEEKLY SCHEDULE // OPERATION GRID` with `SELECT CLASS BLOCK TO ENGAGE SUBJECT · ESC TO RETURN`.
-  - Corner header: `TIME // SLOT` with day columns `// LUN` through `// SAM`.
-  - Course format badges: `[TP]`, `[COURS]`, `[TD]`, `[CI]` with room brackets `[LAB 20]` and real-time `● ACTIVE` glowing highlight.
-- [x] **Screen 3 (Focus Screen):**
-  - Imposing display serif subject title, status badge (`● ACTIVE // FOCUSING` in emerald / `⏸ SUSPENDED // PAUSED` in amber), and telemetry shortcut cue (`SPACE // PAUSE · [+] // +5M · ESC // ABORT`).
 - [x] **Settings & Themes:**
   - Added new **`NERV Terminal`** theme (`#050507` void canvas, NERV emergency orange/amber `#FF7700` telemetry accents).
-  - Added a **`TYPOGRAPHY SYSTEM`** toggle in Settings allowing instant switching between `Evangelion / NERV HUD` and `Swiss Modern Sans`.
+  - Added a **`TYPOGRAPHY SYSTEM`** toggle in Settings allowing instant switching between `Evangelion Serif` and `Modern Sans`.
   - 2x2 theme grid displaying all 4 themes (`Classic Noir`, `Midnight Slate`, `Warm Espresso`, `NERV Terminal`).
-- [x] **Testing & Verification:**
-  - 24/24 unit tests passing cleanly.
-  - Screenshots updated in `docs/screens/` and verified visually with `view_file`.
 
+### Milestone 6.9: Minimalist Text & Noise Elimination Overhaul `[COMPLETED]`
+- [x] **Philosophy — Clean Typography Over ASCII Clutter:**
+  - Addressed user critique: removed useless punctuation noise (`//`, `[...]`, `(...)`) while retaining the high-impact editorial display serif typography.
+  - Achieved pure, distraction-free kiosk minimalism where letterforms carry visual weight instead of arbitrary punctuation.
+- [x] **Screen 1 (Ambient Main Dashboard):**
+  - Date header cleaned to pure `THURSDAY, OCT 15` (removed `//`).
+  - Action button cleaned to bold `START FOCUS` and duration pill `25m` (removed `▶ ENGAGE FOCUS (Space)` and `[ 25M ]`).
+  - Subtitle cleaned to `Click to open schedule` (removed `▼ SELECT MISSION // SCHEDULE GRID`).
+  - Rotating carousel slides cleaned of `//` and brackets:
+    - `● 0 / 60 MIN COMPLETED · 0%`
+    - `NEXT CLASS · Tomorrow at 08:00`
+    - `TP · Salle 5`
+- [x] **Screen 2 (Weekly Schedule Grid):**
+  - Header title: `WEEKLY SCHEDULE` (removed `// OPERATION GRID`).
+  - Mode toggle: `Grid View` | `Edit Classes` (removed unicode glyphs and brackets).
+  - PDF button: `Original PDF` (clean label).
+  - Corner header: `TIME` (removed `// SLOT`).
+  - Day columns: `LUN`, `MAR`, `MER`, `JEU`, `VEN`, `SAM` (removed `//`).
+  - Grid cards: format badges `TP`, `COURS`, `TD`, `CI` (removed `[TP]`, `[COURS]`); clean room labels `Lab 20` (removed `[Lab 20]`); active badge `● NOW` (removed `● ACTIVE`).
+  - Inline class editor: cleaned placeholder times to `08:00` and `09:30` (removed `(08:00)` and `(09:30)`).
+- [x] **Screen 3 (Focus Screen):**
+  - Status badge: `● FOCUSING` in emerald / `⏸ PAUSED` in amber (removed `ACTIVE //` and `SUSPENDED //`).
+  - Shortcuts hint: `Space to pause · +5m · Esc to end` (removed `SPACE // PAUSE · [+] // +5M · ESC // ABORT`).
+- [x] **Screen 4 (Subject Targets Dialog):**
+  - Dialog title: `SUBJECT TARGETS` (removed `// PROTOCOL CONFIG`).
+- [x] **Screen 5 (Manual Log Dialog):**
+  - Dialog title: `LOG STUDY TIME` (removed `// OFFLINE SESSION`).
+  - Subtitle: `Record review completed away from the screen.` (removed `(books, paper, library)`).
+- [x] **Screen 6 (Settings Dialog):**
+  - Time format options: clean `24-Hour` and `12-Hour` (removed `(21:08)` and `(9:08 PM)`).
+  - Typography options: `Evangelion Serif` and `Modern Sans` (removed `//` and `HUD`).
+- [x] **Verification & Test Suite:**
+  - 100% test pass rate: 24/24 unit tests passing.
+  - Automated screen captures updated and verified across `docs/screens/` and `docs/currentScreens/`:
+    `main_noHover.png`, `main_hover.png`, `focus.png`, `schedual.png`, `editSchedual.png`, `target.png`, `log.png`, `settings.png`.
 
 ---
 
