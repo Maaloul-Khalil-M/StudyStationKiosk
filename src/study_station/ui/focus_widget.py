@@ -1,7 +1,7 @@
 """Focus screen controller wrapping focus_screen.ui."""
 
 from pathlib import Path
-from PySide6.QtCore import QFile, QTimer, Signal
+from PySide6.QtCore import QFile, QTimer, Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from study_station.core.engine import ScheduleEngine
 from study_station.core.timer import FocusTimer
+from study_station.ui.focus_ring_gauge import FocusRingGaugeWidget
 from study_station.ui.theme import (
     BUTTON_DANGER_STYLE,
     BUTTON_PRIMARY_STYLE,
@@ -24,7 +25,7 @@ from study_station.ui.theme import (
 
 
 class FocusWidget(QWidget):
-    """Focus screen managing the countdown timer, visual progress bar, and session controls."""
+    """Focus screen managing the countdown timer, visual ring gauge, and session controls."""
 
     session_finished = Signal(str, int)  # (subject_name, elapsed_minutes)
     session_cancelled = Signal()
@@ -32,6 +33,9 @@ class FocusWidget(QWidget):
     def __init__(self, timer: FocusTimer, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.timer = timer
+        self._cycle_info = ""
+        self._cycle_ratio = 0.0
+        self._theme_id = "noir"
 
         # Load Qt Designer UI
         ui_path = Path(__file__).resolve().parent / "designer" / "focus_screen.ui"
@@ -66,6 +70,25 @@ class FocusWidget(QWidget):
                     border: none;
                 }
             """)
+            self.focus_card.setMinimumHeight(520)
+
+            # Hide old flat elements and insert custom Ring Gauge in center
+            self.lbl_state.hide()
+            self.lbl_remaining.hide()
+            self.lbl_cycle.hide()
+            self.progress_bar.hide()
+
+            card_spacer = self.focus_card.findChild(QWidget, "cardMiddleSpacer")
+            if card_spacer:
+                card_spacer.hide()
+
+            # Insert Ring Gauge into card layout after lblSubject
+            card_layout = self.focus_card.layout()
+            self.ring_gauge = FocusRingGaugeWidget(self)
+            # Insert at position 1 (right after lblSubject)
+            card_layout.insertWidget(1, self.ring_gauge, alignment=Qt.AlignmentFlag.AlignCenter)
+        else:
+            self.ring_gauge = FocusRingGaugeWidget(self)
 
         # Apply harmonized theme styles
         self.btn_pause.setStyleSheet(BUTTON_PRIMARY_STYLE)
@@ -119,6 +142,16 @@ class FocusWidget(QWidget):
             self.lbl_shortcuts_hint.setVisible(False)
         self._controls_visible = False
 
+    def apply_settings(self, settings) -> None:
+        """Apply theme settings to Focus screen."""
+        self._theme_id = getattr(settings, "theme_id", "noir")
+        is_eva = getattr(settings, "typography_style", "eva") == "eva"
+        if is_eva:
+            self.lbl_subject.setFont(get_modern_font("eva_display", 26, QFont.Weight.Bold))
+        else:
+            self.lbl_subject.setFont(get_modern_font("sans", 24, QFont.Weight.Bold))
+        self._update_display()
+
     def start_session(self, subject_name: str, duration_minutes: int, cycle_info: str = "") -> None:
         """Start a new focus session and display."""
         self.timer.start(subject_name, duration_minutes)
@@ -129,19 +162,20 @@ class FocusWidget(QWidget):
         self.lbl_subject.setStyleSheet("color: #FFFFFF; letter-spacing: 0.5px;")
 
         self.lbl_state.setText("● FOCUSING")
-        self.lbl_state.setStyleSheet("""
-            background-color: #064E3B;
-            color: #34D399;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            padding: 4px 14px;
-            border-radius: 10px;
-        """)
         self.btn_pause.setText("Pause")
 
+        self._cycle_info = cycle_info
+        self._cycle_ratio = 0.0
         if cycle_info:
             self.lbl_cycle.setText(cycle_info)
+            if "/" in cycle_info:
+                try:
+                    parts = cycle_info.split("/")
+                    comp = int(parts[0].strip().split()[0])
+                    tgt = int(parts[1].strip().split()[0])
+                    self._cycle_ratio = comp / max(1, tgt) if tgt > 0 else 0.0
+                except Exception:
+                    self._cycle_ratio = 0.0
         else:
             self.lbl_cycle.setText("")
 
@@ -150,7 +184,7 @@ class FocusWidget(QWidget):
         self._refresh_timer.start()
 
     def _on_tick(self) -> None:
-        """Called every tick to refresh remaining time and visual session progress bar."""
+        """Called every tick to refresh remaining time and visual ring gauge."""
         snap = self.timer.snapshot()
         self._update_display()
 
@@ -163,10 +197,23 @@ class FocusWidget(QWidget):
 
         # Update session progress bar (0 to 100%)
         total_sec = snap.total_duration_minutes * 60
+        remaining_ratio = 1.0
         if total_sec > 0:
             elapsed_sec = max(0, total_sec - snap.remaining_seconds)
             progress_pct = int((elapsed_sec / total_sec) * 100)
             self.progress_bar.setValue(min(100, max(0, progress_pct)))
+            remaining_ratio = snap.remaining_seconds / total_sec
+
+        # Update custom Ring Gauge
+        if hasattr(self, "ring_gauge"):
+            self.ring_gauge.set_timer_state(
+                formatted_time=snap.formatted_remaining,
+                remaining_ratio=remaining_ratio,
+                is_paused=snap.is_paused,
+                cycle_ratio=self._cycle_ratio,
+                cycle_text=self._cycle_info,
+                theme_id=self._theme_id,
+            )
 
         if snap.is_paused:
             self.lbl_state.setText("⏸ PAUSED")

@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
 
         # 2. Focus Screen
         self._focus_widget = FocusWidget(self._timer, self)
+        self._focus_widget.apply_settings(self._settings)
         self._focus_widget.session_finished.connect(self._on_session_finished)
         self._stack.addWidget(self._focus_widget)
 
@@ -191,6 +192,7 @@ class MainWindow(QMainWindow):
             self._repo.save_settings(settings)
         self._apply_window_palette()
         self._dashboard_widget.apply_settings(settings)
+        self._focus_widget.apply_settings(settings)
 
     # -------------------------------------------------------------------------
     # Secondary Management Dialogs & Full-Screen Views

@@ -250,7 +250,22 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 - [x] **Verification & Test Suite:**
   - 100% test pass rate: 24/24 unit tests passing.
   - Automated screen captures updated and verified across `docs/screens/` and `docs/currentScreens/`:
-    `main_noHover.png`, `main_hover.png`, `focus.png`, `schedual.png`, `editSchedual.png`, `target.png`, `log.png`, `settings.png`.
+    `main_no_hover.png`, `main_with_hover.png`, `focus.png`, `grid_schedual.png`, `editSchedual.png`, `targets.png`, `log.png`, `settings.png`.
+
+### Milestone 6.10: Focus Screen Circular Ring Gauge (Phase A) `[COMPLETED]`
+- [x] **Visual Presence & Appliance Geometry:**
+  - Designed and implemented [`FocusRingGaugeWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/focus_ring_gauge.py) using custom antialiased `QPainter`.
+  - Replaced flat horizontal progress bar with an authentic dual-concentric radial arc gauge.
+  - **Outer Arc:** Dynamic session countdown ring (depletes clockwise with smooth rounded caps; emerald `#10B981` during focus, amber `#F59E0B` when paused, orange `#FF7700` in NERV mode).
+  - **Inner Arc:** Multi-day subject review cycle goal tracker (slate cyan `#38BDF8` filling toward 100% target).
+  - **Center Hub:** Unified center layout containing pill status badge (`● FOCUSING` / `⏸ PAUSED`), 52pt tabular monospace numerals, and cycle progress subtitle.
+- [x] **Integration & Theme Synchronization:**
+  - Embedded seamlessly into [`FocusWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/focus_widget.py) while maintaining 100% backward compatibility for all properties.
+  - Linked theme and typography switching via `apply_settings()` in `MainWindow`.
+- [x] **Verification & Tests:**
+  - Added dedicated unit test suite in [`tests/test_focus_ring_gauge.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_focus_ring_gauge.py).
+  - 100% test pass rate maintained: 28/28 unit tests passing.
+  - Updated screen capture in [`docs/screens/focus.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/focus.png).
 
 ---
 
