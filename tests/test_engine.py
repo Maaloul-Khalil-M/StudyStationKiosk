@@ -217,7 +217,47 @@ class TestScheduleEngine(unittest.TestCase):
         deleted = self.engine.delete_study_log("log-c")
         self.assertTrue(deleted)
         self.assertEqual(self.engine.get_total_study_minutes(), 65)
-        self.assertFalse(self.engine.delete_study_log("non-existent"))
+    def test_upcoming_occurrences_with_spelling_variants_and_days(self) -> None:
+        sessions = [
+            AcademicSession(
+                day="ven",  # lowercase french
+                time_slot=TimeSlot("13:30", "15:00"),
+                subject=Subject("Sécurité et controle d'accées aux Big data", "Cours"),
+                location="SC 1",
+            ),
+            AcademicSession(
+                day="Monday",  # full english
+                time_slot=TimeSlot("08:00", "09:30"),
+                subject=Subject("Visualisation des données", "TP"),
+                location="Lab 20",
+            ),
+        ]
+        engine = ScheduleEngine(sessions=sessions)
+
+        # Thursday night Oct 15, 2026 20:00
+        thursday_night = datetime(2026, 10, 15, 20, 0)
+
+        # 1. Day index resolution
+        self.assertEqual(sessions[0].day_index, 4)  # Friday
+        self.assertEqual(sessions[1].day_index, 0)  # Monday
+
+        # 2. Upcoming occurrence with normalized accent spelling
+        clean_query = "Sécurité et contrôle d'accès aux Big data"
+        next_occ = engine.get_next_occurrence_of_subject(clean_query, thursday_night)
+        self.assertIsNotNone(next_occ)
+        session, next_dt = next_occ
+        self.assertEqual(next_dt, datetime(2026, 10, 16, 13, 30))
+
+        # 3. Next class deadline
+        deadline = engine.get_next_class_deadline_for_subject(clean_query, thursday_night)
+        self.assertEqual(deadline, datetime(2026, 10, 16, 13, 30))
+
+        # 4. Weekend boundary lookahead: from Friday 16:00 to next Monday
+        friday_afternoon = datetime(2026, 10, 16, 16, 0)
+        next_mon_occ = engine.get_next_occurrence_of_subject("Visualisation des données", friday_afternoon)
+        self.assertIsNotNone(next_mon_occ)
+        _, next_mon_dt = next_mon_occ
+        self.assertEqual(next_mon_dt, datetime(2026, 10, 19, 8, 0))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,18 @@ import uuid
 
 
 DAY_NAMES = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-DAY_INDEX_MAP = {day: idx for idx, day in enumerate(DAY_NAMES)}
+DAY_INDEX_MAP = {
+    "lun": 0, "lundi": 0, "mon": 0, "monday": 0,
+    "mar": 1, "mardi": 1, "tue": 1, "tuesday": 1,
+    "mer": 2, "mercredi": 2, "wed": 2, "wednesday": 2,
+    "jeu": 3, "jeudi": 3, "thu": 3, "thursday": 3,
+    "ven": 4, "vendredi": 4, "fri": 4, "friday": 4,
+    "sam": 5, "samedi": 5, "sat": 5, "saturday": 5,
+    "dim": 6, "dimanche": 6, "sun": 6, "sunday": 6,
+}
+for idx, day in enumerate(DAY_NAMES):
+    DAY_INDEX_MAP[day] = idx
+    DAY_INDEX_MAP[day.upper()] = idx
 
 
 def normalize_time_str(val: str) -> str | None:
@@ -81,7 +92,8 @@ class AcademicSession:
     @property
     def day_index(self) -> int:
         """Return 0-indexed day of week (Monday=0 ... Sunday=6)."""
-        return DAY_INDEX_MAP.get(self.day, 0)
+        clean_day = self.day.strip().lower() if self.day else ""
+        return DAY_INDEX_MAP.get(clean_day, DAY_INDEX_MAP.get(self.day, 0))
 
 
 @dataclass

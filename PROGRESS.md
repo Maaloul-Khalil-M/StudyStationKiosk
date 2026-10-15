@@ -582,7 +582,27 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 - [x] **Verification & Test Suite**:
   - Added dedicated unit test suite in [`tests/test_tasks_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_tasks_dialog.py) (12 tests) covering KPI calculations, subject filters, status filters, search filters, completion toggling, 1-click focus signals, EditTodoDialog save/update/delete, and SubjectPreparationSheet in-place CRUD.
   - **100% test pass rate:** **108/108 unit tests passing** across 17 test suites.
-  - Refreshed high-resolution documentation screenshots: [`docs/screens/tasks_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/tasks_modal.png) and [`docs/screens/preparation_sheet.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/preparation_sheet.png).
+### Milestone 15.5: Runtime Stability, Academic Task Backlog Overhaul & Upcoming Class Resolution `[COMPLETED]`
+- [x] **Runtime Stability & Signal Lifecycle Fix**:
+  - Eliminated `RuntimeError: Signal source has been deleted` by removing legacy unhandled signal `clicked_session` and wrapping `_open_session_manager` execution in `QTimer.singleShot(0, ...)` in [`ScheduleScreenWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/schedule_screen_widget.py).
+  - Fixed `QFont::setPointSize: Point size <= 0 (-1)` Qt font evaluation warning by switching `get_modern_font()` in [`theme.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/theme.py) from `font.setPixelSize()` to `font.setPointSize()`.
+- [x] **Upcoming Class Calculation & Timeline Architecture**:
+  - **Accent & Spelling Normalization**: Fixed accent variance (`accées` vs `accès`, `controle` vs `contrôle`) across `get_next_occurrence_of_subject`, `get_active_cycle`, `get_subject_summary`, `get_todos`, and `get_distinct_subjects` in [`ScheduleEngine`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/engine.py), ensuring next occurrences always resolve cleanly regardless of formatting.
+  - **Weekend Boundary Lookahead**: Expanded lookahead to 3 weeks (`week_offset in (0, 1, 2)`) to eliminate weekend boundary disconnects (e.g. from Friday evening to next Monday morning).
+  - **Robust Day Index Map**: Upgraded `DAY_INDEX_MAP` in [`models.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/models.py) to support case-insensitive full, short, French, and English day names (`lun`, `lundi`, `mon`, `monday`, etc.).
+  - **Timeline Strip Polish**: Refined dashboard timeline strip to cleanly format today's active schedule and next session indicators.
+- [x] **Academic Task Backlog Overhaul ([`TasksDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/tasks_dialog.py))**:
+  - **Header Telemetry Pill**: Added real-time badge (`● N PENDING` or `✓ ALL CAUGHT UP`) in the modal title bar.
+  - **Tonight's Priority Focus Hero Banner**: Built highlighted priority banner at the top of the backlog featuring active subject, deliverable title, relative due date, and 1-click sprint launchers (`[ ▶ 15m Focus ]` and `[ 25m ]`).
+  - **Status Pill Live Counters**: Dynamic counts on all filter pills (`All (3)`, `Pending (2)`, `Due Soon (1)`, `Overdue (0)`, `Completed (1)`).
+  - **Intelligent Human Due Dates**: Replaced raw ISO dates with relative formatting (`⚠️ OVERDUE by 3h`, `● Due Today at 18:00`, `● Due Tomorrow at 09:40`, `Due in 3 days`).
+  - **1-Click Quick-Add Presets**: Interactive empty state with 4 common academic deliverables (`+ Prepare Next Class Notes`, `+ Complete Lab Exercise`, `+ Review Lecture Slides`, `+ Exam Revision Sprint`) opening `EditTodoDialog` pre-filled.
+  - **Search Box Instant Clear**: Quick `✕` button to instantly reset filters.
+  - **Core Badge Color Coding**: Module badges colored by core type (TP: Emerald, Cours: Slate, TD: Indigo, CI: Amber).
+  - **Keyboard Ergonomics**: <kbd>/</kbd> to focus search filter, <kbd>N</kbd> or <kbd>Ctrl+N</kbd> to create a new task, <kbd>Esc</kbd> to dismiss.
+- [x] **Verification & Test Suite**:
+  - **113/113 unit tests passing** across 17 test suites (added 5 new tests covering priority banners, search clearing, relative due date formatting, and spelling-invariant upcoming sessions).
+  - Re-captured all high-resolution UI screenshots: [`docs/screens/tasks_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/tasks_modal.png) and [`docs/screens/preparation_sheet.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/preparation_sheet.png).
 
 ---
 
@@ -595,6 +615,8 @@ The academic preparation architecture is now **100% complete across 6 comprehens
 4. **Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket** `[COMPLETED]` — Task-tethered focus gauge, traffic-light confidence ratings, continuation sprints, and next-class question formulation.
 5. **Milestone 14: Night Routine Ambient UX & In-Class Payoff** `[COMPLETED]` — Evening desk mode, prominent debrief banner, "Tonight's Priority Task" with 1-click focus start, and "Ask in Class" HUD question resolution.
 6. **Milestone 15: Academic Task Backlog & Comprehensive Todo CRUD** `[COMPLETED]` — Dedicated task backlog modal (<kbd>T</kbd>), full in-place Create/Edit/Delete/Reopen actions, KPI telemetry, and multi-criteria filtering.
+7. **Milestone 15.5: Runtime Stability, Backlog Polish & Upcoming Class Resolution** `[COMPLETED]` — Complete resolution of runtime signal crashes, font sizing evaluation, upcoming class calculations, and enhanced backlog UX.
+
 
 
 

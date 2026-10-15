@@ -49,11 +49,13 @@ class EditTodoDialog(QDialog):
         engine: ScheduleEngine,
         todo: StudyTodo | None = None,
         default_subject: str | None = None,
+        preset_title: str | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.engine = engine
         self.todo = todo
+        self.preset_title = preset_title
         self.is_create_mode = todo is None
 
         # Determine subject
@@ -382,6 +384,8 @@ class EditTodoDialog(QDialog):
             self.combo_status.setCurrentText("Completed" if self.todo.is_completed else "Pending")
             self.txt_question.setText(self.todo.next_class_question or "")
         else:
+            if self.preset_title:
+                self.txt_title.setText(self.preset_title)
             self._set_deadline_next_class()
 
     def _on_subject_changed(self, subject_name: str) -> None:

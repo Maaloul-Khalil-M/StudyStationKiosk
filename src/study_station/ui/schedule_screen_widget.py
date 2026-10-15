@@ -7,7 +7,7 @@ Eliminates floating dialog rims, text-peeking, and modal-on-modal stacking.
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from PySide6.QtCore import QPoint, Qt, QUrl, Signal
+from PySide6.QtCore import QPoint, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -275,7 +275,6 @@ class ClassGridCard(QPushButton):
 
     def _on_card_clicked(self) -> None:
         self.clicked_session_card.emit(self.session)
-        self.clicked_session.emit(self.session.subject.name)
 
 
 class ScheduleScreenWidget(QWidget):
@@ -873,7 +872,9 @@ class ScheduleScreenWidget(QWidget):
                         and session.time_slot.start <= now_str <= session.time_slot.end
                     )
                     card = ClassGridCard(session, is_current=is_current_session, engine=self.engine)
-                    card.clicked_session_card.connect(self._open_session_manager)
+                    card.clicked_session_card.connect(
+                        lambda s=session: QTimer.singleShot(0, lambda: self._open_session_manager(s))
+                    )
                     self.grid_layout.addWidget(card, row_idx, col_idx)
                 else:
                     empty = EmptyGridSlot(day_code=day_code, start_time=start_t, end_time=end_t)

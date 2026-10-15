@@ -527,7 +527,7 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_carousel_text.setText(self._carousel_slides[0])
 
     def _update_timeline_strip(self, now: datetime) -> None:
-        """Populate the ambient bottom strip with today's scheduled classes."""
+        """Populate the ambient bottom strip with today's scheduled classes or upcoming classes."""
         if not hasattr(self, "timeline_cards_layout"):
             return
 
@@ -538,6 +538,8 @@ class SubjectDashboardWidget(QWidget):
                 w.deleteLater()
 
         if not self.engine or not self.engine.sessions:
+            if hasattr(self, "lbl_timeline_title"):
+                self.lbl_timeline_title.setText("SCHEDULE")
             empty_lbl = QLabel("READY TO FOCUS")
             empty_lbl.setStyleSheet("color: #3F3F46; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
             self.timeline_cards_layout.addWidget(empty_lbl)
@@ -622,7 +624,7 @@ class SubjectDashboardWidget(QWidget):
                     }
                 """)
 
-            btn.clicked.connect(lambda _, s=session.subject.name: self.set_selected_subject(s))
+            btn.clicked.connect(lambda _, s=clean_name: self.set_selected_subject(s))
             self.timeline_cards_layout.addWidget(btn)
 
     def set_selected_subject(self, subject_name: str | None) -> None:

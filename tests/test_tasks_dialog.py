@@ -271,6 +271,48 @@ class TestTasksDialog(unittest.TestCase):
         self.assertNotIn(self.t_overdue, self.engine.todos)
         self.assertEqual(dialog.kpi_pending.value_label.text(), "2")  # type: ignore
 
+    def test_priority_focus_banner_and_sprint(self) -> None:
+        dialog = TasksDialog(self.engine)
+        self.assertFalse(dialog.priority_banner.isHidden())
+        self.assertIn("Overdue report", dialog.lbl_prio_title.text())
+
+        focus_events: list[tuple[StudyTodo, int]] = []
+        dialog.start_task_focus_requested.connect(lambda t, m: focus_events.append((t, m)))
+        dialog._on_focus_priority_task(15)
+
+        self.assertEqual(len(focus_events), 1)
+        self.assertEqual(focus_events[0][0].id, self.t_overdue.id)
+        self.assertEqual(focus_events[0][1], 15)
+
+    def test_relative_due_date_formatting(self) -> None:
+        now = datetime(2026, 10, 15, 12, 0)
+        overdue_dt = datetime(2026, 10, 15, 9, 0)
+        today_dt = datetime(2026, 10, 15, 18, 0)
+        tomorrow_dt = datetime(2026, 10, 16, 9, 0)
+        future_dt = datetime(2026, 10, 18, 14, 0)
+
+        self.assertIn("OVERDUE by 3h", TasksDialog._format_relative_due(overdue_dt, now))
+        self.assertIn("Today at 18:00", TasksDialog._format_relative_due(today_dt, now))
+        self.assertIn("Tomorrow at 09:00", TasksDialog._format_relative_due(tomorrow_dt, now))
+        self.assertIn("in 3 days", TasksDialog._format_relative_due(future_dt, now))
+
+    def test_search_clear_button(self) -> None:
+        dialog = TasksDialog(self.engine)
+        self.assertTrue(dialog.btn_clear_search.isHidden())
+
+        dialog.txt_search.setText("Math")
+        self.assertFalse(dialog.btn_clear_search.isHidden())
+
+        dialog.btn_clear_search.click()
+        self.assertEqual(dialog.txt_search.text(), "")
+        self.assertTrue(dialog.btn_clear_search.isHidden())
+
+    def test_empty_state_and_create_with_preset(self) -> None:
+        empty_engine = ScheduleEngine(sessions=[])
+        dialog = TasksDialog(empty_engine)
+        self.assertEqual(dialog.kpi_pending.value_label.text(), "0")  # type: ignore
+        self.assertIn("ALL CAUGHT UP", dialog.lbl_header_badge.text())
+
 
 class TestSubjectPreparationSheetCRUD(unittest.TestCase):
     """Test inline CRUD and reversible toggle in SubjectPreparationSheet."""

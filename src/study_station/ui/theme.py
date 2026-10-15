@@ -91,7 +91,7 @@ def get_modern_font(family_preference: str = "sans", size: int = 14, weight: QFo
     """Return a modern font configured with cross-platform fallbacks and tabular figures."""
     font = QFont()
     safe_size = max(1, int(size))
-    font.setPixelSize(safe_size)
+    font.setPointSize(safe_size)
     font.setWeight(weight)
     
     if family_preference in ("serif", "eva", "eva_display"):

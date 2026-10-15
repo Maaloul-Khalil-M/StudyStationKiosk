@@ -274,10 +274,16 @@ class SubjectPreparationSheet(QDialog):
         now = datetime.now()
         next_deadline = self.engine.get_next_class_deadline_for_subject(self.subject_name, now)
         if next_deadline:
+            days = (next_deadline.date() - now.date()).days
             delta = next_deadline - now
-            days = delta.days
             hours = int(delta.total_seconds() // 3600)
-            rel_str = f"in {days} days" if days > 1 else (f"in {hours} hours" if hours > 0 else "today")
+            mins = int((delta.total_seconds() % 3600) // 60)
+            if days == 0:
+                rel_str = f"today in {hours}h {mins:02d}m" if hours > 0 else f"today in {mins}m"
+            elif days == 1:
+                rel_str = "tomorrow"
+            else:
+                rel_str = f"in {days} days"
             self.lbl_deadline.setText(
                 f"NEXT CLASS: {next_deadline.strftime('%A, %b %d at %H:%M')} ({rel_str})"
             )

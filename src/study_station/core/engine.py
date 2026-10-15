@@ -82,12 +82,18 @@ class ScheduleEngine:
     def set_subject_target(self, subject_name: str, target_minutes: int) -> None:
         """Set or update target review minutes for a specific subject."""
         val = max(1, target_minutes)
+        clean = self.clean_subject_name(subject_name)
+        self._target_overrides[clean] = val
         self._target_overrides[subject_name] = val
         if self.repository is not None:
             self.repository.set_subject_target(subject_name, val)
 
     def get_subject_target(self, subject_name: str) -> int:
         """Return the target review minutes for a subject."""
+        clean = self.clean_subject_name(subject_name).lower()
+        for k, v in self._target_overrides.items():
+            if self.clean_subject_name(k).lower() == clean:
+                return v
         return self._target_overrides.get(subject_name, self.default_target_minutes)
 
     def add_study_log(self, log: StudyLog) -> None:
@@ -252,7 +258,8 @@ class ScheduleEngine:
         """Return study todos with optional filtering, sorted by due_date ASC."""
         res = list(self.todos)
         if subject_filter:
-            res = [t for t in res if t.subject_name.lower() == subject_filter.lower()]
+            clean_filt = self.clean_subject_name(subject_filter).lower()
+            res = [t for t in res if self.clean_subject_name(t.subject_name).lower() == clean_filt]
         if status_filter:
             res = [t for t in res if t.status.lower() == status_filter.lower()]
         res.sort(key=lambda t: t.due_date)
@@ -354,7 +361,13 @@ class ScheduleEngine:
 
     def get_distinct_subjects(self) -> list[str]:
         """Return sorted list of distinct subject names in timetable."""
-        return sorted({s.subject.name for s in self.sessions})
+        cleaned_map: dict[str, str] = {}
+        for s in self.sessions:
+            c = self.clean_subject_name(s.subject.name)
+            key = c.lower()
+            if key not in cleaned_map:
+                cleaned_map[key] = c
+        return sorted(cleaned_map.values())
 
     @classmethod
     def get_week_start(cls, ref_date: date | None = None) -> date:
@@ -436,23 +449,10 @@ class ScheduleEngine:
 
     def get_next_session(self, current_dt: datetime) -> tuple[AcademicSession, datetime] | None:
         """Return the chronologically next upcoming session and its start datetime."""
-        if not self.sessions:
-            return None
-
-        candidates: list[tuple[datetime, AcademicSession]] = []
-        for week_offset in (0, 1):
-            ref_date = current_dt.date() + timedelta(weeks=week_offset)
-            for session in self.sessions:
-                start_dt, _ = self.get_session_datetime(session, ref_date)
-                if start_dt > current_dt:
-                    candidates.append((start_dt, session))
-
-        if not candidates:
-            return None
-
-        candidates.sort(key=lambda c: c[0])
-        next_dt, next_session = candidates[0]
-        return next_session, next_dt
+        upcoming = self.get_upcoming_sessions(current_dt, limit=1)
+        if upcoming:
+            return upcoming[0]
+        return None
 
     def get_upcoming_sessions(self, current_dt: datetime, limit: int = 4) -> list[tuple[AcademicSession, datetime]]:
         """Return the next `limit` upcoming academic sessions sorted chronologically."""
@@ -460,12 +460,17 @@ class ScheduleEngine:
             return []
 
         candidates: list[tuple[datetime, AcademicSession]] = []
-        for week_offset in (0, 1):
+        seen: set[tuple[str, str, datetime]] = set()
+        for week_offset in (0, 1, 2):
             ref_date = current_dt.date() + timedelta(weeks=week_offset)
             for session in self.sessions:
                 start_dt, _ = self.get_session_datetime(session, ref_date)
                 if start_dt > current_dt:
-                    candidates.append((start_dt, session))
+                    clean_name = self.clean_subject_name(session.subject.name)
+                    key = (clean_name, session.time_slot.start, start_dt)
+                    if key not in seen:
+                        seen.add(key)
+                        candidates.append((start_dt, session))
 
         if not candidates:
             return []
@@ -477,16 +482,19 @@ class ScheduleEngine:
         self, subject_name: str, current_dt: datetime
     ) -> tuple[AcademicSession, datetime] | None:
         """Find the next scheduled session for a specific subject after current_dt."""
-        matching = [s for s in self.sessions if s.subject.name == subject_name]
+        clean_target = self.clean_subject_name(subject_name).lower()
+        matching = [s for s in self.sessions if self.clean_subject_name(s.subject.name).lower() == clean_target]
         if not matching:
             return None
 
         candidates: list[tuple[datetime, AcademicSession]] = []
-        for week_offset in (0, 1):
+        seen_dates: set[datetime] = set()
+        for week_offset in (0, 1, 2):
             ref_date = current_dt.date() + timedelta(weeks=week_offset)
             for s in matching:
                 start_dt, _ = self.get_session_datetime(s, ref_date)
-                if start_dt > current_dt:
+                if start_dt > current_dt and start_dt not in seen_dates:
+                    seen_dates.add(start_dt)
                     candidates.append((start_dt, s))
 
         if not candidates:
@@ -498,12 +506,13 @@ class ScheduleEngine:
 
     def get_active_cycle(self, subject_name: str, current_dt: datetime) -> StudyCycle | None:
         """Construct the active StudyCycle for a subject at current_dt."""
-        matching = [s for s in self.sessions if s.subject.name == subject_name]
+        clean_target = self.clean_subject_name(subject_name).lower()
+        matching = [s for s in self.sessions if self.clean_subject_name(s.subject.name).lower() == clean_target]
         if not matching:
             return None
 
         all_occurrences: list[tuple[datetime, datetime]] = []
-        for week_offset in (-1, 0, 1):
+        for week_offset in (-1, 0, 1, 2):
             ref_date = current_dt.date() + timedelta(weeks=week_offset)
             for s in matching:
                 start_dt, end_dt = self.get_session_datetime(s, ref_date)
@@ -521,6 +530,10 @@ class ScheduleEngine:
                 next_start = start_dt
                 break
 
+        # Fallback if there is no previous session recorded (e.g. beginning of semester)
+        if last_ended is None and next_start is not None:
+            last_ended = next_start - timedelta(days=7)
+
         if last_ended is None or next_start is None:
             return None
 
@@ -528,15 +541,16 @@ class ScheduleEngine:
         completed_minutes = sum(
             log.duration_minutes
             for log in self.study_logs
-            if log.subject_name == subject_name and last_ended <= log.started_at < next_start
+            if self.clean_subject_name(log.subject_name).lower() == clean_target
+            and last_ended <= log.started_at < next_start
         )
 
         target = self.get_subject_target(subject_name)
-        cycle_id = f"{subject_name}-{last_ended.isoformat()}"
+        cycle_id = f"{self.clean_subject_name(subject_name)}-{last_ended.isoformat()}"
 
         return StudyCycle(
             id=cycle_id,
-            subject_name=subject_name,
+            subject_name=self.clean_subject_name(subject_name),
             start_at=last_ended,
             end_at=next_start,
             target_minutes=target,
@@ -648,7 +662,10 @@ class ScheduleEngine:
 
         # Check if currently in class for this subject
         curr_session = self.get_current_session(current_dt)
-        is_current_class = bool(curr_session and curr_session.subject.name == subject_name)
+        is_current_class = bool(
+            curr_session
+            and self.clean_subject_name(curr_session.subject.name).lower() == clean_name.lower()
+        )
 
         # Find next occurrence
         next_info = self.get_next_occurrence_of_subject(subject_name, current_dt)
@@ -663,7 +680,10 @@ class ScheduleEngine:
             loc = session.location
             next_text = self._format_relative_session_time(next_dt, current_dt)
         else:
-            matches = [s for s in self.sessions if s.subject.name == subject_name]
+            matches = [
+                s for s in self.sessions
+                if self.clean_subject_name(s.subject.name).lower() == clean_name.lower()
+            ]
             if matches:
                 core_type = matches[0].subject.core
                 loc = matches[0].location

@@ -2,11 +2,13 @@
 
 Provides the comprehensive task hub:
 1. Macro KPI overview across all enrolled subjects (Pending, Due This Week, Overdue, Completed).
-2. Multi-criteria filtering by Subject, Status (All, Pending, Due Soon, Overdue, Completed), and Search query.
-3. 1-click focus sprint launcher tethered to any task.
-4. Interactive check-offs with reversible toggle (pending <-> completed).
-5. In-place Edit and Delete buttons for each task row.
-6. Central "+ New Task" creator.
+2. Tonight's Priority Focus hero banner with 1-click sprint initiation.
+3. Multi-criteria filtering by Subject, Status (with live counters), and Search query with instant clear.
+4. Quick-action empty state presets (+ Prepare Notes, + Lab Exercise, + Review Slides, + Revision).
+5. 1-click focus sprint launcher tethered to any task.
+6. Interactive check-offs with reversible toggle (pending <-> completed).
+7. In-place Edit and Delete buttons for each task row.
+8. Central "+ New Task" creator with keyboard ergonomics (<kbd>N</kbd>, <kbd>/</kbd>, <kbd>Esc</kbd>).
 """
 
 from __future__ import annotations
@@ -56,8 +58,9 @@ class TasksDialog(QDialog):
         self._current_status_filter = "Pending"  # "All", "Pending", "Due Soon", "Overdue", "Completed"
         self._current_subject_filter = "All Subjects"
         self._search_query = ""
+        self._current_priority_todo: StudyTodo | None = None
 
-        self.setFixedSize(880, 660)
+        self.setFixedSize(890, 680)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -81,10 +84,10 @@ class TasksDialog(QDialog):
 
         self.content_layout = QVBoxLayout(self.container)
         self.content_layout.setContentsMargins(24, 20, 24, 20)
-        self.content_layout.setSpacing(14)
+        self.content_layout.setSpacing(12)
 
         # ---------------------------------------------------------------------
-        # 1. Header: Title, "+ New Task", and Close Button
+        # 1. Header: Title + Active Badge, "+ New Task", and Close Button
         # ---------------------------------------------------------------------
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
@@ -92,24 +95,45 @@ class TasksDialog(QDialog):
         header_text = QVBoxLayout()
         header_text.setSpacing(2)
 
+        title_row = QHBoxLayout()
+        title_row.setSpacing(10)
+
         lbl_title = QLabel("ACADEMIC TASK BACKLOG")
         lbl_title.setStyleSheet("color: #FFFFFF; font-size: 16px; font-weight: 800; letter-spacing: 1px;")
-        header_text.addWidget(lbl_title)
+        title_row.addWidget(lbl_title)
 
-        lbl_sub = QLabel("Manage deliverables, deadlines, and launch focus sprints across all modules")
-        lbl_sub.setStyleSheet("color: #71717A; font-size: 12px;")
+        self.lbl_header_badge = QLabel("● 0 ACTIVE")
+        self.lbl_header_badge.setStyleSheet("""
+            background-color: #1E293B;
+            color: #38BDF8;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            letter-spacing: 0.5px;
+        """)
+        title_row.addWidget(self.lbl_header_badge)
+        title_row.addStretch()
+
+        header_text.addLayout(title_row)
+
+        lbl_sub = QLabel("Manage deliverables, deadlines, and launch focus sprints across all modules · Press / to search")
+        lbl_sub.setStyleSheet("color: #71717A; font-size: 11px;")
         header_text.addWidget(lbl_sub)
         header.addLayout(header_text)
 
         header.addStretch()
 
         self.btn_new_task = QPushButton("+ New Task")
+        self.btn_new_task.setToolTip("Create deliverable (N)")
         self.btn_new_task.setStyleSheet(BUTTON_PRIMARY_STYLE)
         self.btn_new_task.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_new_task.clicked.connect(self._open_create_dialog)
+        self.btn_new_task.clicked.connect(lambda: self._open_create_dialog())
         header.addWidget(self.btn_new_task)
 
         btn_close = QPushButton("✕")
+        btn_close.setToolTip("Close (Esc)")
         btn_close.setFixedSize(30, 30)
         btn_close.setStyleSheet("""
             QPushButton {
@@ -155,14 +179,23 @@ class TasksDialog(QDialog):
         self.content_layout.addLayout(kpi_row)
 
         # ---------------------------------------------------------------------
-        # 3. Filter & Search Controls
+        # 3. Tonight's Priority Focus Hero Banner
+        # ---------------------------------------------------------------------
+        self.priority_banner = self._create_priority_banner()
+        self.content_layout.addWidget(self.priority_banner)
+
+        # ---------------------------------------------------------------------
+        # 4. Filter & Search Controls
         # ---------------------------------------------------------------------
         filter_bar = QHBoxLayout()
         filter_bar.setSpacing(10)
 
-        # Search box
+        # Search box with clear button
+        search_wrap = QHBoxLayout()
+        search_wrap.setSpacing(4)
+
         self.txt_search = QLineEdit()
-        self.txt_search.setPlaceholderText("🔍 Filter by title, notes, or course...")
+        self.txt_search.setPlaceholderText("🔍 Filter by title, notes, or course... (Press / to focus)")
         self.txt_search.setStyleSheet("""
             QLineEdit {
                 background-color: #18181B;
@@ -177,7 +210,31 @@ class TasksDialog(QDialog):
             }
         """)
         self.txt_search.textChanged.connect(self._on_search_changed)
-        filter_bar.addWidget(self.txt_search, stretch=3)
+        search_wrap.addWidget(self.txt_search, stretch=1)
+
+        self.btn_clear_search = QPushButton("✕")
+        self.btn_clear_search.setToolTip("Clear filter")
+        self.btn_clear_search.setFixedSize(26, 26)
+        self.btn_clear_search.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_clear_search.setStyleSheet("""
+            QPushButton {
+                background: #27272A;
+                color: #A1A1AA;
+                border: none;
+                border-radius: 13px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background: #3F3F46;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_clear_search.hide()
+        self.btn_clear_search.clicked.connect(self.txt_search.clear)
+        search_wrap.addWidget(self.btn_clear_search)
+
+        filter_bar.addLayout(search_wrap, stretch=3)
 
         # Subject filter dropdown
         self.combo_subject_filter = QComboBox()
@@ -204,7 +261,7 @@ class TasksDialog(QDialog):
 
         self.content_layout.addLayout(filter_bar)
 
-        # Status Segmented Filter Pills
+        # Status Segmented Filter Pills with dynamic counters
         status_pills_row = QHBoxLayout()
         status_pills_row.setSpacing(6)
 
@@ -221,7 +278,7 @@ class TasksDialog(QDialog):
         self._update_status_pill_styles()
 
         # ---------------------------------------------------------------------
-        # 4. Scrollable Tasks List
+        # 5. Scrollable Tasks List
         # ---------------------------------------------------------------------
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -273,6 +330,91 @@ class TasksDialog(QDialog):
         card.value_label = lbl_v  # type: ignore
         return card
 
+    def _create_priority_banner(self) -> QFrame:
+        """Create highlighted banner for Tonight's most urgent priority task."""
+        card = QFrame()
+        card.setObjectName("priorityFocusBanner")
+        card.setStyleSheet("""
+            QFrame#priorityFocusBanner {
+                background-color: #151522;
+                border: 1px solid #4F46E5;
+                border-radius: 8px;
+            }
+        """)
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(14, 8, 14, 8)
+        layout.setSpacing(12)
+
+        lbl_badge = QLabel("⚡ TONIGHT'S PRIORITY FOCUS")
+        lbl_badge.setStyleSheet("""
+            background-color: #312E81;
+            color: #C7D2FE;
+            border: 1px solid #4338CA;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 6px;
+            letter-spacing: 0.5px;
+        """)
+        layout.addWidget(lbl_badge)
+
+        text_col = QVBoxLayout()
+        text_col.setSpacing(2)
+        self.lbl_prio_title = QLabel("")
+        self.lbl_prio_title.setStyleSheet("color: #FFFFFF; font-size: 12px; font-weight: 700;")
+        text_col.addWidget(self.lbl_prio_title)
+
+        self.lbl_prio_due = QLabel("")
+        self.lbl_prio_due.setStyleSheet("color: #A5B4FC; font-size: 11px;")
+        text_col.addWidget(self.lbl_prio_due)
+        layout.addLayout(text_col, stretch=1)
+
+        self.btn_prio_focus_15 = QPushButton("▶ 15m Focus")
+        self.btn_prio_focus_15.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_prio_focus_15.setStyleSheet("""
+            QPushButton {
+                background-color: #4F46E5;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 14px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #4338CA;
+            }
+        """)
+        self.btn_prio_focus_15.clicked.connect(lambda: self._on_focus_priority_task(15))
+        layout.addWidget(self.btn_prio_focus_15)
+
+        self.btn_prio_focus_25 = QPushButton("25m")
+        self.btn_prio_focus_25.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_prio_focus_25.setStyleSheet("""
+            QPushButton {
+                background-color: #1E1B4B;
+                color: #C7D2FE;
+                border: 1px solid #4338CA;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #312E81;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_prio_focus_25.clicked.connect(lambda: self._on_focus_priority_task(25))
+        layout.addWidget(self.btn_prio_focus_25)
+
+        card.hide()
+        return card
+
+    def _on_focus_priority_task(self, minutes: int = 15) -> None:
+        if self._current_priority_todo:
+            self._on_focus_task(self._current_priority_todo, minutes)
+
     def _populate_subject_filter(self) -> None:
         self.combo_subject_filter.clear()
         self.combo_subject_filter.addItem("All Subjects")
@@ -318,6 +460,7 @@ class TasksDialog(QDialog):
 
     def _on_search_changed(self, text: str) -> None:
         self._search_query = text.strip().lower()
+        self.btn_clear_search.setVisible(bool(self._search_query))
         self._refresh_tasks_list()
 
     def _on_subject_filter_changed(self, subject: str) -> None:
@@ -325,8 +468,9 @@ class TasksDialog(QDialog):
         self._refresh_tasks_list()
 
     def _refresh_all(self) -> None:
-        """Update KPIs and re-render task list."""
+        """Update KPIs, priority banner, and re-render task list."""
         self._refresh_kpis()
+        self._refresh_priority_banner()
         self._refresh_tasks_list()
 
     def _refresh_kpis(self) -> None:
@@ -340,11 +484,77 @@ class TasksDialog(QDialog):
 
         week_end = now + timedelta(days=7)
         due_this_week = [t for t in pending if now <= t.due_date <= week_end]
+        due_soon_count = len([t for t in pending if t.is_due_soon(24, now)])
 
         self.kpi_pending.value_label.setText(str(len(pending)))  # type: ignore
         self.kpi_due_week.value_label.setText(str(len(due_this_week)))  # type: ignore
         self.kpi_overdue.value_label.setText(str(len(overdue)))  # type: ignore
         self.kpi_completed.value_label.setText(str(len(completed)))  # type: ignore
+
+        # Header live badge
+        if pending:
+            self.lbl_header_badge.setText(f"● {len(pending)} PENDING")
+            self.lbl_header_badge.setStyleSheet("""
+                background-color: #1E293B;
+                color: #38BDF8;
+                border: 1px solid #334155;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 2px 6px;
+                letter-spacing: 0.5px;
+            """)
+        else:
+            self.lbl_header_badge.setText("✓ ALL CAUGHT UP")
+            self.lbl_header_badge.setStyleSheet("""
+                background-color: #064E3B;
+                color: #6EE7B7;
+                border: 1px solid #047857;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 2px 6px;
+                letter-spacing: 0.5px;
+            """)
+
+        # Update button labels with live counts
+        counts = {
+            "All": len(all_todos),
+            "Pending": len(pending),
+            "Due Soon (<24h)": due_soon_count,
+            "Overdue": len(overdue),
+            "Completed": len(completed),
+        }
+        for label, count in counts.items():
+            if label in self.status_buttons:
+                btn = self.status_buttons[label]
+                btn.setText(f"{label} ({count})")
+
+    def _refresh_priority_banner(self) -> None:
+        if not self.engine:
+            self.priority_banner.hide()
+            return
+
+        now = datetime.now()
+        priority_todo = self.engine.get_priority_study_todo(now)
+        if not priority_todo or priority_todo.is_completed:
+            self.priority_banner.hide()
+            return
+
+        self._current_priority_todo = priority_todo
+        clean_sub = ScheduleEngine.clean_subject_name(priority_todo.subject_name)
+        self.lbl_prio_title.setText(f"{clean_sub} · {priority_todo.title}")
+
+        if priority_todo.is_overdue(now):
+            due_txt = f"⚠️ OVERDUE (was due {priority_todo.due_date.strftime('%a, %b %d at %H:%M')})"
+            self.lbl_prio_due.setText(due_txt)
+            self.lbl_prio_due.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 700;")
+        else:
+            rel = self._format_relative_due(priority_todo.due_date, now)
+            self.lbl_prio_due.setText(f"Due {rel} ({priority_todo.due_date.strftime('%a, %b %d at %H:%M')})")
+            self.lbl_prio_due.setStyleSheet("color: #A5B4FC; font-size: 11px;")
+
+        self.priority_banner.show()
 
     def _refresh_tasks_list(self) -> None:
         """Clear and rebuild task items based on current filters."""
@@ -362,7 +572,11 @@ class TasksDialog(QDialog):
 
         # 1. Subject filter
         if self._current_subject_filter and self._current_subject_filter != "All Subjects":
-            todos = [t for t in todos if t.subject_name.lower() == self._current_subject_filter.lower()]
+            clean_filt = ScheduleEngine.clean_subject_name(self._current_subject_filter).lower()
+            todos = [
+                t for t in todos
+                if ScheduleEngine.clean_subject_name(t.subject_name).lower() == clean_filt
+            ]
 
         # 2. Status filter
         if self._current_status_filter == "Pending":
@@ -386,18 +600,108 @@ class TasksDialog(QDialog):
         todos.sort(key=lambda t: (1 if t.is_completed else 0, t.due_date))
 
         if not todos:
-            empty_lbl = QLabel(
-                "No tasks found matching current filters.\nClick '+ New Task' above to add one!"
-            )
-            empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty_lbl.setStyleSheet("color: #71717A; font-size: 13px; padding: 40px;")
-            self.tasks_layout.addWidget(empty_lbl)
+            empty_frame = QFrame()
+            empty_frame.setStyleSheet("background: transparent; border: none; padding: 24px;")
+            empty_layout = QVBoxLayout(empty_frame)
+            empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_layout.setSpacing(12)
+
+            lbl_hint = QLabel("No tasks found matching current filters.")
+            lbl_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl_hint.setStyleSheet("color: #71717A; font-size: 13px; font-weight: 500;")
+            empty_layout.addWidget(lbl_hint)
+
+            lbl_presets_hint = QLabel("Quick-seed a deliverable with 1-click:")
+            lbl_presets_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl_presets_hint.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;")
+            empty_layout.addWidget(lbl_presets_hint)
+
+            presets_row = QHBoxLayout()
+            presets_row.setSpacing(8)
+            presets_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            presets = [
+                "+ Prepare Next Class Notes",
+                "+ Complete Lab Exercise",
+                "+ Review Lecture Slides",
+                "+ Exam Revision Sprint",
+            ]
+            for p_text in presets:
+                btn_p = QPushButton(p_text)
+                btn_p.setCursor(Qt.CursorShape.PointingHandCursor)
+                btn_p.setStyleSheet("""
+                    QPushButton {
+                        background-color: #18181F;
+                        color: #93C5FD;
+                        border: 1px solid #283548;
+                        border-radius: 12px;
+                        padding: 5px 12px;
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+                    QPushButton:hover {
+                        background-color: #243048;
+                        color: #FFFFFF;
+                        border-color: #38BDF8;
+                    }
+                """)
+                clean_p = p_text.replace("+ ", "")
+                btn_p.clicked.connect(lambda _, t=clean_p: self._open_create_dialog(preset_title=t))
+                presets_row.addWidget(btn_p)
+
+            empty_layout.addLayout(presets_row)
+            self.tasks_layout.addWidget(empty_frame)
         else:
             for todo in todos:
                 row_widget = self._create_todo_row(todo)
                 self.tasks_layout.addWidget(row_widget)
 
         self.tasks_layout.addStretch()
+
+    def _get_subject_core_colors(self, subject_name: str) -> tuple[str, str]:
+        """Return (bg_color, fg_color) for subject badge based on core type."""
+        clean = ScheduleEngine.clean_subject_name(subject_name).lower()
+        core = "COURS"
+        if self.engine:
+            for s in self.engine.sessions:
+                if self.engine.clean_subject_name(s.subject.name).lower() == clean:
+                    core = s.subject.core.upper()
+                    break
+
+        core_map = {
+            "TP": ("#064E3B", "#6EE7B7"),      # Emerald
+            "COURS": ("#1E293B", "#93C5FD"),   # Slate Blue
+            "TD": ("#2E1065", "#C4B5FD"),      # Indigo
+            "CI": ("#451A03", "#FCD34D"),      # Amber
+        }
+        return core_map.get(core, ("#1E293B", "#93C5FD"))
+
+    @classmethod
+    def _format_relative_due(cls, due_date: datetime, now: datetime) -> str:
+        days_diff = (due_date.date() - now.date()).days
+        delta = due_date - now
+        total_seconds = delta.total_seconds()
+        hours = int(total_seconds // 3600)
+        mins = int((total_seconds % 3600) // 60)
+
+        if total_seconds < 0:
+            past_hours = abs(int(total_seconds // 3600))
+            if past_hours < 24:
+                return f"⚠️ OVERDUE by {past_hours}h"
+            past_days = abs(days_diff)
+            return f"⚠️ OVERDUE by {past_days} day{'s' if past_days > 1 else ''}"
+
+        if days_diff == 0:
+            time_str = due_date.strftime("%H:%M")
+            rel = f"in {hours}h {mins:02d}m" if hours > 0 else f"in {mins}m"
+            return f"Today at {time_str} ({rel})"
+        elif days_diff == 1:
+            return f"Tomorrow at {due_date.strftime('%H:%M')}"
+        elif days_diff < 7:
+            day_name = due_date.strftime("%A")
+            return f"{day_name} (in {days_diff} days)"
+        else:
+            return f"in {days_diff} days ({due_date.strftime('%b %d')})"
 
     def _create_todo_row(self, todo: StudyTodo) -> QWidget:
         row = QFrame()
@@ -429,11 +733,13 @@ class TasksDialog(QDialog):
         title_row = QHBoxLayout()
         title_row.setSpacing(8)
 
-        # Subject badge
-        lbl_subj = QLabel(todo.subject_name.upper())
-        lbl_subj.setStyleSheet("""
-            background-color: #1E293B;
-            color: #93C5FD;
+        # Subject badge with core colors
+        bg_color, fg_color = self._get_subject_core_colors(todo.subject_name)
+        clean_sub = ScheduleEngine.clean_subject_name(todo.subject_name)
+        lbl_subj = QLabel(clean_sub.upper())
+        lbl_subj.setStyleSheet(f"""
+            background-color: {bg_color};
+            color: {fg_color};
             font-size: 10px;
             font-weight: 700;
             padding: 2px 6px;
@@ -441,7 +747,11 @@ class TasksDialog(QDialog):
         """)
         title_row.addWidget(lbl_subj)
 
-        title_style = "color: #71717A; text-decoration: line-through;" if todo.is_completed else "color: #FFFFFF; font-weight: 600;"
+        title_style = (
+            "color: #71717A; text-decoration: line-through;"
+            if todo.is_completed
+            else "color: #FFFFFF; font-weight: 600;"
+        )
         lbl_title = QLabel(todo.title)
         lbl_title.setStyleSheet(f"font-size: 13px; {title_style}")
         lbl_title.setWordWrap(True)
@@ -451,16 +761,20 @@ class TasksDialog(QDialog):
         # Meta row: Due date, notes, questions
         meta_parts = []
         if todo.is_completed:
-            meta_parts.append("<span style='color: #10B981; font-weight: 600;'>✓ Completed</span>")
+            done_date_str = f" on {todo.completed_at.strftime('%b %d')}" if todo.completed_at else ""
+            meta_parts.append(f"<span style='color: #10B981; font-weight: 600;'>✓ Completed{done_date_str}</span>")
         else:
             now = datetime.now()
             due_str = todo.due_date.strftime("%a, %b %d at %H:%M")
             if todo.is_overdue(now):
-                meta_parts.append(f"<span style='color: #EF4444; font-weight: 700;'>⚠️ OVERDUE ({due_str})</span>")
+                rel = self._format_relative_due(todo.due_date, now)
+                meta_parts.append(f"<span style='color: #EF4444; font-weight: 700;'>{rel} ({due_str})</span>")
             elif todo.is_due_soon(24, now):
-                meta_parts.append(f"<span style='color: #F59E0B; font-weight: 700;'>● Due Soon ({due_str})</span>")
+                rel = self._format_relative_due(todo.due_date, now)
+                meta_parts.append(f"<span style='color: #F59E0B; font-weight: 700;'>● {rel}</span>")
             else:
-                meta_parts.append(f"<span style='color: #71717A;'>Due: {due_str}</span>")
+                rel = self._format_relative_due(todo.due_date, now)
+                meta_parts.append(f"<span style='color: #71717A;'>Due: {rel}</span>")
 
         if todo.notes:
             meta_parts.append(f"<span style='color: #52525B;'>{todo.notes}</span>")
@@ -479,6 +793,7 @@ class TasksDialog(QDialog):
         # 1. Focus button (only for pending tasks)
         if not todo.is_completed:
             btn_focus = QPushButton("▶ 15m")
+            btn_focus.setToolTip("Start 15-minute Focus Sprint")
             btn_focus.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_focus.setFixedSize(54, 28)
             btn_focus.setStyleSheet("""
@@ -495,7 +810,7 @@ class TasksDialog(QDialog):
                     color: #000000;
                 }
             """)
-            btn_focus.clicked.connect(lambda _, t=todo: self._on_focus_task(t))
+            btn_focus.clicked.connect(lambda _, t=todo: self._on_focus_task(t, 15))
             layout.addWidget(btn_focus)
 
         # 2. Edit button
@@ -553,11 +868,11 @@ class TasksDialog(QDialog):
         self.tasks_changed.emit()
         self._refresh_all()
 
-    def _on_focus_task(self, todo: StudyTodo) -> None:
-        self.start_task_focus_requested.emit(todo, 15)
+    def _on_focus_task(self, todo: StudyTodo, minutes: int = 15) -> None:
+        self.start_task_focus_requested.emit(todo, minutes)
         self.accept()
 
-    def _open_create_dialog(self) -> None:
+    def _open_create_dialog(self, preset_title: str | None = None) -> None:
         default_sub = (
             self._current_subject_filter
             if self._current_subject_filter != "All Subjects"
@@ -567,6 +882,7 @@ class TasksDialog(QDialog):
             engine=self.engine,
             todo=None,
             default_subject=default_sub,
+            preset_title=preset_title,
             parent=self,
         )
         dialog.todo_saved.connect(self._on_todo_saved)
@@ -606,5 +922,14 @@ class TasksDialog(QDialog):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Escape:
             self.accept()
+        elif event.key() == Qt.Key.Key_Slash and not self.txt_search.hasFocus():
+            self.txt_search.setFocus()
+            self.txt_search.selectAll()
+            event.accept()
+        elif event.key() == Qt.Key.Key_N and (
+            event.modifiers() & Qt.KeyboardModifier.ControlModifier or not self.txt_search.hasFocus()
+        ):
+            self._open_create_dialog()
+            event.accept()
         else:
             super().keyPressEvent(event)
