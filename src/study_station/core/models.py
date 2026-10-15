@@ -170,3 +170,15 @@ class SubjectSummary:
     questions_count: int = 0
 
 
+@dataclass
+class ExitTicketResult:
+    """Outcome of a Cognitive Exit Ticket debrief after a focus sprint."""
+
+    action: str = "complete"  # "complete", "extend", "put_aside"
+    confidence: str = "solid"  # "foggy", "progressing", "solid"
+    next_class_question: str = ""
+    takeaway_note: str = ""
+    extend_minutes: int = 10
+
+
+

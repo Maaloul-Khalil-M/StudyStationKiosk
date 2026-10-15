@@ -10,10 +10,15 @@ Manages transitions between:
 from datetime import datetime, timedelta
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QPalette
-from PySide6.QtWidgets import QMainWindow, QStackedWidget
+from PySide6.QtWidgets import QDialog, QMainWindow, QStackedWidget
 
 from study_station.core.engine import ScheduleEngine
-from study_station.core.models import AcademicSession, StudyLog, StudyTodo
+from study_station.core.models import (
+    AcademicSession,
+    ExitTicketResult,
+    StudyLog,
+    StudyTodo,
+)
 from study_station.core.settings import AppSettings
 from study_station.core.timer import FocusTimer
 from study_station.persistence.repository import StudyStationRepository
@@ -21,6 +26,7 @@ from study_station.ui.completion_widget import CompletionWidget
 from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.dashboard_widget import SubjectDashboardWidget
 from study_station.ui.debrief_dialog import DebriefDialog
+from study_station.ui.exit_ticket_dialog import ExitTicketDialog
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.history_dialog import HistoryDialog
 from study_station.ui.import_export_dialog import ImportExportDialog
@@ -55,6 +61,7 @@ class MainWindow(QMainWindow):
         self._engine = engine
         self._settings = self._repo.load_settings() if self._repo else AppSettings()
         self._timer = FocusTimer()
+        self._prompt_exit_ticket = True
 
         self._apply_window_palette()
 
@@ -76,7 +83,7 @@ class MainWindow(QMainWindow):
         # 2. Focus Screen
         self._focus_widget = FocusWidget(self._timer, self)
         self._focus_widget.apply_settings(self._settings)
-        self._focus_widget.session_finished.connect(self._on_session_finished)
+        self._focus_widget.session_finished.connect(self.prompt_exit_ticket_and_finish)
         self._stack.addWidget(self._focus_widget)
 
         # 3. Completion Screen
@@ -356,17 +363,56 @@ class MainWindow(QMainWindow):
             if cycle:
                 cycle_info = f"{cycle.completed_minutes} / {cycle.target_minutes} MIN"
 
-        self._focus_widget.start_session(target_name, duration_minutes, cycle_info=cycle_info)
+        self._focus_widget.start_session(target_name, duration_minutes, cycle_info=cycle_info, todo=todo)
         if self._repo:
             self._repo.save_timer_state(self._timer)
 
         self._stack.setCurrentIndex(self.INDEX_FOCUS)
+
+    def prompt_exit_ticket_and_finish(self, subject_name: str, elapsed_minutes: int) -> None:
+        """Prompt student with the Cognitive Exit Ticket and process completion."""
+        exit_result: ExitTicketResult | None = None
+        if self._prompt_exit_ticket and elapsed_minutes > 0:
+            exit_result = self.open_exit_ticket_dialog(
+                subject_name=subject_name,
+                elapsed_minutes=elapsed_minutes,
+                todo=getattr(self, "_active_todo", None),
+            )
+        self._on_session_finished(
+            subject_name=subject_name,
+            elapsed_minutes=elapsed_minutes,
+            source="timer",
+            exit_result=exit_result,
+        )
+
+    def open_exit_ticket_dialog(
+        self,
+        subject_name: str,
+        elapsed_minutes: int,
+        todo: StudyTodo | None = None,
+    ) -> ExitTicketResult | None:
+        """Open Cognitive Exit Ticket modal with dark scrim overlay."""
+        self._show_scrim()
+        try:
+            ticket_dialog = ExitTicketDialog(
+                subject_name=subject_name,
+                elapsed_minutes=elapsed_minutes,
+                todo=todo,
+                parent=self,
+            )
+            res = ticket_dialog.exec()
+            if res == QDialog.DialogCode.Accepted:
+                return ticket_dialog.result
+            return ticket_dialog.result or ExitTicketResult()
+        finally:
+            self._hide_scrim()
 
     def _on_session_finished(
         self,
         subject_name: str,
         elapsed_minutes: int,
         source: str = "timer",
+        exit_result: ExitTicketResult | None = None,
     ) -> None:
         """Handle focus session completion or manual finish."""
         if self._repo:
@@ -375,6 +421,63 @@ class MainWindow(QMainWindow):
         if elapsed_minutes <= 0:
             self._show_cockpit_screen()
             return
+
+        # Handle "extend" action -> log current minutes, then immediately launch continuation sprint
+        if exit_result and exit_result.action == "extend":
+            todo_id = self._active_todo.id if getattr(self, "_active_todo", None) else None
+            if self._engine:
+                self._engine.add_study_log(
+                    StudyLog(
+                        subject_name=subject_name,
+                        started_at=datetime.now(),
+                        duration_minutes=elapsed_minutes,
+                        source=source,
+                        todo_id=todo_id,
+                    )
+                )
+            self.start_focus_session(
+                duration_minutes=exit_result.extend_minutes,
+                subject_name=subject_name,
+                todo=self._active_todo,
+            )
+            return
+
+        # Handle "complete" vs "put_aside" action -> update engine and persistence
+        task_confidence = "solid"
+        if exit_result:
+            task_confidence = exit_result.confidence
+            if self._engine:
+                active_todo = getattr(self, "_active_todo", None)
+                if active_todo is not None:
+                    note = exit_result.takeaway_note.strip()
+                    if note:
+                        if active_todo.notes:
+                            active_todo.notes = f"{active_todo.notes} · {note}"
+                        else:
+                            active_todo.notes = note
+                        self._engine.update_todo(active_todo)
+
+                    if exit_result.action == "complete":
+                        self._engine.mark_todo_completed(
+                            active_todo.id,
+                            confidence=exit_result.confidence,
+                            next_class_question=exit_result.next_class_question.strip(),
+                        )
+                    else:  # put_aside
+                        active_todo.confidence = exit_result.confidence
+                        if exit_result.next_class_question.strip():
+                            active_todo.next_class_question = exit_result.next_class_question.strip()
+                        self._engine.update_todo(active_todo)
+                elif exit_result.next_class_question.strip() or exit_result.takeaway_note.strip():
+                    auto_todo = StudyTodo(
+                        subject_name=subject_name,
+                        title=f"Review: {subject_name}",
+                        notes=exit_result.takeaway_note.strip(),
+                        confidence=exit_result.confidence,
+                        next_class_question=exit_result.next_class_question.strip(),
+                        status="completed",
+                    )
+                    self._engine.add_todo(auto_todo)
 
         target = 60
         completed = elapsed_minutes
@@ -397,11 +500,14 @@ class MainWindow(QMainWindow):
             self._dashboard_widget.refresh_dashboard()
             self._schedule_widget.update_sessions(self._engine.sessions)
 
+        task_title = self._active_todo.title if getattr(self, "_active_todo", None) else None
         self._completion_widget.show_completion(
             subject_name=subject_name,
             added_minutes=elapsed_minutes,
             completed_minutes=completed,
             target_minutes=target,
+            task_title=task_title,
+            confidence=task_confidence,
         )
 
         # Milestone 8: Play calm acoustic completion chime

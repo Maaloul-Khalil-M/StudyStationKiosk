@@ -492,14 +492,26 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 - [x] Added dedicated unit test suite in [`tests/test_grid_main_screen.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_grid_main_screen.py) (4 tests).
 - [x] **100% test pass rate:** **84/84 unit tests passing** across 14 test suites.
 
-### Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket
-- [ ] Focus screen frames specific `StudyTodo` title within the radial ring gauge.
-- [ ] Build `ExitTicketDialog`:
-  - Completion prompt: `[ Complete ]`, `[ +10m More ]`, `[ Put Aside ]`.
-  - Confidence rating: 🔴 Foggy, 🟡 Getting There, 🟢 Solid.
-  - Formulate "1 Question for Next Class" (pinned to next lecture's card).
-  - 1-sentence Feynman takeaway summary.
-- [ ] Unit test suite in `tests/test_exit_ticket.py`.
+### Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket `[COMPLETED]`
+- [x] Defined `ExitTicketResult` dataclass in [`src/study_station/core/models.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/models.py).
+- [x] Updated [`FocusWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/focus_widget.py) to accept active `StudyTodo` alongside the subject name:
+  - Displays actionable task title in slate cyan badge (`Task: Fix Star Schema join exercise`).
+  - Displays relative/calendar deadline context underneath radial ring gauge (`Due: Thursday, Oct 22 at 09:40`).
+- [x] Built [`ExitTicketDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/exit_ticket_dialog.py):
+  - **Completion Prompt**: `[ ✓ Complete Task ]` (marks todo finished), `[ +10m Need More Time ]` (continuation sprint), `[ ⏸ Put Aside for Later ]` (keeps task pending with saved progress).
+  - **Cognitive Confidence Rating**: Traffic-light pill buttons with distinct color coding:
+    - `🔴 Foggy / Stuck` (`#451A1A` / `#F87171`)
+    - `🟡 Getting There` (`#451A03` / `#FCD34D`)
+    - `🟢 Solid` (`#064E3B` / `#34D399`)
+  - **In-Class Question Formulation**: Formulate 1 question for next lecture, automatically pinned to next class card (`❓ X` badge).
+  - **1-Sentence Feynman Takeaway**: Concise one-sentence summary saved to task notes.
+- [x] Updated [`CompletionWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/completion_widget.py) to display task title and confidence badge.
+- [x] Wired seamless execution flow in [`MainWindow`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/main_window.py):
+  - Automatically prompts `ExitTicketDialog` on timer completion or session finish.
+  - Automatically handles `+10m` continuation sprint without losing already completed focus minutes.
+  - Attributes focus minutes to `StudyLog.todo_id` in SQLite.
+- [x] Added dedicated unit test suite in [`tests/test_exit_ticket.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_exit_ticket.py) (6 tests).
+- [x] **100% test pass rate:** **90/90 unit tests passing** across 15 test suites.
 
 ### Milestone 14: Night Routine Ambient UX & In-Class Payoff
 - [ ] Evening desk mode detection (after 18:00 local time) with persistent, ready-to-click action buttons.

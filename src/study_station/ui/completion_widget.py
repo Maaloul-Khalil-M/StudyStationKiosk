@@ -46,12 +46,26 @@ class CompletionWidget(QWidget):
         added_minutes: int,
         completed_minutes: int,
         target_minutes: int,
+        task_title: str | None = None,
+        confidence: str | None = None,
     ) -> None:
         """Display the completion feedback and start auto-dismiss countdown."""
         from study_station.core.engine import ScheduleEngine
         clean_name = ScheduleEngine.clean_subject_name(subject_name)
-        self.lbl_subject.setText(clean_name.upper())
-        self.lbl_confirmation.setText(f"+{added_minutes} MIN")
+        title_text = f"{clean_name.upper()}"
+        if task_title:
+            title_text += f"\n{task_title}"
+        self.lbl_subject.setText(title_text)
+
+        conf_badge = ""
+        if confidence == "solid":
+            conf_badge = " · 🟢 Solid"
+        elif confidence == "progressing":
+            conf_badge = " · 🟡 Getting There"
+        elif confidence == "foggy":
+            conf_badge = " · 🔴 Foggy"
+
+        self.lbl_confirmation.setText(f"+{added_minutes} MIN{conf_badge}")
         self.lbl_progress.setText(f"{completed_minutes} / {target_minutes} MIN COMPLETED")
 
         self._auto_dismiss_timer.start()

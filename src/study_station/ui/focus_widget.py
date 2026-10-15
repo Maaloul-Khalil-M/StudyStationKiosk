@@ -62,6 +62,30 @@ class FocusWidget(QWidget):
         self.btn_end: QPushButton = self.ui.findChild(QPushButton, "btnEnd")
         self.lbl_shortcuts_hint: QLabel = self.ui.findChild(QLabel, "lblShortcutsHint")
 
+        self.active_todo = None
+
+        # Dedicated Task Header and Due Date indicators (Milestone 13)
+        self.lbl_task_title = QLabel(self)
+        self.lbl_task_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_task_title.setWordWrap(True)
+        self.lbl_task_title.setStyleSheet("""
+            QLabel {
+                color: #38BDF8;
+                font-size: 14px;
+                font-weight: 700;
+                padding: 2px 14px;
+                background-color: #082F49;
+                border: 1px solid #0284C7;
+                border-radius: 6px;
+            }
+        """)
+        self.lbl_task_title.hide()
+
+        self.lbl_task_due = QLabel(self)
+        self.lbl_task_due.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_task_due.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 600; padding: 2px 0;")
+        self.lbl_task_due.hide()
+
         # Make card seamless with background
         if self.focus_card:
             self.focus_card.setStyleSheet("""
@@ -82,11 +106,15 @@ class FocusWidget(QWidget):
             if card_spacer:
                 card_spacer.hide()
 
-            # Insert Ring Gauge into card layout after lblSubject
+            # Insert Ring Gauge and Task details into card layout
             card_layout = self.focus_card.layout()
             self.ring_gauge = FocusRingGaugeWidget(self)
-            # Insert at position 1 (right after lblSubject)
-            card_layout.insertWidget(1, self.ring_gauge, alignment=Qt.AlignmentFlag.AlignCenter)
+            # Position 1: Task Title
+            card_layout.insertWidget(1, self.lbl_task_title, alignment=Qt.AlignmentFlag.AlignCenter)
+            # Position 2: Ring Gauge
+            card_layout.insertWidget(2, self.ring_gauge, alignment=Qt.AlignmentFlag.AlignCenter)
+            # Position 3: Task Due Context
+            card_layout.insertWidget(3, self.lbl_task_due, alignment=Qt.AlignmentFlag.AlignCenter)
         else:
             self.ring_gauge = FocusRingGaugeWidget(self)
 
@@ -152,14 +180,35 @@ class FocusWidget(QWidget):
             self.lbl_subject.setFont(get_modern_font("sans", 24, QFont.Weight.Bold))
         self._update_display()
 
-    def start_session(self, subject_name: str, duration_minutes: int, cycle_info: str = "") -> None:
+    def start_session(
+        self,
+        subject_name: str,
+        duration_minutes: int,
+        cycle_info: str = "",
+        todo: object | None = None,
+    ) -> None:
         """Start a new focus session and display."""
+        self.active_todo = todo
         self.timer.start(subject_name, duration_minutes)
 
         clean_name = ScheduleEngine.clean_subject_name(subject_name)
         self.lbl_subject.setText(clean_name.upper())
         self.lbl_subject.setFont(get_modern_font("eva_display", 26, QFont.Weight.Bold))
         self.lbl_subject.setStyleSheet("color: #FFFFFF; letter-spacing: 0.5px;")
+
+        if todo is not None:
+            self.lbl_task_title.setText(f"Task: {getattr(todo, 'title', '')}")
+            self.lbl_task_title.show()
+            due_date = getattr(todo, "due_date", None)
+            if due_date:
+                due_str = due_date.strftime("%a, %b %d at %H:%M")
+                self.lbl_task_due.setText(f"Due: {due_str}")
+                self.lbl_task_due.show()
+            else:
+                self.lbl_task_due.hide()
+        else:
+            self.lbl_task_title.hide()
+            self.lbl_task_due.hide()
 
         self.lbl_state.setText("● FOCUSING")
         self.btn_pause.setText("Pause")
