@@ -639,7 +639,7 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 
 ---
 
-### Milestone 17: Multi-User Profile Architecture & Zero-Password Database Isolation `[COMPLETED]`
+### Milestone 17: Multi-User Profile Architecture, Zero-Password Database Isolation & Clean Slate Options `[COMPLETED]`
 - [x] **Lightweight User & Profile Manager (`UserManager`)**:
   - Built `UserManager` in [`src/study_station/persistence/user_manager.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/persistence/user_manager.py).
   - Maintains `profiles.json` tracking registered user profiles and active user.
@@ -647,35 +647,42 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
   - Separate database files per user: `%APPDATA%/study_station/users/{username}.db`.
   - Robust username filesystem sanitization (`sanitize_username`).
 - [x] **Frictionless Kiosk User Switch Dialog (`UserSwitchDialog`)**:
-  - Designed and built [`UserSwitchDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/user_switch_dialog.py) and [`UserProfileCard`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/user_switch_dialog.py#L25-L105).
+  - Designed and built [`UserSwitchDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/user_switch_dialog.py) and [`UserProfileCard`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/user_switch_dialog.py#L30-L128).
   - Modern obsidian aesthetic matching the kiosk dark design system.
   - Emerald `● ACTIVE` badge for the current profile.
   - 1-click user switching (`Switch` button or clicking the card).
-  - Safe deletion for secondary profiles with confirmation.
+  - Safe deletion for secondary profiles with confirmation modal.
   - Inline input field to create a new user profile with `[ + Create & Switch ]` button.
+  - **Explicit Clean Slate vs Template Choice**:
+    - **Start empty (clean schedule & tasks)** (Default): Newly created users start with a completely empty schedule and empty task backlog.
+    - **Load sample timetable template**: Optional choice for students wanting the pre-loaded university timetable.
 - [x] **Live State Switching & Zero-Restart Persistence (`MainWindow`)**:
-  - Integrated `switch_user(new_username)` in [`MainWindow`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/main_window.py):
+  - Integrated `switch_user(new_username, load_sample=False)` in [`MainWindow`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/main_window.py):
     - Safely pauses/persists any active focus timer to prevent lost effort.
     - Closes previous SQLite connection.
     - Connects to target user's SQLite database.
-    - Seeds initial university timetable from `docs/example.json` if new user database is empty.
+    - Only seeds timetable if `load_sample=True` is explicitly chosen; otherwise provides a pure clean slate.
     - Re-instantiates `StudyStationRepository` and `ScheduleEngine`.
     - Reloads user appearance settings (`AppSettings`) and updates window palette.
     - Dynamically refreshes Weekly Schedule Cockpit, Flip Clock launchpad, and task backlogs.
+- [x] **On-Demand "Empty Schedule" & "Empty Tasks" Actions**:
+  - **Empty Schedule**: Added `[ 🗑 Empty Schedule ]` button in [`ScheduleScreenWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/schedule_screen_widget.py) class editor toolbar with confirmation modal, clearing all scheduled sessions from repository and updating the calendar grid.
+  - **Dynamic Empty Schedule Hint**: Weekly schedule header displays `"Schedule is empty · Click any '+' slot to add a class, or use Import / Export"` when 0 classes exist.
+  - **Empty Tasks**: Added `[ Empty Tasks ]` button in [`TasksDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/tasks_dialog.py) backlog header with confirmation modal, allowing students to clear all deliverables on demand.
 - [x] **Top Navigation & Keyboard Ergonomics**:
   - Added `[ 👤 {Username} ]` button in the top navigation bar of [`ScheduleScreenWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/schedule_screen_widget.py).
   - Added `[ 👤 {Username} ]` button in the auto-revealing navigation bar of [`SubjectDashboardWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/dashboard_widget.py).
   - Connected global keyboard shortcut <kbd>U</kbd> in `MainWindow` for instant modal access from both grid and clock screens.
 - [x] **Verification & Test Suite**:
-  - Added dedicated unit test suite in [`tests/test_multi_user.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_multi_user.py) covering user initialization, path isolation, separate todo databases, dialog actions, and main window switching.
-  - **100% test pass rate:** **124/124 unit tests passing** (up from 114).
-  - Generated and verified high-resolution screenshot in [`docs/screens/switch_user_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/switch_user_modal.png).
+  - Added dedicated unit test suite in [`tests/test_multi_user.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_multi_user.py) covering user initialization, path isolation, separate todo databases, clean slate vs sample template choices, empty schedule clearing, and empty tasks clearing.
+  - **100% test pass rate:** **129/129 unit tests passing** (up from 114).
+  - Generated and verified high-resolution screenshots in [`docs/screens/switch_user_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/switch_user_modal.png), [`docs/screens/editSchedual.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/editSchedual.png), and [`docs/screens/tasks_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/tasks_modal.png).
 
 ---
 
 ## Complete Academic Station Milestone Summary
 
-Study Station is fully realized across 18 comprehensive development milestones:
+Study Station is fully realized across 20 comprehensive development milestones:
 1. **Milestone 1: Project Foundation & Screen Framework** `[COMPLETED]` — Window lifecycle, fullscreen, Linux X11/Xfce support.
 2. **Milestone 2: Ambient Flip Clock & Schedule Engine** `[COMPLETED]` — Retro minimal typography, ScheduleEngine timetable parsing.
 3. **Milestone 2.5: Modern UI Redesign & Calm Discipline** `[COMPLETED]` — 3D flip card animations, auto-hiding action bars.
@@ -695,7 +702,7 @@ Study Station is fully realized across 18 comprehensive development milestones:
 17. **Milestone 15: Academic Task Backlog & Comprehensive CRUD** `[COMPLETED]` — Central backlog (<kbd>T</kbd>), EditTodoDialog, reversible check-offs.
 18. **Milestone 15.5: Runtime Stability & Backlog Polish** `[COMPLETED]` — Signal lifecycle stability, font sizing evaluation, upcoming class calculations.
 19. **Milestone 16: UI Professionalization, Customization Engine & Academic Sprint Launchpad** `[COMPLETED]` — Mechanical clock overhaul, dynamic UI themes, reclaimed session space, and active task sprint launcher.
-20. **Milestone 17: Multi-User Profile Architecture & Zero-Password Database Isolation** `[COMPLETED]` — Zero-password user switching, isolated SQLite databases, instant seeding for new profiles, and top-bar switch button.
+20. **Milestone 17: Multi-User Profile Architecture, Zero-Password Database Isolation & Clean Slate Options** `[COMPLETED]` — Zero-password user switching, isolated SQLite databases, clean slate default with optional template loading, on-demand Empty Schedule & Empty Tasks actions, and top-bar switch button.
 
 
 

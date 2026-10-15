@@ -32,6 +32,7 @@ class UserManager:
         self.users_dir = self.base_dir / "users"
         self.users_dir.mkdir(parents=True, exist_ok=True)
         self.config_path = self.base_dir / "profiles.json"
+        self.is_fresh_install = not self.config_path.exists()
         self._ensure_initialized()
 
     def _ensure_initialized(self) -> None:

@@ -19,19 +19,24 @@ def run() -> int:
     app.setOrganizationName("StudyStation")
 
     # 1. Initialize SQLite persistence layer
-    db = Database()
+    from study_station.persistence.user_manager import UserManager
+    user_manager = UserManager()
+    active_user = user_manager.get_active_user()
+    db_path = user_manager.get_user_db_path(active_user)
+    db = Database(db_path)
     repo = StudyStationRepository(db)
 
-    # 2. Seed initial timetable from docs/example.json if database is empty
-    sample_timetable = Path(__file__).resolve().parent.parent.parent / "docs" / "example.json"
-    if sample_timetable.exists():
-        repo.seed_timetable_if_empty(sample_timetable)
+    # 2. Seed initial timetable from docs/example.json ONLY on initial fresh install of Default user
+    if user_manager.is_fresh_install and active_user == UserManager.DEFAULT_USER:
+        sample_timetable = Path(__file__).resolve().parent.parent.parent / "docs" / "example.json"
+        if sample_timetable.exists():
+            repo.seed_timetable_if_empty(sample_timetable)
 
     # 3. Initialize ScheduleEngine powered by the persistent repository
     engine = ScheduleEngine.from_repository(repo)
 
     # 4. Create and show Main Window with recovery check
-    window = MainWindow(engine=engine, repository=repo)
+    window = MainWindow(engine=engine, repository=repo, user_manager=user_manager)
     window.showFullScreen()
 
     exit_code = app.exec()

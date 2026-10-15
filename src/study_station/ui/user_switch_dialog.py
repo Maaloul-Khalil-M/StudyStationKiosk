@@ -4,6 +4,7 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
@@ -129,7 +131,7 @@ class UserProfileCard(QFrame):
 class UserSwitchDialog(QDialog):
     """Frictionless kiosk modal for switching or creating user profiles."""
 
-    user_switched = Signal(str)  # Emits chosen username
+    user_switched = Signal(str, bool)  # Emits (username, load_sample)
 
     def __init__(
         self,
@@ -141,7 +143,7 @@ class UserSwitchDialog(QDialog):
         self.selected_user: str | None = None
 
         self.setWindowTitle("Switch User")
-        self.setFixedSize(540, 500)
+        self.setFixedSize(560, 525)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -210,12 +212,22 @@ class UserSwitchDialog(QDialog):
                 background-color: #16161C;
                 border: 1px solid #272730;
                 border-radius: 10px;
-                padding: 4px;
+                padding: 6px;
             }
         """)
-        new_user_layout = QHBoxLayout(new_user_box)
-        new_user_layout.setContentsMargins(8, 6, 8, 6)
+        new_user_layout = QVBoxLayout(new_user_box)
+        new_user_layout.setContentsMargins(10, 8, 10, 8)
         new_user_layout.setSpacing(8)
+
+        # Title row
+        lbl_new_header = QLabel("NEW USER PROFILE")
+        lbl_new_header.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 800; letter-spacing: 1px;")
+        new_user_layout.addWidget(lbl_new_header)
+
+        # Input row
+        input_row = QHBoxLayout()
+        input_row.setContentsMargins(0, 0, 0, 0)
+        input_row.setSpacing(8)
 
         self.txt_username = QLineEdit()
         self.txt_username.setPlaceholderText("Enter new user name (e.g. Alice)...")
@@ -233,15 +245,61 @@ class UserSwitchDialog(QDialog):
             }
         """)
         self.txt_username.returnPressed.connect(self._on_create_user_clicked)
-        new_user_layout.addWidget(self.txt_username, stretch=1)
+        input_row.addWidget(self.txt_username, stretch=1)
 
         btn_create = QPushButton("+ Create && Switch")
         btn_create.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_create.setStyleSheet(BUTTON_PRIMARY_STYLE)
         btn_create.setFixedHeight(32)
         btn_create.clicked.connect(self._on_create_user_clicked)
-        new_user_layout.addWidget(btn_create)
+        input_row.addWidget(btn_create)
+        new_user_layout.addLayout(input_row)
 
+        # Mode Options row: Clean Slate vs Sample Template
+        options_row = QHBoxLayout()
+        options_row.setContentsMargins(0, 2, 0, 0)
+        options_row.setSpacing(14)
+
+        radio_style = """
+            QRadioButton {
+                color: #D4D4D8;
+                font-size: 11px;
+                font-weight: 500;
+                spacing: 6px;
+            }
+            QRadioButton:hover {
+                color: #FFFFFF;
+            }
+            QRadioButton::indicator {
+                width: 13px;
+                height: 13px;
+                border-radius: 6px;
+                border: 1px solid #3F3F46;
+                background-color: #0E0E12;
+            }
+            QRadioButton::indicator:checked {
+                background-color: #10B981;
+                border: 3px solid #059669;
+            }
+        """
+
+        self.rad_empty = QRadioButton("Start empty (clean schedule && tasks)")
+        self.rad_empty.setChecked(True)
+        self.rad_empty.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rad_empty.setStyleSheet(radio_style)
+        options_row.addWidget(self.rad_empty)
+
+        self.rad_sample = QRadioButton("Load sample timetable template")
+        self.rad_sample.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rad_sample.setStyleSheet(radio_style)
+        options_row.addWidget(self.rad_sample)
+        options_row.addStretch()
+
+        self.btn_group = QButtonGroup(self)
+        self.btn_group.addButton(self.rad_empty)
+        self.btn_group.addButton(self.rad_sample)
+
+        new_user_layout.addLayout(options_row)
         container_layout.addWidget(new_user_box)
 
         # Footer Actions
@@ -285,7 +343,7 @@ class UserSwitchDialog(QDialog):
         """Switch active user profile."""
         if self.user_manager.set_active_user(username):
             self.selected_user = username
-            self.user_switched.emit(username)
+            self.user_switched.emit(username, False)
             self.accept()
 
     def _on_create_user_clicked(self) -> None:
@@ -294,10 +352,11 @@ class UserSwitchDialog(QDialog):
         if not raw_name:
             return
 
+        load_sample = self.rad_sample.isChecked()
         safe_name, _ = self.user_manager.create_user(raw_name)
         self.user_manager.set_active_user(safe_name)
         self.selected_user = safe_name
-        self.user_switched.emit(safe_name)
+        self.user_switched.emit(safe_name, load_sample)
         self.accept()
 
     def _on_delete_user(self, username: str) -> None:

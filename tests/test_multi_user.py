@@ -4,7 +4,8 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
-from PySide6.QtWidgets import QApplication
+from unittest.mock import patch
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from study_station.core.engine import ScheduleEngine
 from study_station.core.models import AcademicSession, StudyTodo, Subject, TimeSlot
@@ -12,6 +13,7 @@ from study_station.persistence.database import Database
 from study_station.persistence.repository import StudyStationRepository
 from study_station.persistence.user_manager import UserManager
 from study_station.ui.main_window import MainWindow
+from study_station.ui.tasks_dialog import TasksDialog
 from study_station.ui.user_switch_dialog import UserSwitchDialog
 
 
@@ -171,3 +173,109 @@ class TestUserSwitchUI(unittest.TestCase):
         self.assertIn("UserBeta", window._dashboard_widget.btn_user.text())
 
         window.close()
+
+    def test_dialog_creation_with_empty_and_sample_options(self) -> None:
+        dialog = UserSwitchDialog(self.manager)
+        self.assertTrue(dialog.rad_empty.isChecked())
+        self.assertFalse(dialog.rad_sample.isChecked())
+
+        emitted_signals = []
+        dialog.user_switched.connect(lambda name, sample: emitted_signals.append((name, sample)))
+
+        # 1. Create with empty option (default)
+        dialog.txt_username.setText("CleanUser")
+        dialog._on_create_user_clicked()
+        self.assertEqual(len(emitted_signals), 1)
+        self.assertEqual(emitted_signals[0], ("CleanUser", False))
+
+        # 2. Create another user with sample template option
+        dialog2 = UserSwitchDialog(self.manager)
+        dialog2.rad_sample.setChecked(True)
+        dialog2.user_switched.connect(lambda name, sample: emitted_signals.append((name, sample)))
+        dialog2.txt_username.setText("SampleUser")
+        dialog2._on_create_user_clicked()
+        self.assertEqual(len(emitted_signals), 2)
+        self.assertEqual(emitted_signals[1], ("SampleUser", True))
+
+        dialog.close()
+        dialog2.close()
+
+    def test_new_user_starts_with_empty_schedule_and_todos(self) -> None:
+        _, db1 = self.manager.create_user("UserAlpha")
+        self.manager.set_active_user("UserAlpha")
+        db = Database(db1)
+        repo = StudyStationRepository(db)
+        engine = ScheduleEngine.from_repository(repo)
+        window = MainWindow(engine=engine, repository=repo, user_manager=self.manager)
+
+        # Create new user Bob with load_sample=False (the default empty slate)
+        _, db_bob = self.manager.create_user("Bob")
+        window.switch_user("Bob", load_sample=False)
+
+        # Verify completely empty schedule and empty todos
+        self.assertEqual(len(window._engine.sessions), 0)
+        self.assertEqual(len(window._engine.todos), 0)
+        self.assertIn("Schedule is empty", window._schedule_widget.lbl_sub.text())
+
+        window.close()
+
+    def test_new_user_can_load_sample_template(self) -> None:
+        _, db1 = self.manager.create_user("UserAlpha")
+        self.manager.set_active_user("UserAlpha")
+        db = Database(db1)
+        repo = StudyStationRepository(db)
+        engine = ScheduleEngine.from_repository(repo)
+        window = MainWindow(engine=engine, repository=repo, user_manager=self.manager)
+
+        # Switch to Charlie with load_sample=True
+        _, db_charlie = self.manager.create_user("Charlie")
+        window.switch_user("Charlie", load_sample=True)
+
+        # Verify sample sessions exist
+        self.assertGreater(len(window._engine.sessions), 0)
+
+        window.close()
+
+    def test_empty_schedule_button(self) -> None:
+        _, db1 = self.manager.create_user("UserWithClasses")
+        self.manager.set_active_user("UserWithClasses")
+        db = Database(db1)
+        repo = StudyStationRepository(db)
+        sample_path = Path(__file__).resolve().parent.parent / "docs" / "example.json"
+        if sample_path.exists():
+            repo.seed_timetable_if_empty(sample_path)
+        engine = ScheduleEngine.from_repository(repo)
+        window = MainWindow(engine=engine, repository=repo, user_manager=self.manager)
+
+        self.assertGreater(len(window._schedule_widget._sessions), 0)
+
+        # Simulate clicking "Empty Schedule" with QMessageBox.Yes
+        with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes):
+            window._schedule_widget._on_clear_schedule()
+
+        self.assertEqual(len(window._schedule_widget._sessions), 0)
+        self.assertEqual(len(window._engine.sessions), 0)
+        self.assertIn("Schedule is empty", window._schedule_widget.lbl_sub.text())
+
+        window.close()
+
+    def test_empty_tasks_button(self) -> None:
+        _, db1 = self.manager.create_user("UserWithTasks")
+        self.manager.set_active_user("UserWithTasks")
+        db = Database(db1)
+        repo = StudyStationRepository(db)
+        engine = ScheduleEngine.from_repository(repo)
+        engine.add_todo(StudyTodo(subject_name="Math", title="Homework 1"))
+        engine.add_todo(StudyTodo(subject_name="Physics", title="Lab Report"))
+
+        self.assertEqual(len(engine.todos), 2)
+
+        tasks_dlg = TasksDialog(engine)
+        self.assertTrue(tasks_dlg.btn_empty_tasks.isEnabled())
+
+        with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes):
+            tasks_dlg._on_empty_tasks_clicked()
+
+        self.assertEqual(len(engine.todos), 0)
+        self.assertFalse(tasks_dlg.btn_empty_tasks.isEnabled())
+        tasks_dlg.close()

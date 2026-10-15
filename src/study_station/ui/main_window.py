@@ -381,7 +381,7 @@ class MainWindow(QMainWindow):
         finally:
             self._hide_scrim()
 
-    def switch_user(self, new_username: str) -> None:
+    def switch_user(self, new_username: str, load_sample: bool = False) -> None:
         """Switch active user profile and connect to the user's database."""
         if not new_username:
             return
@@ -408,10 +408,11 @@ class MainWindow(QMainWindow):
         new_db = Database(new_db_path)
         new_repo = StudyStationRepository(new_db)
 
-        # 5. Seed timetable if empty
-        sample_timetable = Path(__file__).resolve().parent.parent.parent.parent / "docs" / "example.json"
-        if sample_timetable.exists():
-            new_repo.seed_timetable_if_empty(sample_timetable)
+        # 5. Seed timetable ONLY if explicitly requested by user option
+        if load_sample:
+            sample_timetable = Path(__file__).resolve().parent.parent.parent.parent / "docs" / "example.json"
+            if sample_timetable.exists():
+                new_repo.seed_timetable_if_empty(sample_timetable)
 
         # 6. Initialize fresh engine & settings
         new_engine = ScheduleEngine.from_repository(new_repo)

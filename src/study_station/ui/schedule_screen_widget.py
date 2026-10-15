@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -406,9 +407,9 @@ class ScheduleScreenWidget(QWidget):
         lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
         title_col.addWidget(lbl_title)
 
-        lbl_sub = QLabel("Click class to inspect · Esc to return")
-        lbl_sub.setStyleSheet("color: #71717A; font-size: 11px;")
-        title_col.addWidget(lbl_sub)
+        self.lbl_sub = QLabel("Click class to inspect · Esc to return")
+        self.lbl_sub.setStyleSheet("color: #71717A; font-size: 11px;")
+        title_col.addWidget(self.lbl_sub)
         header.addLayout(title_col)
 
         header.addSpacing(10)
@@ -806,6 +807,12 @@ class ScheduleScreenWidget(QWidget):
         if hasattr(self, "lbl_week_range"):
             self.lbl_week_range.setText(week_str)
 
+        if hasattr(self, "lbl_sub"):
+            if not self._sessions:
+                self.lbl_sub.setText("Schedule is empty · Click any '+' slot to add a class, or use Import / Export")
+            else:
+                self.lbl_sub.setText("Click class to inspect · Esc to return")
+
         is_current_week = (
             ScheduleEngine.get_week_start(self._current_view_date)
             == ScheduleEngine.get_week_start(datetime.now().date())
@@ -991,6 +998,16 @@ class ScheduleScreenWidget(QWidget):
         self.btn_delete_session.clicked.connect(self._on_delete_session)
         top_row.addWidget(self.btn_delete_session)
 
+        # "Empty Schedule" button
+        self.btn_clear_schedule = QPushButton("🗑 Empty Schedule")
+        self.btn_clear_schedule.setStyleSheet(BUTTON_DANGER_STYLE + """
+            QPushButton:disabled { color: #3F3F46; border-color: #1E1E26; background-color: #0E0E12; }
+        """)
+        self.btn_clear_schedule.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_clear_schedule.setToolTip("Clear all scheduled classes for this user")
+        self.btn_clear_schedule.clicked.connect(self._on_clear_schedule)
+        top_row.addWidget(self.btn_clear_schedule)
+
         layout.addLayout(top_row)
 
         # 2. Modern Table of sessions
@@ -1123,6 +1140,8 @@ class ScheduleScreenWidget(QWidget):
         has_sel = bool(self.table_sessions.selectionModel().selectedRows())
         self.btn_edit_selected.setEnabled(has_sel)
         self.btn_delete_session.setEnabled(has_sel)
+        if hasattr(self, "btn_clear_schedule"):
+            self.btn_clear_schedule.setEnabled(len(self._sessions) > 0)
 
     def _on_preset_slot_changed(self, idx: int) -> None:
         preset_map = {
@@ -1327,6 +1346,30 @@ class ScheduleScreenWidget(QWidget):
             self._refresh_table()
             self._refresh_calendar_grid()
             self.timetable_changed.emit(self._sessions)
+
+    def _on_clear_schedule(self) -> None:
+        """Clear all classes from the schedule with student confirmation."""
+        if not self._sessions:
+            QMessageBox.information(
+                self,
+                "Schedule Empty",
+                "Your schedule is already empty. There are no classes to clear.",
+            )
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Empty Schedule",
+            "Are you sure you want to clear all classes from your schedule?\n\nThis will remove all scheduled sessions for the current profile. This action cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._sessions.clear()
+            self._refresh_table()
+            self._refresh_calendar_grid()
+            self._update_selection_buttons()
+            self.timetable_changed.emit([])
 
     def _open_session_manager(self, session: AcademicSession) -> None:
         if self.engine is not None:

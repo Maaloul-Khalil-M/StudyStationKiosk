@@ -254,7 +254,7 @@ def main():
     user_mgr.create_user("Alice")
     user_mgr.create_user("Bob")
     user_dlg = UserSwitchDialog(user_manager=user_mgr)
-    user_dlg.resize(540, 500)
+    user_dlg.resize(560, 525)
     user_dlg.show()
     app.processEvents()
     save_both(user_dlg.grab(), "switch_user_modal.png", "s10 switch_user.png")

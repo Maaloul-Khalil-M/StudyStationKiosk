@@ -158,7 +158,11 @@ When arriving at the desk tired at night, looking at a passive clock or complex 
 - **Shared Desk Appliance Experience**: Designed for kiosk setups where multiple students share the workstation. Zero password prompts or login friction.
 - **True Database Isolation**: Each student gets an independent SQLite database (`%APPDATA%/study_station/users/{username}.db`) storing their own timetable, deliverables, target minutes, and study history.
 - **1-Click Switching**: Click `[ 👤 {Username} ]` in the top header or press <kbd>U</kbd> to open the switcher modal and pick a profile or create a new user.
-- **Instant Out-of-the-Box Functionality**: Newly created profiles are immediately initialized and seeded from `docs/example.json`, providing working classes and sprint capability immediately.
+- **Clean Slate (Empty Schedule & Tasks) as Default**: Newly created user profiles start with a clean slate (0 scheduled classes, 0 pending tasks) so students can build their own schedule from scratch or import their own files.
+- **Template Choice Option**: The creation dialog offers an explicit option to "Start empty (clean schedule & tasks)" or "Load sample timetable template".
+- **On-Demand "Empty Schedule" & "Empty Tasks"**:
+  - `[ 🗑 Empty Schedule ]` button in the Weekly Schedule Editor toolbar clears all scheduled sessions with student confirmation.
+  - `[ Empty Tasks ]` button in the Academic Tasks modal header clears all tasks with student confirmation.
 - **Zero-Restart Seamless Live Switch**: Instantly pauses any active timer, safely switches SQLite database connections, reloads the engine and UI themes, and refreshes the cockpit without restarting the app.
 
 ### 🛡 Local Persistence & Hardware Resilience (`StudyStationRepository`)

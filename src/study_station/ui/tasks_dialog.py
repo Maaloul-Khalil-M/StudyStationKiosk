@@ -138,6 +138,15 @@ class TasksDialog(QDialog):
         self.btn_new_task.clicked.connect(lambda: self._open_create_dialog())
         header.addWidget(self.btn_new_task)
 
+        self.btn_empty_tasks = QPushButton("Empty Tasks")
+        self.btn_empty_tasks.setToolTip("Clear all tasks from the backlog")
+        self.btn_empty_tasks.setStyleSheet(BUTTON_DANGER_STYLE + """
+            QPushButton:disabled { color: #3F3F46; border-color: #1E1E26; background-color: #0E0E12; }
+        """)
+        self.btn_empty_tasks.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_empty_tasks.clicked.connect(self._on_empty_tasks_clicked)
+        header.addWidget(self.btn_empty_tasks)
+
         btn_close = QPushButton("✕")
         btn_close.setToolTip("Close (Esc)")
         btn_close.setFixedSize(30, 30)
@@ -502,6 +511,9 @@ class TasksDialog(QDialog):
         self.kpi_completed.value_label.setText(str(len(completed)))  # type: ignore
 
         # Header live badge
+        if hasattr(self, "btn_empty_tasks"):
+            self.btn_empty_tasks.setEnabled(bool(all_todos))
+
         if pending:
             self.lbl_header_badge.setText(f"● {len(pending)} PENDING")
             self.lbl_header_badge.setStyleSheet("""
@@ -932,6 +944,28 @@ class TasksDialog(QDialog):
         )
         if confirm == QMessageBox.StandardButton.Yes:
             self.engine.delete_todo(todo.id)
+            self.tasks_changed.emit()
+            self._refresh_all()
+
+    def _on_empty_tasks_clicked(self) -> None:
+        if not self.engine or not self.engine.todos:
+            QMessageBox.information(
+                self,
+                "Tasks Empty",
+                "Your task backlog is already empty. There are no tasks to clear.",
+            )
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Empty Task Backlog",
+            "Are you sure you want to clear all tasks from your backlog?\n\nThis will remove all pending and completed deliverables for the current profile. This action cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            for todo in list(self.engine.todos):
+                self.engine.delete_todo(todo.id)
             self.tasks_changed.emit()
             self._refresh_all()
 
