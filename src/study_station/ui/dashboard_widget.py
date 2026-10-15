@@ -45,6 +45,7 @@ class SubjectDashboardWidget(QWidget):
     open_timetable_requested = Signal()
     open_targets_requested = Signal(str)  # subject_name
     open_manual_log_requested = Signal(str)  # subject_name
+    open_history_requested = Signal()
     toggle_fullscreen_requested = Signal()
 
     def __init__(
@@ -347,6 +348,12 @@ class SubjectDashboardWidget(QWidget):
         self.btn_log.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_log.clicked.connect(lambda: self.open_manual_log_requested.emit(self.selected_subject or ""))
         nav_layout.addWidget(self.btn_log)
+
+        self.btn_history = QPushButton("History")
+        self.btn_history.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_history.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_history.clicked.connect(self.open_history_requested.emit)
+        nav_layout.addWidget(self.btn_history)
 
         self.btn_settings = QPushButton("Settings")
         self.btn_settings.setStyleSheet(BUTTON_NAV_STYLE)

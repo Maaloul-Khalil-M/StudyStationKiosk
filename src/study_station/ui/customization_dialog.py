@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from study_station.core.settings import AppSettings
+from study_station.core.sound_manager import SoundManager
 from study_station.ui.theme import BUTTON_PRIMARY_STYLE, BUTTON_SECONDARY_STYLE, THEMES, get_modern_font
 
 
@@ -30,7 +31,7 @@ class CustomizationDialog(QDialog):
     def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Clock & Display Customization")
-        self.setFixedSize(500, 620)
+        self.setFixedSize(500, 680)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -224,11 +225,51 @@ class CustomizationDialog(QDialog):
         theme_layout.addLayout(row2)
         content_layout.addLayout(theme_layout)
 
-        # Section 4: Secondary Tools
-        sec4_lbl = QLabel("STUDY MANAGEMENT")
-        sec4_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
-        sec4_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
-        content_layout.addWidget(sec4_lbl)
+        # Section 4: Audio Cues & Calm Feedback
+        sec_audio_lbl = QLabel("AUDIO & CALM CUES")
+        sec_audio_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
+        sec_audio_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
+        content_layout.addWidget(sec_audio_lbl)
+
+        audio_row = QHBoxLayout()
+        audio_row.setSpacing(12)
+
+        self.cb_sound = QCheckBox("Focus completion chime")
+        self.cb_sound.setChecked(getattr(self._settings, "sound_enabled", True))
+        self.cb_sound.toggled.connect(self._on_sound_toggled)
+        audio_row.addWidget(self.cb_sound)
+
+        audio_row.addStretch()
+
+        self.btn_preview_sound = QPushButton("▶ Test Chime")
+        self.btn_preview_sound.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_preview_sound.setFixedHeight(28)
+        self.btn_preview_sound.setStyleSheet("""
+            QPushButton {
+                background: #18181D;
+                color: #A1A1AA;
+                border: 1px solid #27272E;
+                border-radius: 14px;
+                padding: 0 12px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #27272E;
+                color: #FFFFFF;
+                border-color: #3F3F4A;
+            }
+        """)
+        self.btn_preview_sound.clicked.connect(self._on_preview_sound)
+        audio_row.addWidget(self.btn_preview_sound)
+
+        content_layout.addLayout(audio_row)
+
+        # Section 5: Secondary Tools
+        sec5_lbl = QLabel("STUDY MANAGEMENT")
+        sec5_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
+        sec5_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
+        content_layout.addWidget(sec5_lbl)
 
         tools_layout = QHBoxLayout()
         tools_layout.setSpacing(8)
@@ -300,3 +341,10 @@ class CustomizationDialog(QDialog):
         if checked:
             self._settings.theme_id = theme_key
             self.settings_changed.emit(self._settings)
+
+    def _on_sound_toggled(self, checked: bool) -> None:
+        self._settings.sound_enabled = checked
+        self.settings_changed.emit(self._settings)
+
+    def _on_preview_sound(self) -> None:
+        SoundManager.get_instance().play_completion_chime(enabled=True)

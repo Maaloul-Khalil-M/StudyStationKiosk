@@ -54,12 +54,24 @@ class SplitFlapClockWidget(QWidget):
 
         self._update_dimensions()
 
+    def _get_layout_metrics(self) -> tuple[int, int, int, int, int]:
+        rect = self.rect()
+        card_h = min(96, max(60, rect.height() - 8))
+        card_w = int(card_h * 0.88)
+        gap = 8
+        colon_w = 16
+        if self.settings.show_seconds:
+            total_w = 3 * card_w + 2 * colon_w + 4 * gap
+        else:
+            total_w = 2 * card_w + colon_w + 2 * gap
+        return card_h, card_w, gap, colon_w, total_w
+
     def sizeHint(self) -> QSize:
-        w = 460 if self.settings.show_seconds else 340
+        w = 340 if self.settings.show_seconds else 230
         return QSize(w, 105)
 
     def _update_dimensions(self) -> None:
-        w = 460 if self.settings.show_seconds else 340
+        w = 340 if self.settings.show_seconds else 230
         self.setFixedSize(w, 105)
 
     def apply_settings(self, settings: AppSettings) -> None:
@@ -132,39 +144,36 @@ class SplitFlapClockWidget(QWidget):
         painter.fillRect(rect, theme.bg_canvas)
 
         now = datetime.now()
-
-        card_h = min(96, rect.height() - 8)
-        card_w = int(card_h * 0.88)
-        gap = int(card_h * 0.07)
-        colon_w = 20
-
-        has_seconds = self.settings.show_seconds
-        total_w = card_w * 2 + gap + colon_w + (colon_w + card_w if has_seconds else 0)
+        card_h, card_w, gap, colon_w, total_w = self._get_layout_metrics()
 
         start_x = (rect.width() - total_w) // 2
         start_y = (rect.height() - card_h) // 2
 
+        x = start_x
+
         # Card 1: Hours
-        hours_rect = QRect(start_x, start_y, card_w, card_h)
+        hours_rect = QRect(x, start_y, card_w, card_h)
         am_pm = ("AM" if now.hour < 12 else "PM") if not self.settings.use_24h else ""
         self._paint_card(painter, hours_rect, self._curr_hour, self._prev_hour, 1.0, theme, am_pm=am_pm)
+        x += card_w + gap
 
-        # Colon divider
-        colon_x = start_x + card_w + gap
-        colon_rect = QRect(colon_x, start_y, colon_w, card_h)
-        self._paint_colon(painter, colon_rect, theme)
+        # Colon 1
+        colon1_rect = QRect(x, start_y, colon_w, card_h)
+        self._paint_colon(painter, colon1_rect, theme)
+        x += colon_w + gap
 
         # Card 2: Minutes
-        min_x = colon_x + colon_w
-        min_rect = QRect(min_x, start_y, card_w, card_h)
+        min_rect = QRect(x, start_y, card_w, card_h)
         self._paint_card(painter, min_rect, self._curr_minute, self._prev_minute, self._minute_flip_progress, theme)
 
         # Optional Seconds
-        if has_seconds:
-            colon_sec_rect = QRect(min_x + card_w + gap, start_y, colon_w, card_h)
-            self._paint_colon(painter, colon_sec_rect, theme)
-            sec_x = colon_sec_rect.right()
-            sec_rect = QRect(sec_x, start_y, card_w, card_h)
+        if self.settings.show_seconds:
+            x += card_w + gap
+            colon2_rect = QRect(x, start_y, colon_w, card_h)
+            self._paint_colon(painter, colon2_rect, theme)
+            x += colon_w + gap
+
+            sec_rect = QRect(x, start_y, card_w, card_h)
             self._paint_card(painter, sec_rect, self._curr_second, self._prev_second, self._second_flip_progress, theme)
 
     def _paint_colon(self, painter: QPainter, rect: QRect, theme) -> None:
@@ -198,7 +207,7 @@ class SplitFlapClockWidget(QWidget):
         top_rect = QRect(rect.left(), rect.top(), rect.width(), y_mid - rect.top())
         bottom_rect = QRect(rect.left(), y_mid, rect.width(), rect.bottom() - y_mid + 1)
 
-        font_size = int(rect.height() * 0.68)
+        font_size = max(1, int(rect.height() * 0.62))
         digit_font = get_modern_font("mono", size=font_size, weight=QFont.Weight.Bold)
 
         # 1. Base card (bottom flap)

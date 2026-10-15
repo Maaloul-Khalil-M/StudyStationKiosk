@@ -360,7 +360,7 @@ class AmbientClockWidget(QWidget):
         top_rect = QRect(rect.left(), rect.top(), rect.width(), y_mid - rect.top())
         bottom_rect = QRect(rect.left(), y_mid, rect.width(), rect.bottom() - y_mid + 1)
 
-        font_size = int(rect.height() * 0.70)
+        font_size = max(1, int(rect.height() * 0.70))
         digit_font = get_modern_font("mono", size=font_size, weight=QFont.Weight.Bold)
 
         # 1. Base Card Background (Bottom Flap)

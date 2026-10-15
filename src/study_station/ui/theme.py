@@ -90,7 +90,8 @@ THEMES = {
 def get_modern_font(family_preference: str = "sans", size: int = 14, weight: QFont.Weight = QFont.Weight.Normal) -> QFont:
     """Return a modern font configured with cross-platform fallbacks and tabular figures."""
     font = QFont()
-    font.setPixelSize(size)
+    safe_size = max(1, int(size))
+    font.setPixelSize(safe_size)
     font.setWeight(weight)
     
     if family_preference in ("serif", "eva", "eva_display"):

@@ -651,10 +651,12 @@ class ScheduleScreenWidget(QWidget):
                 border-radius: 10px;
                 selection-background-color: #222230;
                 outline: none;
+                font-size: 11px;
             }
             QTableWidget::item {
                 padding: 4px 8px;
                 border-bottom: 1px solid #1C1C24;
+                font-size: 11px;
             }
             QHeaderView::section {
                 background-color: #16161C;
@@ -846,27 +848,23 @@ class ScheduleScreenWidget(QWidget):
             # Day
             day_item = QTableWidgetItem(s.day.upper())
             day_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            day_item.setFont(get_modern_font("sans", 11, QFont.Weight.Bold))
             self.table_sessions.setItem(row, 0, day_item)
 
             # Time
             time_str = f"{s.time_slot.start} – {s.time_slot.end}"
             time_item = QTableWidgetItem(time_str)
             time_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            time_item.setFont(get_modern_font("mono", 11, QFont.Weight.Medium))
             self.table_sessions.setItem(row, 1, time_item)
 
             # Subject
             clean_name = ScheduleEngine.clean_subject_name(s.subject.name)
             subj_item = QTableWidgetItem(clean_name)
-            subj_item.setFont(get_modern_font("sans", 11, QFont.Weight.Bold))
             self.table_sessions.setItem(row, 2, subj_item)
 
             # Type
             core_upper = s.subject.core.upper()
             core_item = QTableWidgetItem(core_upper)
             core_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            core_item.setFont(get_modern_font("sans", 10, QFont.Weight.Bold))
             self.table_sessions.setItem(row, 3, core_item)
 
             # Location

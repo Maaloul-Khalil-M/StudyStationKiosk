@@ -69,6 +69,39 @@ class StudyStationRepository:
             )
         return logs
 
+    def delete_study_log(self, log_id: str) -> bool:
+        """Delete a study log by its ID. Returns True if a record was removed."""
+        with self.db.connection as conn:
+            cursor = conn.execute("DELETE FROM study_logs WHERE id = ?", (log_id,))
+            return cursor.rowcount > 0
+
+    def update_study_log(
+        self,
+        log_id: str,
+        subject_name: str,
+        duration_minutes: int,
+        started_at: datetime | None = None,
+    ) -> bool:
+        """Update an existing study log's details. Returns True if updated."""
+        query = """
+            UPDATE study_logs
+            SET subject_name = ?,
+                duration_minutes = ?,
+                started_at = COALESCE(?, started_at)
+            WHERE id = ?;
+        """
+        with self.db.connection as conn:
+            cursor = conn.execute(
+                query,
+                (
+                    subject_name,
+                    max(1, duration_minutes),
+                    started_at.isoformat() if started_at else None,
+                    log_id,
+                ),
+            )
+            return cursor.rowcount > 0
+
     # -------------------------------------------------------------------------
     # Subject Review Targets
     # -------------------------------------------------------------------------

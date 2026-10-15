@@ -84,6 +84,12 @@ class TestDashboardUI(unittest.TestCase):
         self.assertEqual(len(emitted), 1)
         self.assertEqual(emitted[0], ("Math", 15))
 
+        # Test history button signal
+        history_emitted = []
+        dashboard.open_history_requested.connect(lambda: history_emitted.append(True))
+        dashboard.btn_history.click()
+        self.assertEqual(len(history_emitted), 1)
+
     def test_ambient_date_and_nav_toggle(self) -> None:
         dashboard = SubjectDashboardWidget(self.engine, self.settings)
         # In idle mode: top_bar and lbl_date remain visible; nav_container is hidden

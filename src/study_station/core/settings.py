@@ -17,6 +17,7 @@ class AppSettings:
     animate_flip: bool = True
     default_focus_minutes: int = 15
     typography_style: str = "eva"  # "eva" (Matisse Serif + HUD) or "modern" (Swiss Sans)
+    sound_enabled: bool = True     # Milestone 8: Audio completion chime toggle
 
     def to_dict(self) -> dict:
         return asdict(self)

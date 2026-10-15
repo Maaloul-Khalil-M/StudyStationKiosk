@@ -164,6 +164,61 @@ class TestScheduleEngine(unittest.TestCase):
         mer_sessions = self.engine.get_day_sessions(2)
         self.assertEqual(len(mer_sessions), 0)
 
+    def test_study_statistics_and_log_management(self) -> None:
+        log1 = StudyLog(
+            id="log-a",
+            subject_name="Data Vis",
+            started_at=datetime(2026, 10, 14, 10, 0),  # Wednesday of 12-18 Oct week
+            duration_minutes=25,
+            source="timer",
+        )
+        log2 = StudyLog(
+            id="log-b",
+            subject_name="Data Vis",
+            started_at=datetime(2026, 10, 15, 14, 0),  # Thursday of same week
+            duration_minutes=35,
+            source="manual",
+        )
+        log3 = StudyLog(
+            id="log-c",
+            subject_name="Math",
+            started_at=datetime(2026, 10, 5, 9, 0),  # Previous week
+            duration_minutes=40,
+            source="timer",
+        )
+        self.engine.add_study_log(log1)
+        self.engine.add_study_log(log2)
+        self.engine.add_study_log(log3)
+
+        # Total minutes: 25 + 35 + 40 = 100
+        self.assertEqual(self.engine.get_total_study_minutes(), 100)
+
+        # Weekly minutes for Oct 14 week: 25 + 35 = 60
+        ref_d = date(2026, 10, 14)
+        self.assertEqual(self.engine.get_weekly_study_minutes(ref_d), 60)
+
+        # Weekly breakdown by subject
+        breakdown = self.engine.get_weekly_study_by_subject(ref_d)
+        self.assertEqual(breakdown.get("Data Vis"), 60)
+        self.assertNotIn("Math", breakdown)
+
+        # Filtered logs
+        timer_logs = self.engine.get_study_logs(source_filter="timer")
+        self.assertEqual(len(timer_logs), 2)
+        math_logs = self.engine.get_study_logs(subject_filter="Math")
+        self.assertEqual(len(math_logs), 1)
+
+        # Update log
+        updated = self.engine.update_study_log("log-a", "Data Vis", 30)
+        self.assertTrue(updated)
+        self.assertEqual(self.engine.get_total_study_minutes(), 105)
+
+        # Delete log
+        deleted = self.engine.delete_study_log("log-c")
+        self.assertTrue(deleted)
+        self.assertEqual(self.engine.get_total_study_minutes(), 65)
+        self.assertFalse(self.engine.delete_study_log("non-existent"))
+
 
 if __name__ == "__main__":
     unittest.main()

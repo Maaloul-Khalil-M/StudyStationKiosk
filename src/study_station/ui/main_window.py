@@ -21,6 +21,7 @@ from study_station.ui.completion_widget import CompletionWidget
 from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.dashboard_widget import SubjectDashboardWidget
 from study_station.ui.focus_widget import FocusWidget
+from study_station.ui.history_dialog import HistoryDialog
 from study_station.ui.manual_log_dialog import ManualLogDialog
 from study_station.ui.schedule_screen_widget import ScheduleScreenWidget
 from study_station.ui.targets_dialog import TargetsDialog
@@ -64,6 +65,7 @@ class MainWindow(QMainWindow):
         self._dashboard_widget.open_timetable_requested.connect(self.open_timetable_editor)
         self._dashboard_widget.open_targets_requested.connect(self.open_targets_dialog)
         self._dashboard_widget.open_manual_log_requested.connect(self.open_manual_log_dialog)
+        self._dashboard_widget.open_history_requested.connect(self.open_history_dialog)
         self._dashboard_widget.toggle_fullscreen_requested.connect(self.toggle_fullscreen)
         self._stack.addWidget(self._dashboard_widget)
 
@@ -255,9 +257,21 @@ class MainWindow(QMainWindow):
         finally:
             self._hide_scrim()
 
+    def open_history_dialog(self) -> None:
+        """Open Study History & Cycle Statistics dialog with dark scrim."""
+        if not self._engine:
+            return
+        self._show_scrim()
+        try:
+            dialog = HistoryDialog(self._engine, parent=self)
+            dialog.history_changed.connect(self._dashboard_widget.refresh_dashboard)
+            dialog.exec()
+        finally:
+            self._hide_scrim()
+
     def _on_manual_time_logged(self, subject_name: str, minutes: int) -> None:
         """Handle manual time entry logged away from the computer."""
-        self._on_session_finished(subject_name, minutes)
+        self._on_session_finished(subject_name, minutes, source="manual")
 
     # -------------------------------------------------------------------------
     # Progress & Flow
@@ -293,7 +307,12 @@ class MainWindow(QMainWindow):
 
         self._stack.setCurrentIndex(self.INDEX_FOCUS)
 
-    def _on_session_finished(self, subject_name: str, elapsed_minutes: int) -> None:
+    def _on_session_finished(
+        self,
+        subject_name: str,
+        elapsed_minutes: int,
+        source: str = "timer",
+    ) -> None:
         """Handle focus session completion or manual finish."""
         if self._repo:
             self._repo.clear_timer_state()
@@ -310,7 +329,7 @@ class MainWindow(QMainWindow):
                     subject_name=subject_name,
                     started_at=datetime.now(),
                     duration_minutes=elapsed_minutes,
-                    source="timer",
+                    source=source,
                 )
             )
             cycle = self._engine.get_active_cycle(subject_name, datetime.now())
@@ -326,6 +345,12 @@ class MainWindow(QMainWindow):
             completed_minutes=completed,
             target_minutes=target,
         )
+
+        # Milestone 8: Play calm acoustic completion chime
+        if source == "timer" and getattr(self._settings, "sound_enabled", True):
+            from study_station.core.sound_manager import SoundManager
+            SoundManager.get_instance().play_completion_chime(enabled=True)
+
         self._stack.setCurrentIndex(self.INDEX_COMPLETION)
 
     def _show_dashboard_screen(self) -> None:
@@ -358,6 +383,8 @@ class MainWindow(QMainWindow):
                 self.open_targets_dialog()
             elif key == Qt.Key.Key_M:
                 self.open_manual_log_dialog()
+            elif key == Qt.Key.Key_H:
+                self.open_history_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
                 self.start_focus_session(self._settings.default_focus_minutes)
             elif key == Qt.Key.Key_1:

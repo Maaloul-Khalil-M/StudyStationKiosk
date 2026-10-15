@@ -332,23 +332,87 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 
 ---
 
+### Milestone 7: Study History & Cycle Statistics `[COMPLETED]`
+- [x] **Study History & Statistics Dialog ([`history_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/history_dialog.py)):**
+  - Designed in obsidian minimal aesthetic (`#121215` canvas with `#27272A` borders) and dark scrim backdrop overlay.
+  - **Overview KPI Cards:**
+    - `THIS WEEK`: Formatted volume in emerald (e.g. `4h 15m`).
+    - `ALL-TIME TOTAL`: Total completed study volume across all subjects.
+    - `CYCLE COMPLETION`: Real-time percentage of active subject review cycles meeting their targets (e.g. `75% · 3 of 4 cycles on target`).
+  - **Multi-Criteria Filtering:**
+    - Dynamic subject filter: `All Subjects` or individual enrolled subject.
+    - Source filter: `All Sources`, `Timer (Focus)`, `Manual (Offline)`.
+    - Session counter badge (`X sessions recorded`).
+  - **Chronological History Table:**
+    - 5 columns: `DATE & TIME`, `SUBJECT`, `DURATION` (`+25m` emerald pill), `SOURCE` (blue `TIMER` or purple `MANUAL`), `ACTIONS`.
+    - Human-friendly timestamps: `Today, 14:30`, `Yesterday, 09:15`, or `14 Oct, 11:00`.
+- [x] **In-Place Log Correction & Mistake Recovery:**
+  - Implemented [`EditStudyLogDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/history_dialog.py#L65-L165): allows editing duration (with preset pills `15m`, `25m`, `30m`, `45m`, `60m`) or re-assigning subject.
+  - Interactive deletion confirmation with instant recalculation: removing mistaken logs automatically updates active study cycle progress and dashboard widgets without app restart.
+- [x] **Persistence & Engine Upgrades:**
+  - Added `delete_study_log()` and `update_study_log()` to [`StudyStationRepository`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/persistence/repository.py) and [`ScheduleEngine`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/engine.py).
+  - Added deterministic stats helpers: `get_weekly_study_minutes()`, `get_weekly_study_by_subject()`, `get_total_study_minutes()`, and `get_cycle_completion_stats()`.
+  - Added distinct `source="manual"` vs `source="timer"` tracking across `MainWindow._on_session_finished()`.
+- [x] **Top Bar Navigation & Shortcuts:**
+  - Added `[ History ]` button in the top navigation bar of [`SubjectDashboardWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/dashboard_widget.py).
+  - Dedicated keyboard shortcut: <kbd>H</kbd> in ambient mode instantly opens the history dialog.
+- [x] **Verification & Test Suite:**
+  - Added dedicated unit test suite in [`tests/test_history_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_history_dialog.py) covering dialog creation, KPIs, filtering, editing, and deletion.
+  - Expanded `tests/test_persistence.py`, `tests/test_engine.py`, and `tests/test_dashboard_ui.py`.
+  - 100% test pass rate maintained: **49/49 passing unit tests** across all 9 test suites.
+  - Screen capture refreshed in [`docs/screens/history.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/history.png) and [`docs/screens/main_with_hover.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/main_with_hover.png).
+
+---
+
+## Key Decisions & Guiding Rules
+1. **Subject first (not Time first):** Study Station is a dedicated study machine; the Subject, its study cycle review progress, and the class schedule are the visual and functional centerpiece. The split-flap clock is a calm, glanceable companion.
+2. **One question per screen:**
+   - *Dashboard:* What subject am I reviewing, what is my cycle progress, and when is my next class?
+   - *Focus:* What am I working on right now?
+   - *Completion:* Did my effort count toward my subject goal?
+   - *History:* How much study effort have I accumulated this week and did I hit my cycle goals?
+3. **No guilt debt:** Unfinished review minutes do not accumulate as overdue debt across class cycles.
+4. **Deterministic core:** Engine, models, and timer logic remain pure and unit-testable independently of Qt UI.
+
+---
+
+### Milestone 8: Audio Cues & Calm Feedback `[COMPLETED]`
+- [x] **Harmonic Synthesis Engine ([`sound_manager.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/sound_manager.py)):**
+  - Pure Python additive harmonic chime synthesizer (16-bit 44.1kHz mono PCM WAV):
+    - Multi-layer chime: C5 (523.25 Hz) fundamental, E5 (659.25 Hz) major third, G5 (783.99 Hz) fifth, and C6 (1046.50 Hz) sparkle.
+    - 15ms smooth attack envelope eliminating audio onset clicks, followed by gentle exponential decay over 1.4s.
+    - Zero external audio binary dependencies (pure Python `wave` + `struct` + `math`).
+    - Stored at `src/study_station/assets/sounds/completion_chime.wav` with deterministic auto-generation if missing.
+- [x] **Cross-Platform Non-Blocking Playback:**
+  - Asynchronous background thread playback preventing any UI thread stutter or frame drops:
+    - **Windows:** Native `winsound.PlaySound` (asynchronous zero-latency).
+    - **Linux (Fedora / X11):** Direct pipe to `pw-play` (PipeWire), `paplay` (PulseAudio), `aplay` (ALSA), or `canberra-gtk-play`.
+    - **macOS:** Native `afplay`.
+    - Graceful fallback for headless CI and audio-disabled systems.
+- [x] **Settings & Persistence Integration:**
+  - Added `sound_enabled: bool = True` to [`AppSettings`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/core/settings.py).
+  - Persisted in SQLite settings table with backward-compatible deserialization defaults.
+- [x] **Settings UI ([`customization_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/customization_dialog.py)):**
+  - Added **`AUDIO & CALM CUES`** section.
+  - Emerald toggle: `Focus completion chime`.
+  - Interactive `[ ▶ Test Chime ]` preview pill button allowing instant testing of the acoustic feedback.
+  - Sized to 500×680 to fit all sections cleanly.
+- [x] **Focus Session Flow Integration ([`main_window.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/main_window.py)):**
+  - Focus countdown ending at 00:00 automatically triggers the calm completion chime when `sound_enabled` is active.
+- [x] **Bug Fixes & UI Polishing:**
+  - **Main Screen Flip Clock Layout:** Re-engineered `SplitFlapClockWidget._get_layout_metrics` to enforce mathematically symmetrical card and colon spacing (`Card 1` → `gap` → `Colon 1` → `gap` → `Card 2` → `gap` → `Colon 2` → `gap` → `Card 3`). Re-balanced digit font scaling ratio to 0.62× to prevent digit clipping on side notches and center fold creases.
+  - **Console Font Size Warning:** Eliminated `QFont::setPointSize: Point size <= 0 (-1)` by replacing item-level font overrides on `QTableWidgetItem` with stylesheet-level table font rules (`QTableWidget { font-size: 13px; }`) in `history_dialog.py` and `schedule_screen_widget.py`.
+  - **History UI Polishing:** Prevented label wrapping in `ALL-TIME TOTAL` telemetry card.
+- [x] **Verification & Test Suite:**
+  - Added dedicated unit test suite in [`tests/test_sound_manager.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_sound_manager.py) covering WAV format, synthesis, playback, settings toggling, and dialog button invocation.
+  - **100% test pass rate:** **55/55 passing unit tests** across all 10 test suites.
+  - Refreshed screenshots in `docs/screens/`: [`settings.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/settings.png), [`history.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/history.png), [`main_with_hover.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/main_with_hover.png), and `main_no_hover.png`.
+
+---
+
 ## Next Steps Roadmap & Recommended Work
 
-### Milestone 7: Study History & Cycle Statistics `[RECOMMENDED NEXT]`
-- [ ] **Study History Dialog (`HistoryDialog`):**
-  - Chronological log viewer of all completed focus sessions and manual entries (Date, Time, Subject, Duration, Source).
-  - Ability to delete or correct mistaken time logs.
-  - Weekly study summary: total hours completed across subjects.
-  - Cycle target completion rate (percentage of study cycles completed on target).
-- [ ] **Top Bar Integration:** Add a `[ 📊 History ]` button in the top navigation bar.
-
-### Milestone 8: Audio Cues & Calm Feedback
-- [ ] **Discreet Completion Chime:**
-  - Subtle, calm audible tone when a focus countdown finishes (useful when looking away from the screen reading notes or books).
-  - Configurable sound toggle in Settings (`CustomizationDialog`): Enabled / Disabled.
-  - Cross-platform audio via `QSoundEffect` or synthesized chime.
-
-### Milestone 9: Timetable Portability (Import & Export)
+### Milestone 9: Timetable Portability (Import & Export) `[RECOMMENDED NEXT]`
 - [ ] **Timetable JSON / CSV Export & Import:**
   - Export timetable sessions to standard JSON/CSV for backup or sharing.
   - Import schedule files directly through `TimetableDialog` with collision validation.

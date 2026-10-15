@@ -43,6 +43,38 @@ class TestPersistence(unittest.TestCase):
         self.assertEqual(logs[0].subject_name, "Data Vis")
         self.assertEqual(logs[0].duration_minutes, 25)
 
+    def test_study_logs_delete_and_update(self) -> None:
+        log = StudyLog(
+            id="log-2",
+            subject_name="Physics",
+            started_at=datetime(2026, 10, 14, 11, 0),
+            duration_minutes=30,
+            source="manual",
+        )
+        self.repo.add_study_log(log)
+
+        # Update log
+        updated = self.repo.update_study_log(
+            log_id="log-2",
+            subject_name="Physics II",
+            duration_minutes=45,
+        )
+        self.assertTrue(updated)
+        logs = self.repo.get_all_study_logs()
+        matching = [l for l in logs if l.id == "log-2"]
+        self.assertEqual(len(matching), 1)
+        self.assertEqual(matching[0].subject_name, "Physics II")
+        self.assertEqual(matching[0].duration_minutes, 45)
+
+        # Delete log
+        deleted = self.repo.delete_study_log("log-2")
+        self.assertTrue(deleted)
+        logs = self.repo.get_all_study_logs()
+        self.assertEqual(len([l for l in logs if l.id == "log-2"]), 0)
+
+        # Deleting non-existent log returns False
+        self.assertFalse(self.repo.delete_study_log("non-existent"))
+
     def test_subject_targets(self) -> None:
         self.repo.set_subject_target("Data Vis", 90)
         self.repo.set_subject_target("Math", 45)

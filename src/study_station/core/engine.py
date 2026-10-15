@@ -93,6 +93,87 @@ class ScheduleEngine:
         if self.repository is not None:
             self.repository.add_study_log(log)
 
+    def delete_study_log(self, log_id: str) -> bool:
+        """Delete a study log by its ID from memory and database."""
+        idx = next((i for i, l in enumerate(self.study_logs) if l.id == log_id), None)
+        if idx is not None:
+            self.study_logs.pop(idx)
+            if self.repository is not None:
+                self.repository.delete_study_log(log_id)
+            return True
+        return False
+
+    def update_study_log(
+        self,
+        log_id: str,
+        subject_name: str,
+        duration_minutes: int,
+        started_at: datetime | None = None,
+    ) -> bool:
+        """Update an existing study log's details in memory and database."""
+        for log in self.study_logs:
+            if log.id == log_id:
+                log.subject_name = subject_name
+                log.duration_minutes = max(1, duration_minutes)
+                if started_at is not None:
+                    log.started_at = started_at
+                if self.repository is not None:
+                    self.repository.update_study_log(log_id, subject_name, duration_minutes, started_at)
+                return True
+        return False
+
+    def get_study_logs(
+        self,
+        reverse: bool = True,
+        subject_filter: str | None = None,
+        source_filter: str | None = None,
+    ) -> list[StudyLog]:
+        """Return study logs with optional filtering and sorting."""
+        logs = list(self.study_logs)
+        if subject_filter:
+            logs = [l for l in logs if l.subject_name == subject_filter]
+        if source_filter:
+            logs = [l for l in logs if l.source.lower() == source_filter.lower()]
+        logs.sort(key=lambda l: l.started_at, reverse=reverse)
+        return logs
+
+    def get_total_study_minutes(self) -> int:
+        """Calculate total study minutes recorded across all sessions."""
+        return sum(log.duration_minutes for log in self.study_logs)
+
+    def get_weekly_study_minutes(self, ref_date: date | None = None) -> int:
+        """Calculate total study minutes recorded in the academic week of ref_date."""
+        monday = self.get_week_start(ref_date)
+        week_start_dt = datetime.combine(monday, time.min)
+        week_end_dt = datetime.combine(monday + timedelta(days=7), time.min)
+        return sum(
+            log.duration_minutes
+            for log in self.study_logs
+            if week_start_dt <= log.started_at < week_end_dt
+        )
+
+    def get_weekly_study_by_subject(self, ref_date: date | None = None) -> dict[str, int]:
+        """Return a mapping of subject_name -> minutes studied in ref_date's week."""
+        monday = self.get_week_start(ref_date)
+        week_start_dt = datetime.combine(monday, time.min)
+        week_end_dt = datetime.combine(monday + timedelta(days=7), time.min)
+        breakdown: dict[str, int] = {}
+        for log in self.study_logs:
+            if week_start_dt <= log.started_at < week_end_dt:
+                breakdown[log.subject_name] = breakdown.get(log.subject_name, 0) + log.duration_minutes
+        return breakdown
+
+    def get_cycle_completion_stats(self, ref_dt: datetime | None = None) -> tuple[int, int, int]:
+        """Return (completed_cycles, total_cycles, completion_percent) across active cycles."""
+        current_dt = ref_dt or datetime.now()
+        active_cycles = self.get_all_active_cycles(current_dt)
+        if not active_cycles:
+            return 0, 0, 0
+        completed = sum(1 for c in active_cycles if c.is_target_met)
+        total = len(active_cycles)
+        pct = int((completed / total) * 100) if total > 0 else 0
+        return completed, total, pct
+
     def get_distinct_subjects(self) -> list[str]:
         """Return sorted list of distinct subject names in timetable."""
         return sorted({s.subject.name for s in self.sessions})
