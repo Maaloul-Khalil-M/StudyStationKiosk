@@ -263,11 +263,73 @@ class ScheduleEngine:
     def get_subject_questions(self, subject_name: str) -> list[str]:
         """Return list of non-empty next_class_questions for a subject."""
         questions = []
+        clean = self.clean_subject_name(subject_name)
         for t in self.todos:
-            if t.subject_name.lower() == subject_name.lower():
+            if self.clean_subject_name(t.subject_name).lower() == clean.lower():
                 if t.next_class_question and t.next_class_question.strip():
                     questions.append(t.next_class_question.strip())
         return questions
+
+    def resolve_subject_question(self, subject_name: str, question_text: str) -> bool:
+        """Mark an in-class question as asked/resolved."""
+        clean = self.clean_subject_name(subject_name)
+        matched = False
+        for t in self.todos:
+            if self.clean_subject_name(t.subject_name).lower() == clean.lower():
+                if t.next_class_question and t.next_class_question.strip() == question_text.strip():
+                    t.next_class_question = ""
+                    matched = True
+        if self.repository is not None:
+            self.repository.clear_subject_question(subject_name, question_text)
+        return matched
+
+    def mark_day_debriefed(self, ref_date: date | None = None) -> None:
+        """Record that the nightly debrief for ref_date has been completed."""
+        d = ref_date or date.today()
+        if not hasattr(self, "_debriefed_dates"):
+            self._debriefed_dates = set()
+        self._debriefed_dates.add(d.isoformat())
+        if self.repository is not None:
+            self.repository.mark_day_debriefed(d)
+
+    def is_day_debriefed(self, ref_date: date | None = None) -> bool:
+        """Check if ref_date was marked as debriefed."""
+        d = ref_date or date.today()
+        if not hasattr(self, "_debriefed_dates"):
+            self._debriefed_dates = set()
+        if d.isoformat() in self._debriefed_dates:
+            return True
+        if self.repository is not None:
+            debriefed = self.repository.is_day_debriefed(d)
+            if debriefed:
+                self._debriefed_dates.add(d.isoformat())
+            return debriefed
+        return False
+
+    def should_prompt_nightly_debrief(self, current_dt: datetime | None = None) -> bool:
+        """Determine whether the nightly debrief banner should be displayed."""
+        now = current_dt or datetime.now()
+        is_evening = (now.hour >= 18 or now.hour < 4)
+        if not is_evening:
+            return False
+        day_sessions = self.get_day_sessions(now.weekday())
+        if not day_sessions:
+            return False
+        return not self.is_day_debriefed(now.date())
+
+    def get_priority_study_todo(self, current_dt: datetime | None = None) -> StudyTodo | None:
+        """Find the single most urgent pending task for tonight's study session."""
+        now = current_dt or datetime.now()
+        pending = self.get_pending_todos()
+        if not pending:
+            return None
+
+        def sort_key(todo: StudyTodo):
+            is_overdue = todo.is_overdue(now)
+            return (0 if is_overdue else 1, todo.due_date)
+
+        pending.sort(key=sort_key)
+        return pending[0]
 
     def get_next_class_deadline_for_subject(
         self, subject_name: str, current_dt: datetime

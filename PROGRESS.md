@@ -513,11 +513,49 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 - [x] Added dedicated unit test suite in [`tests/test_exit_ticket.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_exit_ticket.py) (6 tests).
 - [x] **100% test pass rate:** **90/90 unit tests passing** across 15 test suites.
 
-### Milestone 14: Night Routine Ambient UX & In-Class Payoff
-- [ ] Evening desk mode detection (after 18:00 local time) with persistent, ready-to-click action buttons.
-- [ ] Prominent nightly debrief banner on the main grid when today's sessions are unreviewed.
-- [ ] Tonight's Priority Task capsule with instant 1-click focus start.
-- [ ] In-class HUD: show questions formulated during night study when viewing today's live class (`● NOW`).
-- [ ] Automated screen capture refresh in `docs/screens/`.
+### Milestone 14: Night Routine Ambient UX & In-Class Payoff `[COMPLETED]`
+- [x] **Evening Desk Mode & Debrief Decision Engine**:
+  - Implemented `should_prompt_nightly_debrief(current_dt)` in `ScheduleEngine`: checks for evening desk hours (after 18:00 local time), verifies that classes were scheduled/attended today, and confirms that today has not yet been debriefed.
+  - Implemented debrief persistence in `StudyStationRepository` and `ScheduleEngine`: `mark_day_debriefed(ref_date)` and `is_day_debriefed(ref_date)` tracking completion in SQLite `app_settings`.
+- [x] **Prominent Cockpit Ambient Debrief Banner**:
+  - Built `debrief_banner` in [`ScheduleScreenWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/schedule_screen_widget.py) positioned prominently at the top of the Weekly Schedule Cockpit.
+  - Shows clear, actionable prompt: `🌙 EVENING DESK ROUTINE · Nightly Debrief Ready` with `[ ⚡ Start Debrief ]` quick launch and dismiss `[ ✕ ]` button.
+  - Automatically hidden once debrief is marked completed or dismissed for the session.
+- [x] **Tonight's Priority Task Hero Capsule & 1-Click Focus**:
+  - Implemented `get_priority_study_todo(current_dt)` in `ScheduleEngine` with deterministic academic urgency ranking (overdue tasks prioritized first, followed by nearest upcoming due date).
+  - Built `priority_task_card` in `ScheduleScreenWidget` rendering:
+    - Glowing indigo badge: `TONIGHT'S PRIORITY FOCUS`.
+    - Active subject and task title: e.g. `Sécurité logicielle · Complete buffer overflow exploitation exercise`.
+    - Due context: `Due before next class: Fri, Oct 16 at 09:09` (or red `⚠️ OVERDUE` callout).
+    - 1-click focus start button: `[ ▶ 15m Focus ]` directly initiating a task-tethered sprint via `start_todo_focus_requested`.
+- [x] **In-Class HUD & Question Resolution Payoff**:
+  - Enhanced `ClassGridCard` to display prominent glowing badge `❓ ASK IN CLASS (X)` when the session is currently in progress (`is_current=True`) and has formulated questions.
+  - Expanded [`SubjectPreparationSheet`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/subject_preparation_sheet.py) with dedicated `IN-CLASS PAYOFF: QUESTIONS TO ASK PROFESSOR` section:
+    - Lists all questions formulated during nightly exit tickets for that course.
+    - `[ 📋 Copy ]` button to instantly copy the question to system clipboard.
+    - `[ ✓ Asked ]` button to immediately resolve the question in SQLite and live memory, clearing the badge from the cockpit grid.
+  - Added `resolve_subject_question` in `ScheduleEngine` and `clear_subject_question` in `StudyStationRepository`.
+- [x] **Automated Screen Capture Refresh**:
+  - Created [`scripts/capture_screens.py`](file:///c:/Users/marj/Music/Study%20Station/scripts/capture_screens.py) to programmatically render and capture high-resolution screenshots with real academic subjects and state models:
+    - [`grid_schedual.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/grid_schedual.png): Cockpit grid with Evening Debrief banner, Tonight's Priority Task card, and live preparation badges.
+    - [`debrief_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/debrief_modal.png): Multi-step nightly debrief check-in wizard.
+    - [`exit_ticket.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/exit_ticket.png): Cognitive exit ticket modal with traffic-light confidence and next-class question input.
+    - [`preparation_sheet.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/preparation_sheet.png): Subject preparation sheet showing tasks checklist and in-class question resolution buttons.
+    - [`focus.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/focus.png): Task-tethered focus countdown ring with due date context.
+- [x] **Verification & Test Suite**:
+  - Added dedicated unit test suite in [`tests/test_night_routine_hud.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_night_routine_hud.py) (6 tests) covering prompt logic, debrief persistence, priority task ranking, question resolution, banner dismissals, and in-class card HUD badges.
+  - **100% test pass rate:** **96/96 unit tests passing** across 16 test suites.
+
+---
+
+## Complete 5-Milestone Academic Pivot Summary
+
+The entire 5-milestone academic preparation pivot defined in [`docs/ACADEMIC_PREPARATION_SPEC.md`](file:///c:/Users/marj/Music/Study%20Station/docs/ACADEMIC_PREPARATION_SPEC.md) is now **100% complete**:
+1. **Milestone 10: Academic Todo Engine & Schema** `[COMPLETED]` — Granular task models, SQLite tables, migrations, and `StudyLog.todo_id` attribution.
+2. **Milestone 11: Nightly Desk Debrief & Questionnaire** `[COMPLETED]` — Automatic evening check-in wizard stepping through today's attended classes with auto-deadlines.
+3. **Milestone 12: Grid as Main Station (Academic Cockpit)** `[COMPLETED]` — Weekly calendar grid as default home screen, live preparation and question badges, and `SubjectPreparationSheet` task drawer.
+4. **Milestone 13: Todo-Driven Focus Loop & Cognitive Exit Ticket** `[COMPLETED]` — Task-tethered focus gauge, traffic-light confidence ratings, continuation sprints, and next-class question formulation.
+5. **Milestone 14: Night Routine Ambient UX & In-Class Payoff** `[COMPLETED]` — Evening desk mode, prominent debrief banner, "Tonight's Priority Task" with 1-click focus start, and "Ask in Class" HUD question resolution.
+
 
 

@@ -57,7 +57,7 @@ class SubjectPreparationSheet(QDialog):
         self.engine = engine
         self.subject_name = ScheduleEngine.clean_subject_name(session.subject.name)
 
-        self.setFixedSize(660, 560)
+        self.setFixedSize(680, 620)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -228,6 +228,22 @@ class SubjectPreparationSheet(QDialog):
         self.content_layout.addLayout(add_task_row)
 
         # ---------------------------------------------------------------------
+        # In-Class Payoff: Questions to Ask Professor
+        # ---------------------------------------------------------------------
+        self.questions_frame = QFrame()
+        self.questions_frame.setStyleSheet("""
+            QFrame {
+                background-color: #082F49;
+                border: 1px solid #0284C7;
+                border-radius: 8px;
+            }
+        """)
+        self.questions_layout = QVBoxLayout(self.questions_frame)
+        self.questions_layout.setContentsMargins(10, 8, 10, 8)
+        self.questions_layout.setSpacing(6)
+        self.content_layout.addWidget(self.questions_frame)
+
+        # ---------------------------------------------------------------------
         # Bottom Actions: Timetable Edit, Focus on Subject, Done
         # ---------------------------------------------------------------------
         footer_layout = QHBoxLayout()
@@ -297,6 +313,88 @@ class SubjectPreparationSheet(QDialog):
                     self.tasks_layout.addWidget(row_widget)
 
         self.tasks_layout.addStretch()
+
+        # ---------------------------------------------------------------------
+        # Populate In-Class Questions (In-Class Payoff)
+        # ---------------------------------------------------------------------
+        while self.questions_layout.count():
+            item = self.questions_layout.takeAt(0)
+            w = item.widget()
+            l = item.layout()
+            if w:
+                w.deleteLater()
+            elif l:
+                while l.count():
+                    sub = l.takeAt(0)
+                    if sub.widget():
+                        sub.widget().deleteLater()
+
+        questions = self.engine.get_subject_questions(self.subject_name)
+        if questions:
+            self.questions_frame.show()
+            lbl_q_head = QLabel(f"❓ IN-CLASS PAYOFF · QUESTIONS FOR PROFESSOR ({len(questions)})")
+            lbl_q_head.setStyleSheet("color: #38BDF8; font-size: 11px; font-weight: 800; letter-spacing: 0.8px;")
+            self.questions_layout.addWidget(lbl_q_head)
+
+            for q_text in questions:
+                q_row = QHBoxLayout()
+                q_row.setContentsMargins(0, 2, 0, 2)
+                lbl_q = QLabel(f"• {q_text}")
+                lbl_q.setWordWrap(True)
+                lbl_q.setStyleSheet("color: #FFFFFF; font-size: 12px; font-weight: 600;")
+                q_row.addWidget(lbl_q, stretch=1)
+
+                btn_copy = QPushButton("📋 Copy")
+                btn_copy.setCursor(Qt.CursorShape.PointingHandCursor)
+                btn_copy.setFixedHeight(24)
+                btn_copy.setStyleSheet("""
+                    QPushButton {
+                        background-color: #0C4A6E;
+                        color: #E0F2FE;
+                        border: 1px solid #0284C7;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 600;
+                        padding: 2px 6px;
+                    }
+                    QPushButton:hover {
+                        background-color: #0284C7;
+                        color: #FFFFFF;
+                    }
+                """)
+                def do_copy(_checked=False, text=q_text):
+                    from PySide6.QtWidgets import QApplication
+                    QApplication.clipboard().setText(text)
+                btn_copy.clicked.connect(do_copy)
+                q_row.addWidget(btn_copy)
+
+                btn_resolved = QPushButton("✓ Asked")
+                btn_resolved.setCursor(Qt.CursorShape.PointingHandCursor)
+                btn_resolved.setFixedHeight(24)
+                btn_resolved.setStyleSheet("""
+                    QPushButton {
+                        background-color: #064E3B;
+                        color: #34D399;
+                        border: 1px solid #059669;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        padding: 2px 6px;
+                    }
+                    QPushButton:hover {
+                        background-color: #059669;
+                        color: #FFFFFF;
+                    }
+                """)
+                def do_resolve(_checked=False, text=q_text):
+                    self.engine.resolve_subject_question(self.subject_name, text)
+                    self._refresh_content()
+                btn_resolved.clicked.connect(do_resolve)
+                q_row.addWidget(btn_resolved)
+
+                self.questions_layout.addLayout(q_row)
+        else:
+            self.questions_frame.hide()
 
     def _create_todo_row(self, todo: StudyTodo, is_done: bool = False) -> QWidget:
         row = QFrame()

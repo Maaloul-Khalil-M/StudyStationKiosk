@@ -510,6 +510,8 @@ class DebriefDialog(QDialog):
     def _advance_step(self) -> None:
         """Move to next step or complete dialog."""
         if not self.distinct_subjects or self.current_step >= self.total_steps - 1:
+            if self.engine is not None:
+                self.engine.mark_day_debriefed(self.ref_dt.date())
             self.debrief_completed.emit(self.created_todos)
             self.accept()
             return

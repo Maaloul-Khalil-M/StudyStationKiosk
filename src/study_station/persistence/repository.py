@@ -1,6 +1,6 @@
 """Data repository providing domain-level persistence operations."""
 
-from datetime import datetime
+from datetime import date, datetime
 import json
 from pathlib import Path
 from typing import Sequence
@@ -492,4 +492,37 @@ class StudyStationRepository:
         """
         cursor = self.db.connection.execute(query, (subject_name,))
         return [row["next_class_question"] for row in cursor.fetchall()]
+
+    def mark_day_debriefed(self, ref_date: date) -> None:
+        """Mark a calendar date as having completed the nightly desk debrief."""
+        with self.db.connection as conn:
+            conn.execute(
+                """
+                INSERT INTO app_settings (key, value) VALUES ('last_debrief_date', ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+                """,
+                (ref_date.isoformat(),),
+            )
+
+    def is_day_debriefed(self, ref_date: date) -> bool:
+        """Check if ref_date was marked as debriefed."""
+        cursor = self.db.connection.execute(
+            "SELECT value FROM app_settings WHERE key = 'last_debrief_date'"
+        )
+        row = cursor.fetchone()
+        if row and row["value"]:
+            return row["value"] == ref_date.isoformat()
+        return False
+
+    def clear_subject_question(self, subject_name: str, question_text: str) -> bool:
+        """Clear a specific next_class_question when asked/resolved in class."""
+        query = """
+            UPDATE study_todos
+            SET next_class_question = ''
+            WHERE subject_name = ? AND next_class_question = ?;
+        """
+        with self.db.connection as conn:
+            cursor = conn.execute(query, (subject_name, question_text))
+            return cursor.rowcount > 0
+
 

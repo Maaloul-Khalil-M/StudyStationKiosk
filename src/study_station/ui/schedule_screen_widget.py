@@ -32,6 +32,7 @@ from study_station.core.engine import ScheduleEngine
 from study_station.core.models import (
     AcademicSession,
     DAY_INDEX_MAP,
+    StudyTodo,
     Subject,
     TimeSlot,
     normalize_time_str,
@@ -236,16 +237,28 @@ class ClassGridCard(QPushButton):
             badge_row.addWidget(lbl_ready)
 
         if questions_count > 0:
-            lbl_q = QLabel(f"❓ {questions_count}")
-            lbl_q.setStyleSheet("""
-                background-color: #082F49;
-                color: #38BDF8;
-                border: 1px solid #0369A1;
-                border-radius: 3px;
-                font-size: 9px;
-                font-weight: 700;
-                padding: 1px 4px;
-            """)
+            if is_current:
+                lbl_q = QLabel(f"❓ ASK IN CLASS ({questions_count})")
+                lbl_q.setStyleSheet("""
+                    background-color: #0369A1;
+                    color: #F0F9FF;
+                    border: 1px solid #38BDF8;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    font-weight: 800;
+                    padding: 1px 5px;
+                """)
+            else:
+                lbl_q = QLabel(f"❓ {questions_count}")
+                lbl_q.setStyleSheet("""
+                    background-color: #082F49;
+                    color: #38BDF8;
+                    border: 1px solid #0369A1;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    font-weight: 700;
+                    padding: 1px 4px;
+                """)
             badge_row.addWidget(lbl_q)
 
         badge_row.addStretch()
@@ -307,8 +320,11 @@ class ScheduleScreenWidget(QWidget):
         self._current_subject = current_subject
         self._now = datetime.now()
         self._current_view_date: date = self._now.date()
+        self._debrief_banner_dismissed = False
+        self._current_priority_todo: StudyTodo | None = None
 
         self._build_ui()
+        self._refresh_cockpit_banners()
 
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
@@ -478,6 +494,15 @@ class ScheduleScreenWidget(QWidget):
         main_layout.addLayout(header)
 
         # ---------------------------------------------------------------------
+        # Cockpit Ambient Banners (Nightly Debrief & Priority Task)
+        # ---------------------------------------------------------------------
+        self.debrief_banner = self._create_debrief_banner()
+        main_layout.addWidget(self.debrief_banner)
+
+        self.priority_task_card = self._create_priority_task_card()
+        main_layout.addWidget(self.priority_task_card)
+
+        # ---------------------------------------------------------------------
         # View Switcher: Stack (0: Visual Grid, 1: Edit Classes)
         # ---------------------------------------------------------------------
         self.view_stack = QStackedWidget(self)
@@ -491,6 +516,186 @@ class ScheduleScreenWidget(QWidget):
         self.view_stack.addWidget(self.editor_widget)
 
         main_layout.addWidget(self.view_stack, stretch=1)
+
+    def _create_debrief_banner(self) -> QFrame:
+        banner = QFrame()
+        banner.setObjectName("debriefBanner")
+        banner.setStyleSheet("""
+            QFrame#debriefBanner {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #064E3B, stop:0.5 #0F2E23, stop:1 #14141E);
+                border: 1px solid #10B981;
+                border-radius: 8px;
+            }
+        """)
+        layout = QHBoxLayout(banner)
+        layout.setContentsMargins(14, 8, 14, 8)
+        layout.setSpacing(12)
+
+        text_col = QVBoxLayout()
+        text_col.setSpacing(1)
+
+        self.lbl_debrief_title = QLabel("🌙 EVENING DESK ROUTINE · Nightly Debrief Ready")
+        self.lbl_debrief_title.setStyleSheet("color: #34D399; font-size: 13px; font-weight: 800; letter-spacing: 0.5px;")
+        text_col.addWidget(self.lbl_debrief_title)
+
+        self.lbl_debrief_sub = QLabel("You had classes today! Capture actionable preparation tasks before next week's sessions.")
+        self.lbl_debrief_sub.setStyleSheet("color: #A7F3D0; font-size: 11px;")
+        text_col.addWidget(self.lbl_debrief_sub)
+
+        layout.addLayout(text_col, stretch=1)
+
+        btn_start_debrief = QPushButton("⚡ Start Debrief")
+        btn_start_debrief.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_start_debrief.setStyleSheet("""
+            QPushButton {
+                background-color: #10B981;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 14px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #059669;
+            }
+        """)
+        btn_start_debrief.clicked.connect(self.open_debrief_requested.emit)
+        layout.addWidget(btn_start_debrief)
+
+        btn_dismiss = QPushButton("✕")
+        btn_dismiss.setToolTip("Dismiss for now")
+        btn_dismiss.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_dismiss.setFixedSize(26, 26)
+        btn_dismiss.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #6EE7B7;
+                border: 1px solid transparent;
+                border-radius: 13px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #FFFFFF;
+            }
+        """)
+        btn_dismiss.clicked.connect(self._dismiss_debrief_banner)
+        layout.addWidget(btn_dismiss)
+
+        banner.hide()
+        return banner
+
+    def _create_priority_task_card(self) -> QFrame:
+        card = QFrame()
+        card.setObjectName("priorityTaskCard")
+        card.setStyleSheet("""
+            QFrame#priorityTaskCard {
+                background-color: #161622;
+                border: 1px solid #4F46E5;
+                border-radius: 8px;
+            }
+        """)
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(14, 8, 14, 8)
+        layout.setSpacing(12)
+
+        lbl_badge = QLabel("TONIGHT'S PRIORITY FOCUS")
+        lbl_badge.setStyleSheet("""
+            background-color: #312E81;
+            color: #C7D2FE;
+            border: 1px solid #4338CA;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 6px;
+            letter-spacing: 0.5px;
+        """)
+        layout.addWidget(lbl_badge)
+
+        info_col = QVBoxLayout()
+        info_col.setSpacing(1)
+
+        self.lbl_priority_title = QLabel("")
+        self.lbl_priority_title.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 700;")
+        info_col.addWidget(self.lbl_priority_title)
+
+        self.lbl_priority_due = QLabel("")
+        self.lbl_priority_due.setStyleSheet("color: #94A3B8; font-size: 11px;")
+        info_col.addWidget(self.lbl_priority_due)
+
+        layout.addLayout(info_col, stretch=1)
+
+        self.btn_priority_focus = QPushButton("▶ 15m Focus")
+        self.btn_priority_focus.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_priority_focus.setStyleSheet("""
+            QPushButton {
+                background-color: #10B981;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 14px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #059669;
+            }
+        """)
+        self.btn_priority_focus.clicked.connect(self._on_start_priority_focus)
+        layout.addWidget(self.btn_priority_focus)
+
+        card.hide()
+        return card
+
+    def _dismiss_debrief_banner(self) -> None:
+        self._debrief_banner_dismissed = True
+        if hasattr(self, "debrief_banner"):
+            self.debrief_banner.hide()
+
+    def _on_start_priority_focus(self) -> None:
+        if self._current_priority_todo is not None:
+            self.start_todo_focus_requested.emit(self._current_priority_todo, 15)
+
+    def _refresh_cockpit_banners(self) -> None:
+        if self.engine is None:
+            if hasattr(self, "debrief_banner"):
+                self.debrief_banner.hide()
+            if hasattr(self, "priority_task_card"):
+                self.priority_task_card.hide()
+            return
+
+        now = datetime.now()
+
+        # 1. Debrief banner
+        if hasattr(self, "debrief_banner"):
+            should_prompt = self.engine.should_prompt_nightly_debrief(now)
+            if should_prompt and not self._debrief_banner_dismissed:
+                self.debrief_banner.show()
+            else:
+                self.debrief_banner.hide()
+
+        # 2. Priority task card
+        if hasattr(self, "priority_task_card"):
+            priority_todo = self.engine.get_priority_study_todo(now)
+            self._current_priority_todo = priority_todo
+            if priority_todo is not None:
+                due_str = priority_todo.due_date.strftime("%a, %b %d at %H:%M")
+                if priority_todo.is_overdue(now):
+                    due_text = f"<span style='color: #EF4444; font-weight: 700;'>⚠️ OVERDUE</span> · Was due: {due_str}"
+                else:
+                    due_text = f"Due before next class: {due_str}"
+
+                self.lbl_priority_title.setText(f"{priority_todo.subject_name} · {priority_todo.title}")
+                self.lbl_priority_due.setText(due_text)
+                self.priority_task_card.show()
+            else:
+                self.priority_task_card.hide()
+
+    def refresh_cockpit_banners(self) -> None:
+        """Public trigger to re-evaluate debrief and priority banners."""
+        self._refresh_cockpit_banners()
 
     def _set_view_mode(self, mode_idx: int) -> None:
         self.view_stack.setCurrentIndex(mode_idx)
@@ -510,9 +715,14 @@ class ScheduleScreenWidget(QWidget):
         if mode_idx == 0:
             self.btn_mode_grid.setStyleSheet(active_style)
             self.btn_mode_edit.setStyleSheet(inactive_style)
+            self._refresh_cockpit_banners()
         else:
             self.btn_mode_grid.setStyleSheet(inactive_style)
             self.btn_mode_edit.setStyleSheet(active_style)
+            if hasattr(self, "debrief_banner"):
+                self.debrief_banner.hide()
+            if hasattr(self, "priority_task_card"):
+                self.priority_task_card.hide()
 
     # -------------------------------------------------------------------------
     # Visual Calendar Grid View
@@ -666,6 +876,8 @@ class ScheduleScreenWidget(QWidget):
         self.grid_layout.setColumnStretch(0, 1)
         for i in range(1, 7):
             self.grid_layout.setColumnStretch(i, 3)
+
+        self._refresh_cockpit_banners()
 
     # -------------------------------------------------------------------------
     # Inline Class Editor View
@@ -1165,3 +1377,4 @@ class ScheduleScreenWidget(QWidget):
         self._sessions = list(sessions)
         self._refresh_table()
         self._refresh_calendar_grid()
+        self._refresh_cockpit_banners()
