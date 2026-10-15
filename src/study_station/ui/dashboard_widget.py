@@ -76,6 +76,12 @@ class SubjectDashboardWidget(QWidget):
         self._carousel_timer.timeout.connect(self._rotate_carousel)
         self._carousel_timer.start()
 
+        # Periodic refresh timer (30s) to keep live date and class statuses updated
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setInterval(30000)
+        self._refresh_timer.timeout.connect(lambda: self.refresh_dashboard())
+        self._refresh_timer.start()
+
         # Install application event filter to detect mouse interaction
         QApplication.instance().installEventFilter(self)
 
@@ -247,7 +253,13 @@ class SubjectDashboardWidget(QWidget):
 
         main_layout.addWidget(self.action_container)
 
-        main_layout.addStretch(2)
+        main_layout.addStretch(1)
+
+        # ---------------------------------------------------------------------
+        # 6. Ambient Today's Timeline Strip (Glanceable grounding at bottom)
+        # ---------------------------------------------------------------------
+        self.timeline_strip = self._create_timeline_strip()
+        main_layout.addWidget(self.timeline_strip)
 
         # Hidden backwards-compatibility widgets for unit tests
         self.lbl_status_badge = QLabel(self)
@@ -303,7 +315,7 @@ class SubjectDashboardWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        # Date Display
+        # Date Display (Always visible in both idle and interactive modes)
         now = datetime.now()
         date_str = now.strftime("%A, %b %d").upper()
         self.lbl_date = QLabel(date_str)
@@ -312,39 +324,72 @@ class SubjectDashboardWidget(QWidget):
 
         layout.addStretch()
 
-        # Navigation Buttons (Clean Tactile Micro-Pills)
+        # Navigation Buttons Container (Auto-reveals on hover/interaction)
+        self.nav_container = QWidget(bar)
+        nav_layout = QHBoxLayout(self.nav_container)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(8)
+
         self.btn_timetable = QPushButton("Schedule")
         self.btn_timetable.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_timetable.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_timetable.clicked.connect(self.open_timetable_requested.emit)
-        layout.addWidget(self.btn_timetable)
+        nav_layout.addWidget(self.btn_timetable)
 
         self.btn_targets = QPushButton("Targets")
         self.btn_targets.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_targets.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_targets.clicked.connect(lambda: self.open_targets_requested.emit(self.selected_subject or ""))
-        layout.addWidget(self.btn_targets)
+        nav_layout.addWidget(self.btn_targets)
 
         self.btn_log = QPushButton("Log")
         self.btn_log.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_log.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_log.clicked.connect(lambda: self.open_manual_log_requested.emit(self.selected_subject or ""))
-        layout.addWidget(self.btn_log)
+        nav_layout.addWidget(self.btn_log)
 
         self.btn_settings = QPushButton("Settings")
         self.btn_settings.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_settings.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_settings.clicked.connect(self.open_settings_requested.emit)
-        layout.addWidget(self.btn_settings)
+        nav_layout.addWidget(self.btn_settings)
 
         self.btn_fullscreen = QPushButton("⛶")
         self.btn_fullscreen.setFixedSize(36, 32)
         self.btn_fullscreen.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_fullscreen.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_fullscreen.clicked.connect(self.toggle_fullscreen_requested.emit)
-        layout.addWidget(self.btn_fullscreen)
+        nav_layout.addWidget(self.btn_fullscreen)
+
+        layout.addWidget(self.nav_container)
 
         return bar
+
+    def _create_timeline_strip(self) -> QWidget:
+        strip = QWidget(self)
+        layout = QVBoxLayout(strip)
+        layout.setContentsMargins(0, 0, 0, 2)
+        layout.setSpacing(8)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.lbl_timeline_title = QLabel("TODAY'S SCHEDULE")
+        self.lbl_timeline_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_timeline_title.setStyleSheet("""
+            color: #52525B;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+        """)
+        layout.addWidget(self.lbl_timeline_title)
+
+        self.timeline_cards_container = QWidget(strip)
+        self.timeline_cards_layout = QHBoxLayout(self.timeline_cards_container)
+        self.timeline_cards_layout.setContentsMargins(0, 0, 0, 0)
+        self.timeline_cards_layout.setSpacing(8)
+        self.timeline_cards_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.timeline_cards_container)
+
+        return strip
 
     # -------------------------------------------------------------------------
     # Inactivity & Hover Visibility Logic
@@ -365,7 +410,7 @@ class SubjectDashboardWidget(QWidget):
 
     def _set_interactive_mode(self, interactive: bool) -> None:
         self._is_interactive = interactive
-        self.top_bar.setVisible(interactive)
+        self.nav_container.setVisible(interactive)
         self.action_container.setVisible(interactive)
         self.btn_prev_carousel.setVisible(interactive)
         self.btn_next_carousel.setVisible(interactive)
@@ -397,10 +442,13 @@ class SubjectDashboardWidget(QWidget):
     # Data Refresh & State
     # -------------------------------------------------------------------------
 
-    def refresh_dashboard(self) -> None:
-        now = datetime.now()
+    def refresh_dashboard(self, ref_dt: datetime | None = None) -> None:
+        now = ref_dt or datetime.now()
         date_str = now.strftime("%A, %b %d").upper()
         self.lbl_date.setText(date_str)
+
+        # Update ambient bottom timeline strip
+        self._update_timeline_strip(now)
 
         if not self.engine:
             self.lbl_subject_name.setText("STUDY STATION")
@@ -456,6 +504,105 @@ class SubjectDashboardWidget(QWidget):
         self._carousel_slides = [slide_progress, slide_next, slide_format]
         self._carousel_index = 0
         self.lbl_carousel_text.setText(self._carousel_slides[0])
+
+    def _update_timeline_strip(self, now: datetime) -> None:
+        """Populate the ambient bottom strip with today's scheduled classes."""
+        if not hasattr(self, "timeline_cards_layout"):
+            return
+
+        while self.timeline_cards_layout.count():
+            item = self.timeline_cards_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+
+        if not self.engine or not self.engine.sessions:
+            empty_lbl = QLabel("READY TO FOCUS")
+            empty_lbl.setStyleSheet("color: #3F3F46; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
+            self.timeline_cards_layout.addWidget(empty_lbl)
+            return
+
+        today_idx = now.weekday()
+        today_sessions = self.engine.get_day_sessions(today_idx)
+
+        if not today_sessions:
+            empty_lbl = QLabel("NO CLASSES SCHEDULED TODAY · FREE STUDY & REVIEW")
+            empty_lbl.setStyleSheet("color: #3F3F46; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
+            self.timeline_cards_layout.addWidget(empty_lbl)
+            return
+
+        current_time = now.time()
+
+        for session in today_sessions:
+            start_t = session.time_slot.start_time
+            end_t = session.time_slot.end_time
+            clean_name = ScheduleEngine.clean_subject_name(session.subject.name)
+
+            is_current = (start_t <= current_time < end_t)
+            is_past = (current_time >= end_t)
+
+            btn = QPushButton()
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+            if is_current:
+                loc_txt = f" ({session.location})" if session.location else ""
+                btn.setText(f"● NOW  {session.time_slot.start} – {session.time_slot.end}  {clean_name}{loc_txt}")
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #064E3B;
+                        color: #A7F3D0;
+                        border: 1px solid #10B981;
+                        border-radius: 13px;
+                        padding: 5px 14px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        letter-spacing: 0.4px;
+                    }
+                    QPushButton:hover {
+                        background-color: #047857;
+                        color: #FFFFFF;
+                    }
+                """)
+            elif is_past:
+                btn.setText(f"✓ {session.time_slot.start}  {clean_name}")
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #111114;
+                        color: #52525B;
+                        border: 1px solid #1C1C22;
+                        border-radius: 13px;
+                        padding: 5px 12px;
+                        font-size: 11px;
+                        font-weight: 500;
+                    }
+                    QPushButton:hover {
+                        background-color: #1C1C22;
+                        color: #A1A1AA;
+                    }
+                """)
+            else:
+                loc_str = f" · {session.location}" if session.location else ""
+                btn.setText(f"{session.time_slot.start}  {clean_name}{loc_str}")
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #18181B;
+                        color: #D4D4D8;
+                        border: 1px solid #27272A;
+                        border-radius: 13px;
+                        padding: 5px 12px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        letter-spacing: 0.3px;
+                    }
+                    QPushButton:hover {
+                        background-color: #27272A;
+                        color: #FFFFFF;
+                        border: 1px solid #3F3F46;
+                    }
+                """)
+
+            btn.clicked.connect(lambda _, s=session.subject.name: self.set_selected_subject(s))
+            self.timeline_cards_layout.addWidget(btn)
 
     def set_selected_subject(self, subject_name: str | None) -> None:
         self.selected_subject = subject_name

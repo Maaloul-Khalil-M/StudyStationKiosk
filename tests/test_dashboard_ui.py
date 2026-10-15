@@ -84,6 +84,41 @@ class TestDashboardUI(unittest.TestCase):
         self.assertEqual(len(emitted), 1)
         self.assertEqual(emitted[0], ("Math", 15))
 
+    def test_ambient_date_and_nav_toggle(self) -> None:
+        dashboard = SubjectDashboardWidget(self.engine, self.settings)
+        # In idle mode: top_bar and lbl_date remain visible; nav_container is hidden
+        dashboard._set_interactive_mode(False)
+        self.assertFalse(dashboard.top_bar.isHidden())
+        self.assertFalse(dashboard.lbl_date.isHidden())
+        self.assertTrue(dashboard.nav_container.isHidden())
+        self.assertTrue(dashboard.action_container.isHidden())
+
+        # In interactive mode: nav_container and action_container become visible
+        dashboard._set_interactive_mode(True)
+        self.assertFalse(dashboard.nav_container.isHidden())
+        self.assertFalse(dashboard.action_container.isHidden())
+
+    def test_ambient_bottom_timeline_strip(self) -> None:
+        dashboard = SubjectDashboardWidget(self.engine, self.settings)
+        # Monday: has 1 class (Data Vis at 08:00)
+        monday_dt = datetime(2026, 10, 19, 7, 30)
+        dashboard.refresh_dashboard(monday_dt)
+        self.assertEqual(dashboard.timeline_cards_layout.count(), 1)
+        btn = dashboard.timeline_cards_layout.itemAt(0).widget()
+        self.assertIn("08:00", btn.text())
+        self.assertIn("Data Vis", btn.text())
+
+        # Clicking the timeline card selects the subject
+        btn.click()
+        self.assertEqual(dashboard.selected_subject, "Data Vis")
+
+        # Wednesday: no classes scheduled
+        wednesday_dt = datetime(2026, 10, 21, 12, 0)
+        dashboard.refresh_dashboard(wednesday_dt)
+        self.assertEqual(dashboard.timeline_cards_layout.count(), 1)
+        lbl = dashboard.timeline_cards_layout.itemAt(0).widget()
+        self.assertIn("NO CLASSES SCHEDULED TODAY", lbl.text())
+
     def test_main_window_integration(self) -> None:
         window = MainWindow(engine=self.engine)
         self.assertEqual(window._stack.currentIndex(), MainWindow.INDEX_DASHBOARD)

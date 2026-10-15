@@ -154,6 +154,16 @@ class ScheduleEngine:
         end_dt = datetime.combine(session_date, session.time_slot.end_time)
         return start_dt, end_dt
 
+    def get_day_sessions(self, day: int | str) -> list[AcademicSession]:
+        """Return all sessions scheduled for a given day (0-indexed int or 'Lun'/'Mar' etc.), sorted by start time."""
+        if isinstance(day, str):
+            day_idx = DAY_INDEX_MAP.get(day.capitalize(), 0)
+        else:
+            day_idx = day
+        matching = [s for s in self.sessions if s.day_index == day_idx]
+        matching.sort(key=lambda s: s.time_slot.start_time)
+        return matching
+
     def get_current_session(self, current_dt: datetime) -> AcademicSession | None:
         """Return the AcademicSession in progress at current_dt, if any."""
         current_day_idx = current_dt.weekday()

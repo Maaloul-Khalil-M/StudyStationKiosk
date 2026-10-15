@@ -297,6 +297,28 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
   - 100% test pass rate maintained: 36/36 unit tests passing.
   - Refreshed screen capture in [`docs/screens/editSchedual.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/editSchedual.png).
 
+### Milestone 6.13: Ambient Station Spatial Balance & Date Visibility (Phase C) `[COMPLETED]`
+- [x] **Permanent Ambient Date Anchoring:**
+  - Separated top bar date label (`self.lbl_date`) from navigation action buttons (`self.nav_container`).
+  - In idle glance mode, `lbl_date` (`THURSDAY, OCT 15` in `#71717A`, tracking 1.5px) remains permanently visible in the top-left corner, anchoring the upper third of the station.
+  - Navigation action buttons (`Schedule`, `Targets`, `Log`, `Settings`, `⛶`) auto-reveal smoothly on mouse interaction.
+- [x] **Ambient Today's Timeline Strip:**
+  - Implemented [`_create_timeline_strip`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/dashboard_widget.py) along the bottom of the dashboard screen.
+  - Grounding the bottom 30% of the canvas with today's scheduled classes in chronological order:
+    - `✓` Dimmed past classes (`✓ 08:00 Sécurité...`, `✓ 09:40 Entrepôts...`).
+    - `● NOW` Highlighted active class in emerald pill (`● NOW 15:10 – 16:40 tests logiciels (SC V)`).
+    - Neutral cards for upcoming classes with start times and room numbers.
+    - Graceful fallback for non-school days (`NO CLASSES SCHEDULED TODAY · FREE STUDY & REVIEW`).
+  - Clickable tactile capsules allowing direct subject switching or focus from the ambient strip.
+- [x] **Live Updates & Deterministic Engine Helpers:**
+  - Added `ScheduleEngine.get_day_sessions()` for sorted chronological day session queries.
+  - Added 30-second periodic status timer updating live class states and date roll-overs in real time.
+- [x] **Verification & Test Suite:**
+  - 100% test pass rate: **39/39 passing unit tests** across all 8 test modules.
+  - Screen captures re-generated and verified at 1366×768:
+    - [`docs/screens/main_no_hover.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/main_no_hover.png) (idle mode: balanced clock, subject, date, and today's timeline).
+    - [`docs/screens/main_with_hover.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/main_with_hover.png) (interactive mode: revealing top nav micro-pills, action buttons, and hint).
+
 ---
 
 ## Key Decisions & Guiding Rules

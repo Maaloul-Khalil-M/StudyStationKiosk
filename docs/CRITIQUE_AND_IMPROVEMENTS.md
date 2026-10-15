@@ -228,26 +228,28 @@ Address the visual imbalance in `main_no_hover.png`:
 
 ---
 
-## 4. Proposed Implementation Sequencing
+## 4. Implementation Status
+ 
+All four improvement phases have been executed, tested, and verified:
 
-Before resuming Milestone 7 (Study History & Cycle Statistics), execute these four focused improvements:
-
-1. **Phase A: Focus Screen Ring Gauge**
-   - Build custom `FocusRingGaugeWidget` (`src/study_station/ui/focus_ring_gauge.py`).
-   - Integrate into `FocusWidget`, replacing the horizontal progress bar.
-   - Add unit tests for ring calculation and state transitions.
-2. **Phase B: Real Calendar Dates & Week Navigation**
-   - Update `ScheduleScreenWidget` with dynamic date calculation and week switcher (`◄`, `►`, `Today`).
-   - Update column headers to display real day + date numbers (`LUN 12`, etc.).
-   - Highlight the current day and active time slot dynamically.
-3. **Phase C: Direct Visual Schedule Editing**
-   - Implement `ClassEditDialog` for editing/adding classes.
-   - Wire grid cell clicks directly to the edit dialog; retire the flat spreadsheet `QTableWidget` view.
-4. **Phase D: Ambient Station Spatial Polish**
-   - Keep date visible in idle mode.
-   - Add optional ambient today-timeline strip.
-   - Re-capture all screenshots to `docs/screens/` and verify on 1366×768 resolution.
+1. **Phase A: Focus Screen Ring Gauge `[COMPLETED]`**
+   - Built custom `FocusRingGaugeWidget` (`src/study_station/ui/focus_ring_gauge.py`) with antialiased concentric dual arcs, tabular numerals, and status pill.
+   - Integrated into `FocusWidget`.
+   - Verified via `tests/test_focus_ring_gauge.py`. Screen capture updated: `docs/screens/focus.png`.
+2. **Phase B — Part 1: Real Calendar Dates & Week Navigation `[COMPLETED]`**
+   - Added deterministic date calculations to `ScheduleEngine` (`get_week_start`, `get_week_dates`, `format_week_range`, `get_day_date`).
+   - Added week navigation bar (`[ ‹ ] 12 – 17 OCT 2026 [ › ] [ Today ]`) and real day dates with today's emerald highlight.
+   - Verified via `tests/test_engine.py` and `tests/test_secondary_dialogs.py`. Screen capture updated: `docs/screens/grid_schedual.png`.
+3. **Phase B — Part 2: Direct Visual Schedule Editing `[COMPLETED]`**
+   - Implemented `ClassSessionDialog` (`src/study_station/ui/class_session_dialog.py`) with 1-click focus, class editing, and deletion.
+   - Implemented interactive `EmptyGridSlot` cards with hover `+` trigger for instant session creation.
+   - Verified via `tests/test_class_session_dialog.py`. Screen capture updated: `docs/screens/editSchedual.png`.
+4. **Phase C: Ambient Station Spatial Balance & Date Visibility `[COMPLETED]`**
+   - Kept date header (`THURSDAY, OCT 15`) permanently visible in idle mode; only navigation action buttons auto-hide.
+   - Implemented ambient `_create_timeline_strip` along the bottom with live classes (`✓` past, `● NOW` emerald active, upcoming neutral).
+   - Re-captured and verified `docs/screens/main_no_hover.png` and `docs/screens/main_with_hover.png` at 1366×768 resolution.
 
 ---
 
 *Authored by Antigravity Pairing Assistant for Study Station.*
+

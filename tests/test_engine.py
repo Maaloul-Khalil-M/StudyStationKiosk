@@ -149,6 +149,21 @@ class TestScheduleEngine(unittest.TestCase):
         # Mon is Dec 28 2026, Sat is Jan 02 2027
         self.assertEqual(ScheduleEngine.format_week_range(d3), "28 DEC 2026 – 02 JAN 2027")
 
+    def test_get_day_sessions(self) -> None:
+        # Monday (Lun / 0): should return 1 session (Data Vis at 08:00)
+        mon_sessions = self.engine.get_day_sessions(0)
+        self.assertEqual(len(mon_sessions), 1)
+        self.assertEqual(mon_sessions[0].subject.name, "Data Vis")
+
+        # By day code string ("Lun")
+        mon_by_str = self.engine.get_day_sessions("Lun")
+        self.assertEqual(len(mon_by_str), 1)
+        self.assertEqual(mon_by_str[0].subject.name, "Data Vis")
+
+        # Wednesday (Mer / 2): should return 0 sessions
+        mer_sessions = self.engine.get_day_sessions(2)
+        self.assertEqual(len(mer_sessions), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
