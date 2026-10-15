@@ -281,8 +281,21 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 - [x] **Verification & Test Suite:**
   - Added unit test coverage for date calculations in [`tests/test_engine.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_engine.py).
   - Added unit test for week navigation in [`tests/test_secondary_dialogs.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_secondary_dialogs.py).
-  - 100% test pass rate maintained: 31/31 unit tests passing.
   - Refreshed screen capture in [`docs/screens/grid_schedual.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/grid_schedual.png).
+
+### Milestone 6.12: Direct Visual Schedule Management (Phase B — Part 2) `[COMPLETED]`
+- [x] **Direct Card Interaction on the Calendar Grid:**
+  - Clicking any class block on the calendar opens [`ClassSessionDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/class_session_dialog.py) with dark backdrop scrim.
+  - Allows 1-click **Start Focus** on that subject, in-place editing of session details (Day, Start/End times, Subject name, Core type, Room), or deleting the class.
+  - Changes persist immediately to SQLite and update the calendar grid in real time.
+- [x] **Click-to-Add on Empty Slots:**
+  - Implemented interactive [`EmptyGridSlot`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/schedule_screen_widget.py#L45-L84) cards: calm dark obsidian by default, reveals a subtle emerald `+` on hover.
+  - Clicking any empty slot opens `ClassSessionDialog` pre-filled with that column's day and that slot's start/end times.
+  - Eliminates the need to switch to the raw developer database spreadsheet table.
+- [x] **Verification & Test Suite:**
+  - Added unit test suite in [`tests/test_class_session_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_class_session_dialog.py) covering add, edit, delete, focus start, and widget signal pipelines.
+  - 100% test pass rate maintained: 36/36 unit tests passing.
+  - Refreshed screen capture in [`docs/screens/editSchedual.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/editSchedual.png).
 
 ---
 

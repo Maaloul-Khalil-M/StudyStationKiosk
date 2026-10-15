@@ -34,6 +34,7 @@ from study_station.core.models import (
     Subject,
     TimeSlot,
 )
+from study_station.ui.class_session_dialog import ClassSessionDialog
 from study_station.ui.theme import (
     BUTTON_DANGER_STYLE,
     BUTTON_NAV_STYLE,
@@ -43,10 +44,52 @@ from study_station.ui.theme import (
 )
 
 
+class EmptyGridSlot(QPushButton):
+    """An interactive empty slot in the schedule grid allowing click-to-add."""
+
+    clicked_slot = Signal(str, str, str)  # (day_code, start_time, end_time)
+
+    def __init__(
+        self,
+        day_code: str,
+        start_time: str,
+        end_time: str,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.day_code = day_code
+        self.start_time = start_time
+        self.end_time = end_time
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumHeight(74)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setText("+")
+        self.setStyleSheet("""
+            EmptyGridSlot {
+                background-color: #0E0E12;
+                border: 1px solid #18181F;
+                border-radius: 8px;
+                color: #27272E;
+                font-size: 18px;
+                font-weight: 400;
+            }
+            EmptyGridSlot:hover {
+                background-color: #14141C;
+                border: 1px dashed #3F3F4E;
+                color: #10B981;
+            }
+            EmptyGridSlot:pressed {
+                background-color: #1C1C26;
+            }
+        """)
+        self.clicked.connect(lambda: self.clicked_slot.emit(self.day_code, self.start_time, self.end_time))
+
+
 class ClassGridCard(QPushButton):
     """An interactive class card in the weekly schedule grid."""
 
-    clicked_session = Signal(str)  # subject name
+    clicked_session = Signal(str)  # subject name (legacy)
+    clicked_session_card = Signal(object)  # AcademicSession
 
     def __init__(
         self,
@@ -137,9 +180,11 @@ class ClassGridCard(QPushButton):
         lbl_time = QLabel(f"{session.time_slot.start} - {session.time_slot.end}")
         lbl_time.setFont(get_modern_font("mono", 10, QFont.Weight.Medium))
         lbl_time.setStyleSheet("color: #52525B; font-size: 10px;")
-        layout.addWidget(lbl_time)
+        self.clicked.connect(self._on_card_clicked)
 
-        self.clicked.connect(lambda: self.clicked_session.emit(self.session.subject.name))
+    def _on_card_clicked(self) -> None:
+        self.clicked_session_card.emit(self.session)
+        self.clicked_session.emit(self.session.subject.name)
 
 
 class ScheduleScreenWidget(QWidget):
@@ -499,16 +544,11 @@ class ScheduleScreenWidget(QWidget):
                         and session.time_slot.start <= now_str <= session.time_slot.end
                     )
                     card = ClassGridCard(session, is_current=is_current_session)
-                    card.clicked_session.connect(self._on_session_card_clicked)
+                    card.clicked_session_card.connect(self._open_session_manager)
                     self.grid_layout.addWidget(card, row_idx, col_idx)
                 else:
-                    empty = QFrame()
-                    empty.setStyleSheet("""
-                        background-color: #0E0E12;
-                        border: 1px solid #18181F;
-                        border-radius: 8px;
-                    """)
-                    empty.setMinimumHeight(74)
+                    empty = EmptyGridSlot(day_code=day_code, start_time=start_t, end_time=end_t)
+                    empty.clicked_slot.connect(self._open_add_slot_dialog)
                     self.grid_layout.addWidget(empty, row_idx, col_idx)
 
         self.grid_layout.setColumnStretch(0, 1)
@@ -662,6 +702,45 @@ class ScheduleScreenWidget(QWidget):
         row_idx = selected_rows[0].row()
         if 0 <= row_idx < len(self._sessions):
             del self._sessions[row_idx]
+            self._refresh_table()
+            self._refresh_calendar_grid()
+            self.timetable_changed.emit(self._sessions)
+
+    def _open_session_manager(self, session: AcademicSession) -> None:
+        existing_names = sorted({s.subject.name for s in self._sessions})
+        dialog = ClassSessionDialog(session=session, existing_subjects=existing_names, parent=self)
+        dialog.start_focus_requested.connect(self._on_session_card_clicked)
+        dialog.session_saved.connect(self._on_session_edited)
+        dialog.session_deleted.connect(self._on_session_deleted)
+        dialog.exec()
+
+    def _open_add_slot_dialog(self, day_code: str, start_t: str, end_t: str) -> None:
+        existing_names = sorted({s.subject.name for s in self._sessions})
+        dialog = ClassSessionDialog(
+            session=None,
+            default_day=day_code,
+            default_start=start_t,
+            default_end=end_t,
+            existing_subjects=existing_names,
+            parent=self,
+        )
+        dialog.session_saved.connect(self._on_session_edited)
+        dialog.exec()
+
+    def _on_session_edited(self, old_session: AcademicSession | None, new_session: AcademicSession) -> None:
+        if old_session is not None and old_session in self._sessions:
+            idx = self._sessions.index(old_session)
+            self._sessions[idx] = new_session
+        else:
+            self._sessions.append(new_session)
+
+        self._refresh_table()
+        self._refresh_calendar_grid()
+        self.timetable_changed.emit(self._sessions)
+
+    def _on_session_deleted(self, session: AcademicSession) -> None:
+        if session in self._sessions:
+            self._sessions.remove(session)
             self._refresh_table()
             self._refresh_calendar_grid()
             self.timetable_changed.emit(self._sessions)
