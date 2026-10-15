@@ -623,7 +623,8 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
   - Designed interactive color swatches with active selection indicator rings, native `QColorDialog` custom hex color picker, and dark background scrim.
   - Real-time live propagation of accents and background canvas colors across `MainWindow`, split-flap cards, hero banners, progress bars, and schedule views.
 - [x] **Active Academic Sprint Launchpad (`SubjectDashboardWidget`)**:
-  - Transformed the clock screen from a passive wall clock into an active starting point for study sprints.
+  - **Stylish Date Pill Badge (`lbl_date`)**: Positioned directly above the split-flap clock featuring dynamic theme accent weekday, separator bullet, and crisp off-white month & day (`THURSDAY • OCTOBER 15`).
+  - **Clean Centered Composition**: Removed the bottom schedule strip from the layout, creating a perfectly balanced, distraction-free vertical composition on 1366×768 displays.
   - **Urgent Deadline Kicker Badge (`lbl_task_kicker`)**: Displays relative deadline proximity (e.g. `🎯 PRIORITY TASK · DUE IN 14h` or `⚠ OVERDUE · WAS DUE 2h AGO`).
   - **Actionable Task Headline (`lbl_task_title`)**: High-legibility 22px bold modern sans-serif headline displaying the concrete task (e.g. `Complete buffer overflow exploitation exercise`), with 740px layout width to prevent clipping, and 1-click access to the task backlog.
   - **1-Click Sprint Launchers**:
@@ -638,9 +639,43 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 
 ---
 
+### Milestone 17: Multi-User Profile Architecture & Zero-Password Database Isolation `[COMPLETED]`
+- [x] **Lightweight User & Profile Manager (`UserManager`)**:
+  - Built `UserManager` in [`src/study_station/persistence/user_manager.py`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/persistence/user_manager.py).
+  - Maintains `profiles.json` tracking registered user profiles and active user.
+  - **100% Backward Compatibility**: Legacy `studystation.db` is automatically mapped as the `"Default"` user profile so existing student records, tasks, and settings are never lost.
+  - Separate database files per user: `%APPDATA%/study_station/users/{username}.db`.
+  - Robust username filesystem sanitization (`sanitize_username`).
+- [x] **Frictionless Kiosk User Switch Dialog (`UserSwitchDialog`)**:
+  - Designed and built [`UserSwitchDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/user_switch_dialog.py) and [`UserProfileCard`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/user_switch_dialog.py#L25-L105).
+  - Modern obsidian aesthetic matching the kiosk dark design system.
+  - Emerald `● ACTIVE` badge for the current profile.
+  - 1-click user switching (`Switch` button or clicking the card).
+  - Safe deletion for secondary profiles with confirmation.
+  - Inline input field to create a new user profile with `[ + Create & Switch ]` button.
+- [x] **Live State Switching & Zero-Restart Persistence (`MainWindow`)**:
+  - Integrated `switch_user(new_username)` in [`MainWindow`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/main_window.py):
+    - Safely pauses/persists any active focus timer to prevent lost effort.
+    - Closes previous SQLite connection.
+    - Connects to target user's SQLite database.
+    - Seeds initial university timetable from `docs/example.json` if new user database is empty.
+    - Re-instantiates `StudyStationRepository` and `ScheduleEngine`.
+    - Reloads user appearance settings (`AppSettings`) and updates window palette.
+    - Dynamically refreshes Weekly Schedule Cockpit, Flip Clock launchpad, and task backlogs.
+- [x] **Top Navigation & Keyboard Ergonomics**:
+  - Added `[ 👤 {Username} ]` button in the top navigation bar of [`ScheduleScreenWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/schedule_screen_widget.py).
+  - Added `[ 👤 {Username} ]` button in the auto-revealing navigation bar of [`SubjectDashboardWidget`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/dashboard_widget.py).
+  - Connected global keyboard shortcut <kbd>U</kbd> in `MainWindow` for instant modal access from both grid and clock screens.
+- [x] **Verification & Test Suite**:
+  - Added dedicated unit test suite in [`tests/test_multi_user.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_multi_user.py) covering user initialization, path isolation, separate todo databases, dialog actions, and main window switching.
+  - **100% test pass rate:** **124/124 unit tests passing** (up from 114).
+  - Generated and verified high-resolution screenshot in [`docs/screens/switch_user_modal.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/switch_user_modal.png).
+
+---
+
 ## Complete Academic Station Milestone Summary
 
-Study Station is fully realized across 17 comprehensive development milestones:
+Study Station is fully realized across 18 comprehensive development milestones:
 1. **Milestone 1: Project Foundation & Screen Framework** `[COMPLETED]` — Window lifecycle, fullscreen, Linux X11/Xfce support.
 2. **Milestone 2: Ambient Flip Clock & Schedule Engine** `[COMPLETED]` — Retro minimal typography, ScheduleEngine timetable parsing.
 3. **Milestone 2.5: Modern UI Redesign & Calm Discipline** `[COMPLETED]` — 3D flip card animations, auto-hiding action bars.
@@ -660,6 +695,7 @@ Study Station is fully realized across 17 comprehensive development milestones:
 17. **Milestone 15: Academic Task Backlog & Comprehensive CRUD** `[COMPLETED]` — Central backlog (<kbd>T</kbd>), EditTodoDialog, reversible check-offs.
 18. **Milestone 15.5: Runtime Stability & Backlog Polish** `[COMPLETED]` — Signal lifecycle stability, font sizing evaluation, upcoming class calculations.
 19. **Milestone 16: UI Professionalization, Customization Engine & Academic Sprint Launchpad** `[COMPLETED]` — Mechanical clock overhaul, dynamic UI themes, reclaimed session space, and active task sprint launcher.
+20. **Milestone 17: Multi-User Profile Architecture & Zero-Password Database Isolation** `[COMPLETED]` — Zero-password user switching, isolated SQLite databases, instant seeding for new profiles, and top-bar switch button.
 
 
 

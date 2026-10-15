@@ -50,16 +50,19 @@ class SubjectDashboardWidget(QWidget):
     open_debrief_requested = Signal()
     open_tasks_requested = Signal()
     toggle_fullscreen_requested = Signal()
+    open_switch_user_requested = Signal()
 
     def __init__(
         self,
         engine: ScheduleEngine | None = None,
         settings: AppSettings | None = None,
         parent: QWidget | None = None,
+        current_user: str = "Default",
     ) -> None:
         super().__init__(parent)
         self.engine = engine
         self.settings = settings or AppSettings()
+        self.current_user = current_user
         self.selected_subject: str | None = None
         self.active_todo = None
 
@@ -108,7 +111,20 @@ class SubjectDashboardWidget(QWidget):
         main_layout.addStretch(1)
 
         # ---------------------------------------------------------------------
-        # 2. Medium Mechanical Flip Clock
+        # 2. Stylish Date Badge (Directly above flip clock)
+        # ---------------------------------------------------------------------
+        self.lbl_date = QLabel(self)
+        self.lbl_date.setObjectName("lblDashboardDate")
+        self.lbl_date.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_date.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lbl_date.setToolTip("Click to open schedule")
+        self.lbl_date.mousePressEvent = lambda e: self.open_timetable_requested.emit()
+        main_layout.addWidget(self.lbl_date, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        main_layout.addSpacing(14)
+
+        # ---------------------------------------------------------------------
+        # 3. Medium Mechanical Flip Clock
         # ---------------------------------------------------------------------
         self.clock_widget = SplitFlapClockWidget(self.settings, self)
         main_layout.addWidget(self.clock_widget, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -299,10 +315,10 @@ class SubjectDashboardWidget(QWidget):
         main_layout.addStretch(1)
 
         # ---------------------------------------------------------------------
-        # 6. Ambient Today's Timeline Strip (Glanceable grounding at bottom)
+        # 6. Ambient Today's Timeline Strip (Removed from display per user request)
         # ---------------------------------------------------------------------
         self.timeline_strip = self._create_timeline_strip()
-        main_layout.addWidget(self.timeline_strip)
+        self.timeline_strip.hide()
 
         # Hidden backwards-compatibility widgets for unit tests
         self.lbl_status_badge = QLabel(self)
@@ -377,18 +393,57 @@ class SubjectDashboardWidget(QWidget):
             self.btn_focus_15.setText("▶ START 15m SPRINT")
             self.btn_focus_25.setText("25m POMODORO")
 
+    def _update_date_display(self, now: datetime) -> None:
+        """Format the stylish date badge directly above the split-flap clock."""
+        accent_color = getattr(self.settings, "accent_color", "") or "#10B981"
+        fmt = getattr(self.settings, "date_format", "full")
+
+        if fmt == "compact":
+            day_str = now.strftime("%a").upper()
+            date_str = now.strftime("%d %b").upper()
+        elif fmt == "clean":
+            day_str = ""
+            date_str = now.strftime("%d %B").upper()
+        else:  # full
+            day_str = now.strftime("%A").upper()
+            date_str = now.strftime("%B %d").upper()
+
+        if day_str:
+            html = (
+                f"<span style='color: {accent_color}; font-weight: 800; letter-spacing: 2.2px;'>{day_str}</span>"
+                f"&nbsp;&nbsp;<span style='color: #52525B;'>•</span>&nbsp;&nbsp;"
+                f"<span style='color: #E4E4E7; font-weight: 600; letter-spacing: 1.8px;'>{date_str}</span>"
+            )
+        else:
+            html = f"<span style='color: #E4E4E7; font-weight: 600; letter-spacing: 1.8px;'>{date_str}</span>"
+
+        self.lbl_date.setText(html)
+        self.lbl_date.setStyleSheet(f"""
+            QLabel#lblDashboardDate {{
+                background-color: #121215;
+                color: #E4E4E7;
+                border: 1px solid #27272A;
+                border-radius: 13px;
+                padding: 5px 18px;
+                font-size: 11px;
+            }}
+            QLabel#lblDashboardDate:hover {{
+                border: 1px solid {accent_color};
+                background-color: #18181B;
+            }}
+        """)
+
+    def set_current_user(self, username: str) -> None:
+        """Update user button label."""
+        self.current_user = username
+        if hasattr(self, "btn_user"):
+            self.btn_user.setText(f"👤 {username}")
+
     def _create_top_bar(self) -> QWidget:
         bar = QWidget(self)
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
-
-        # Date Display (Always visible in both idle and interactive modes)
-        now = datetime.now()
-        date_str = now.strftime("%A, %B %d").upper()
-        self.lbl_date = QLabel(date_str)
-        self.lbl_date.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;")
-        layout.addWidget(self.lbl_date)
 
         layout.addStretch()
 
@@ -397,6 +452,27 @@ class SubjectDashboardWidget(QWidget):
         nav_layout = QHBoxLayout(self.nav_container)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(8)
+
+        self.btn_user = QPushButton(f"👤 {self.current_user}")
+        self.btn_user.setStyleSheet("""
+            QPushButton {
+                background-color: #14221D;
+                color: #38BDF8;
+                border: 1px solid #0369A1;
+                border-radius: 14px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #0369A1;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_user.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_user.setToolTip("Switch user profile (no password)")
+        self.btn_user.clicked.connect(self.open_switch_user_requested.emit)
+        nav_layout.addWidget(self.btn_user)
 
         self.btn_timetable = QPushButton("Schedule")
         self.btn_timetable.setStyleSheet(BUTTON_NAV_STYLE)
@@ -530,8 +606,7 @@ class SubjectDashboardWidget(QWidget):
 
     def refresh_dashboard(self, ref_dt: datetime | None = None) -> None:
         now = ref_dt or datetime.now()
-        date_str = now.strftime("%A, %B %d").upper()
-        self.lbl_date.setText(date_str)
+        self._update_date_display(now)
 
         # Update ambient bottom timeline strip
         self._update_timeline_strip(now)

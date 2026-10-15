@@ -8,6 +8,7 @@ Manages transitions between:
 """
 
 from datetime import datetime, timedelta
+from pathlib import Path
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QColor, QKeyEvent, QPalette
 from PySide6.QtWidgets import QDialog, QMainWindow, QStackedWidget
@@ -21,7 +22,9 @@ from study_station.core.models import (
 )
 from study_station.core.settings import AppSettings
 from study_station.core.timer import FocusTimer
+from study_station.persistence.database import Database
 from study_station.persistence.repository import StudyStationRepository
+from study_station.persistence.user_manager import UserManager
 from study_station.ui.completion_widget import CompletionWidget
 from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.dashboard_widget import SubjectDashboardWidget
@@ -36,6 +39,7 @@ from study_station.ui.targets_dialog import TargetsDialog
 from study_station.ui.tasks_dialog import TasksDialog
 from study_station.ui.theme import GLOBAL_QSS, THEMES
 from study_station.ui.timetable_dialog import TimetableDialog
+from study_station.ui.user_switch_dialog import UserSwitchDialog
 from study_station.ui.weekly_schedule_dialog import WeeklyScheduleGridDialog
 
 
@@ -53,6 +57,7 @@ class MainWindow(QMainWindow):
         self,
         engine: ScheduleEngine | None = None,
         repository: StudyStationRepository | None = None,
+        user_manager: UserManager | None = None,
     ) -> None:
         super().__init__()
         self.setWindowTitle("Study Station")
@@ -60,6 +65,8 @@ class MainWindow(QMainWindow):
 
         self._repo = repository
         self._engine = engine
+        self._user_manager = user_manager or UserManager()
+        self._current_user = self._user_manager.get_active_user()
         self._settings = self._repo.load_settings() if self._repo else AppSettings()
         self._timer = FocusTimer()
         self._prompt_exit_ticket = True
@@ -72,9 +79,15 @@ class MainWindow(QMainWindow):
 
         # 1. Primary Cockpit Screen: Full-Screen Weekly Schedule & Task Badges
         sessions = self._engine.sessions if self._engine else []
-        self._schedule_widget = ScheduleScreenWidget(sessions=sessions, parent=self, engine=self._engine)
+        self._schedule_widget = ScheduleScreenWidget(
+            sessions=sessions,
+            parent=self,
+            engine=self._engine,
+            current_user=self._current_user,
+        )
         self._schedule_widget.ambient_requested.connect(self._show_ambient_clock)
         self._schedule_widget.open_debrief_requested.connect(self.open_debrief_dialog)
+        self._schedule_widget.open_switch_user_requested.connect(self.open_user_switch_dialog)
         self._schedule_widget.start_focus_requested.connect(self._on_start_focus_requested)
         self._schedule_widget.start_todo_focus_requested.connect(self._on_start_todo_focus)
         self._schedule_widget.timetable_changed.connect(self._on_timetable_updated)
@@ -94,9 +107,15 @@ class MainWindow(QMainWindow):
         self._stack.addWidget(self._completion_widget)
 
         # 4. Secondary Screen: Ambient Split-Flap Clock & Quick Switcher
-        self._dashboard_widget = SubjectDashboardWidget(self._engine, self._settings, self)
+        self._dashboard_widget = SubjectDashboardWidget(
+            self._engine,
+            self._settings,
+            self,
+            current_user=self._current_user,
+        )
         self._dashboard_widget.start_focus_requested.connect(self._on_start_focus_requested)
         self._dashboard_widget.start_todo_focus_requested.connect(self._on_start_todo_focus)
+        self._dashboard_widget.open_switch_user_requested.connect(self.open_user_switch_dialog)
         self._dashboard_widget.open_settings_requested.connect(self.open_customization_dialog)
         self._dashboard_widget.open_timetable_requested.connect(self.open_timetable_editor)
         self._dashboard_widget.open_targets_requested.connect(self.open_targets_dialog)
@@ -352,6 +371,81 @@ class MainWindow(QMainWindow):
         finally:
             self._hide_scrim()
 
+    def open_user_switch_dialog(self) -> None:
+        """Open User Switcher modal dialog with dark scrim."""
+        self._show_scrim()
+        try:
+            dialog = UserSwitchDialog(self._user_manager, parent=self)
+            dialog.user_switched.connect(self.switch_user)
+            dialog.exec()
+        finally:
+            self._hide_scrim()
+
+    def switch_user(self, new_username: str) -> None:
+        """Switch active user profile and connect to the user's database."""
+        if not new_username:
+            return
+
+        # 1. Stop / persist running focus session if active
+        if self._timer.is_active:
+            if self._repo:
+                self._repo.save_timer_state(self._timer)
+            self._timer.stop()
+
+        # 2. Close existing database connection
+        if self._repo and hasattr(self._repo, "db") and self._repo.db:
+            try:
+                self._repo.db.close()
+            except Exception:
+                pass
+
+        # 3. Update active user in UserManager
+        self._user_manager.set_active_user(new_username)
+        self._current_user = new_username
+
+        # 4. Open new user database
+        new_db_path = self._user_manager.get_user_db_path(new_username)
+        new_db = Database(new_db_path)
+        new_repo = StudyStationRepository(new_db)
+
+        # 5. Seed timetable if empty
+        sample_timetable = Path(__file__).resolve().parent.parent.parent.parent / "docs" / "example.json"
+        if sample_timetable.exists():
+            new_repo.seed_timetable_if_empty(sample_timetable)
+
+        # 6. Initialize fresh engine & settings
+        new_engine = ScheduleEngine.from_repository(new_repo)
+        new_settings = new_repo.load_settings()
+
+        self._repo = new_repo
+        self._engine = new_engine
+        self._settings = new_settings
+
+        # 7. Apply theme & window palette
+        self._apply_window_palette()
+
+        # 8. Propagate new state to screens
+        if hasattr(self, "_schedule_widget"):
+            self._schedule_widget.engine = new_engine
+            self._schedule_widget.set_current_user(new_username)
+            self._schedule_widget.apply_settings(new_settings)
+            self._schedule_widget.update_sessions(new_engine.sessions)
+
+        if hasattr(self, "_dashboard_widget"):
+            self._dashboard_widget.engine = new_engine
+            self._dashboard_widget.set_current_user(new_username)
+            self._dashboard_widget.apply_settings(new_settings)
+            self._dashboard_widget.refresh_dashboard()
+
+        if hasattr(self, "_focus_widget"):
+            self._focus_widget.apply_settings(new_settings)
+
+        # 9. Check recovery for this user's timer
+        self._check_timer_recovery()
+
+        # 10. Return to main cockpit screen
+        self._show_cockpit_screen()
+
     def _on_manual_time_logged(self, subject_name: str, minutes: int) -> None:
         """Handle manual time entry logged away from the computer."""
         self._on_session_finished(subject_name, minutes, source="manual")
@@ -577,6 +671,8 @@ class MainWindow(QMainWindow):
                 self.open_history_dialog()
             elif key == Qt.Key.Key_T:
                 self.open_tasks_dialog()
+            elif key == Qt.Key.Key_U:
+                self.open_user_switch_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
                 self.start_focus_session(self._settings.default_focus_minutes)
             elif key == Qt.Key.Key_1:
@@ -628,6 +724,8 @@ class MainWindow(QMainWindow):
                 self.open_import_export_dialog()
             elif key == Qt.Key.Key_T:
                 self.open_tasks_dialog()
+            elif key == Qt.Key.Key_U:
+                self.open_user_switch_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
                 self.start_focus_session(self._settings.default_focus_minutes)
             elif key == Qt.Key.Key_1:

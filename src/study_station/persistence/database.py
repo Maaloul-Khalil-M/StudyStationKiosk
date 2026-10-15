@@ -7,17 +7,21 @@ import sys
 
 
 def get_default_db_path() -> Path:
-    """Return platform-standard path for Study Station database."""
-    if sys.platform == "win32":
-        app_data = os.environ.get("APPDATA")
-        base_dir = Path(app_data) if app_data else Path.home() / "AppData" / "Roaming"
-    else:
-        xdg_data = os.environ.get("XDG_DATA_HOME")
-        base_dir = Path(xdg_data) if xdg_data else Path.home() / ".local" / "share"
+    """Return platform-standard path for Study Station database (active user)."""
+    try:
+        from study_station.persistence.user_manager import UserManager
+        return UserManager().get_user_db_path()
+    except Exception:
+        if sys.platform == "win32":
+            app_data = os.environ.get("APPDATA")
+            base_dir = Path(app_data) if app_data else Path.home() / "AppData" / "Roaming"
+        else:
+            xdg_data = os.environ.get("XDG_DATA_HOME")
+            base_dir = Path(xdg_data) if xdg_data else Path.home() / ".local" / "share"
 
-    db_dir = base_dir / "study_station"
-    db_dir.mkdir(parents=True, exist_ok=True)
-    return db_dir / "studystation.db"
+        db_dir = base_dir / "study_station"
+        db_dir.mkdir(parents=True, exist_ok=True)
+        return db_dir / "studystation.db"
 
 
 class Database:

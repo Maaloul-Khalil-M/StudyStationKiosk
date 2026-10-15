@@ -9,6 +9,7 @@ Generates high-resolution screenshots in docs/screens/:
 """
 
 import os
+import shutil
 import sys
 import tempfile
 from datetime import datetime, timedelta
@@ -32,6 +33,7 @@ from study_station.core.settings import AppSettings
 from study_station.core.timer import FocusTimer
 from study_station.persistence.database import Database
 from study_station.persistence.repository import StudyStationRepository
+from study_station.persistence.user_manager import UserManager
 from study_station.ui.class_session_dialog import ClassSessionDialog
 from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.debrief_dialog import DebriefDialog
@@ -41,6 +43,7 @@ from study_station.ui.import_export_dialog import ImportExportDialog
 from study_station.ui.main_window import MainWindow
 from study_station.ui.subject_preparation_sheet import SubjectPreparationSheet
 from study_station.ui.tasks_dialog import TasksDialog
+from study_station.ui.user_switch_dialog import UserSwitchDialog
 
 
 def main():
@@ -244,6 +247,19 @@ def main():
     app.processEvents()
     save_both(exit_dlg.grab(), "exit_ticket.png", "s9 exit_ticket.png")
     exit_dlg.close()
+
+    # 12. Capture User Switch Dialog (switch_user_modal.png / s10 switch_user.png)
+    temp_user_dir = tempfile.mkdtemp()
+    user_mgr = UserManager(base_dir=temp_user_dir)
+    user_mgr.create_user("Alice")
+    user_mgr.create_user("Bob")
+    user_dlg = UserSwitchDialog(user_manager=user_mgr)
+    user_dlg.resize(540, 500)
+    user_dlg.show()
+    app.processEvents()
+    save_both(user_dlg.grab(), "switch_user_modal.png", "s10 switch_user.png")
+    user_dlg.close()
+    shutil.rmtree(temp_user_dir, ignore_errors=True)
 
     # Clean up
     db.close()

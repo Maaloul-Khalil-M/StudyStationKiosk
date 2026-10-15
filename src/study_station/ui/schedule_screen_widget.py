@@ -283,6 +283,7 @@ class ScheduleScreenWidget(QWidget):
     back_requested = Signal()
     ambient_requested = Signal()
     open_debrief_requested = Signal()
+    open_switch_user_requested = Signal()
     subject_selected = Signal(str)
     start_focus_requested = Signal(str, int)
     start_todo_focus_requested = Signal(object, int)
@@ -313,9 +314,11 @@ class ScheduleScreenWidget(QWidget):
         current_subject: str | None = None,
         parent: QWidget | None = None,
         engine: ScheduleEngine | None = None,
+        current_user: str = "Default",
     ) -> None:
         super().__init__(parent)
         self.engine = engine
+        self._current_user = current_user
         self._sessions = list(sessions)
         self._current_subject = current_subject
         self._now = datetime.now()
@@ -325,6 +328,12 @@ class ScheduleScreenWidget(QWidget):
 
         self._build_ui()
         self._refresh_cockpit_banners()
+
+    def set_current_user(self, username: str) -> None:
+        """Update user button display label."""
+        self._current_user = username
+        if hasattr(self, "btn_user"):
+            self.btn_user.setText(f"👤 {username}")
 
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
@@ -337,6 +346,27 @@ class ScheduleScreenWidget(QWidget):
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(8)
+
+        self.btn_user = QPushButton(f"👤 {self._current_user}")
+        self.btn_user.setStyleSheet("""
+            QPushButton {
+                background-color: #14221D;
+                color: #38BDF8;
+                border: 1px solid #0369A1;
+                border-radius: 14px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #0369A1;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_user.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_user.setToolTip("Switch user profile (no password)")
+        self.btn_user.clicked.connect(self.open_switch_user_requested.emit)
+        header.addWidget(self.btn_user)
 
         self.btn_ambient = QPushButton("⏱ Clock")
         self.btn_ambient.setStyleSheet(BUTTON_NAV_STYLE)

@@ -8,7 +8,7 @@
 [![PySide6 / Qt](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-41CD52?style=flat&logo=qt&logoColor=white)](https://www.qt.io/)
 [![SQLite WAL](https://img.shields.io/badge/Database-SQLite%20(WAL)-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Local-First](https://img.shields.io/badge/Architecture-100%25%20Offline%20%2F%20Local--First-black?style=flat)](#)
-[![Tests Passing](https://img.shields.io/badge/Tests-114%2F114%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
+[![Tests Passing](https://img.shields.io/badge/Tests-124%2F124%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
 [![Zero Cloud](https://img.shields.io/badge/Privacy-Zero%20Cloud%20%2F%20Zero%20Electron-6366F1?style=flat)](#)
 
 </div>
@@ -23,14 +23,14 @@ Traditional productivity apps suffer from a fundamental mismatch with university
 
 > *"Today I had a difficult university class and I feel tired and demotivated to touch it again tonight. But I know with certainty that if I walk into next week's session without having reviewed the material, nothing will stick."*
 
-Study Station bridges the gap between consecutive occurrences of the same subject. It combines an **interactive weekly academic cockpit**, an **automatic nightly debrief ritual**, an **active academic sprint launchpad**, **task-tethered micro-focus sprints**, **cognitive exit tickets** that formulate questions to ask professors in class, and a **centralized task backlog with full CRUD**.
+Study Station bridges the gap between consecutive occurrences of the same subject. It combines an **interactive weekly academic cockpit**, an **automatic nightly debrief ritual**, an **active academic sprint launchpad**, **task-tethered micro-focus sprints**, **cognitive exit tickets** that formulate questions to ask professors in class, a **centralized task backlog with full CRUD**, and **zero-password multi-user profiles with database isolation**.
 
 ---
 
 ## 2. Visual Showcase
 
 ### The Academic Cockpit (Primary Station)
-The weekly schedule grid acts as the student's default mission control, highlighting real calendar dates, live task badges, the Evening Desk Routine banner, and Tonight's Priority Task capsule.
+The weekly schedule grid acts as the student's default mission control, highlighting real calendar dates, live task badges, the Evening Desk Routine banner, Tonight's Priority Task capsule, and 1-click User Switch button (`[ 👤 Default ]`).
 
 ![Weekly Schedule Academic Cockpit](docs/screens/grid_schedual.png)
 
@@ -52,6 +52,11 @@ The weekly schedule grid acts as the student's default mission control, highligh
 |:---:|:---:|
 | ![Nightly Debrief](docs/screens/debrief_modal.png) | ![Focus Screen](docs/screens/focus.png) |
 | *Multi-step evening ritual auto-calculating deadlines to next week's classes.* | *Distraction-free radial focus gauge with task title and deadline context.* |
+
+| Multi-User Profile Switcher (<kbd>U</kbd>) | Timetable Portability (<kbd>I</kbd>) |
+|:---:|:---:|
+| ![User Switch Modal](docs/screens/switch_user_modal.png) | ![Import / Export](docs/screens/import_export.png) |
+| *Zero-password kiosk user switching with isolated SQLite databases and instant seeding.* | *PDF schedule extraction, RFC 4180 CSV, and structured JSON import/export.* |
 
 ---
 
@@ -149,6 +154,13 @@ When arriving at the desk tired at night, looking at a passive clock or complex 
 - **Real-Time Live Propagation**: Color choices instantly update the canvas, split-flap cards, hero banners, progress bars, and schedule views with SQLite persistence.
 - **Full-Height Session Manager**: Clean tabular schedule editor with 100% vertical space dedicated to academic sessions, free of inline clutter.
 
+### 👤 Zero-Password Multi-User Profiles & Database Isolation (`UserManager` & `UserSwitchDialog`)
+- **Shared Desk Appliance Experience**: Designed for kiosk setups where multiple students share the workstation. Zero password prompts or login friction.
+- **True Database Isolation**: Each student gets an independent SQLite database (`%APPDATA%/study_station/users/{username}.db`) storing their own timetable, deliverables, target minutes, and study history.
+- **1-Click Switching**: Click `[ 👤 {Username} ]` in the top header or press <kbd>U</kbd> to open the switcher modal and pick a profile or create a new user.
+- **Instant Out-of-the-Box Functionality**: Newly created profiles are immediately initialized and seeded from `docs/example.json`, providing working classes and sprint capability immediately.
+- **Zero-Restart Seamless Live Switch**: Instantly pauses any active timer, safely switches SQLite database connections, reloads the engine and UI themes, and refreshes the cockpit without restarting the app.
+
 ### 🛡 Local Persistence & Hardware Resilience (`StudyStationRepository`)
 - **SQLite Database with WAL Mode**: Fast local storage in `%APPDATA%/StudyStation/` (Windows) or `~/.local/share/study_station/` (Linux).
 - **Crash & Sleep Recovery**: Active timer states are persisted periodically. If the computer goes to sleep or restarts, the session resumes seamlessly or attributes the full completed duration upon waking.
@@ -177,7 +189,8 @@ study-station/
 │       │   └── sound_manager.py           # Calibrated acoustic harmonic completion chime
 │       ├── persistence/                   # Local database and repository layer
 │       │   ├── database.py                # SQLite connection manager with WAL & automatic migrations
-│       │   └── repository.py              # CRUD repository for logs, timetable, todos, and settings
+│       │   ├── repository.py              # CRUD repository for logs, timetable, todos, and settings
+│       │   └── user_manager.py            # Multi-user profile configuration and path isolation
 │       └── ui/                            # PySide6 Qt Widgets presentation layer
 │           ├── main_window.py             # Root window with screen stack and global shortcut dispatch
 │           ├── schedule_screen_widget.py  # Weekly Schedule Cockpit, banners, class cards, editor
@@ -189,8 +202,11 @@ study-station/
 │           ├── dashboard_widget.py        # Ambient split-flap clock screensaver view
 │           ├── flip_clock.py              # Custom QPainter 3D split-flap flip card widget
 │           ├── import_export_dialog.py    # Timetable import/export modal with live preview
+│           ├── tasks_dialog.py            # Academic task backlog modal with multi-criteria filters
+│           ├── user_switch_dialog.py      # Kiosk multi-user profile switcher modal
 │           └── theme.py                   # Centralized dark palette, typography, and button styles
-├── tests/                                 # Complete unit test suite (16 test modules)
+├── tests/                                 # Complete unit test suite (18 test modules)
+│   ├── test_multi_user.py                 # Milestone 17: User manager, database isolation, switch modal
 │   ├── test_night_routine_hud.py          # Milestone 14: Evening desk mode, hero tasks, question HUD
 │   ├── test_exit_ticket.py                # Milestone 13: Exit ticket actions, confidence, continuation
 │   ├── test_grid_main_screen.py           # Milestone 12: Grid cockpit, preparation badges, sheet drawer
@@ -312,6 +328,7 @@ This script renders and grabs:
 - `docs/screens/tasks_modal.png` (Academic task backlog & KPI telemetry)
 - `docs/screens/settings.png` (Theme customization palette & swatches)
 - `docs/screens/exit_ticket.png` (Cognitive exit ticket & question formulation)
+- `docs/screens/switch_user_modal.png` (Kiosk multi-user profile switcher dialog)
 
 ---
 
@@ -337,6 +354,7 @@ This script renders and grabs:
 | **15** | Academic Task Backlog & CRUD | Central backlog (<kbd>T</kbd>), EditTodoDialog, reversible check-offs, in-place edit/delete | `[COMPLETED]` |
 | **15.5** | Runtime Stability & Backlog Polish | Signal lifecycle stability, font evaluation, upcoming class calculations | `[COMPLETED]` |
 | **16** | UI Professionalization & Sprint Launchpad | Split-flap mechanical clock, dynamic customization engine, active task sprint launcher | `[COMPLETED]` |
+| **17** | Multi-User Profiles & DB Isolation | Zero-password user switching, isolated SQLite databases, instant seeding, and top-bar button | `[COMPLETED]` |
 
 ---
 
