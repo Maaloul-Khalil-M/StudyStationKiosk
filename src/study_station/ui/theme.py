@@ -69,6 +69,21 @@ THEMES = {
         progress_bar_bg=QColor("#241B16"),
         progress_bar_fill=QColor("#F59E0B"),
     ),
+    "nerv": ColorTheme(
+        name="NERV Terminal",
+        bg_canvas=QColor("#050507"),
+        card_top_grad_start=QColor("#1C1814"),
+        card_top_grad_end=QColor("#16120E"),
+        card_bottom_grad_start=QColor("#120E0A"),
+        card_bottom_grad_end=QColor("#0A0806"),
+        card_border=QColor("#3E2A1A"),
+        hinge_groove=QColor("#040303"),
+        text_primary=QColor("#F5F5F7"),
+        text_muted=QColor("#9E8A7A"),
+        text_accent=QColor("#FF7700"),
+        progress_bar_bg=QColor("#261A10"),
+        progress_bar_fill=QColor("#FF7700"),
+    ),
 }
 
 
@@ -78,7 +93,43 @@ def get_modern_font(family_preference: str = "sans", size: int = 14, weight: QFo
     font.setPixelSize(size)
     font.setWeight(weight)
     
-    if family_preference == "sans":
+    if family_preference in ("serif", "eva", "eva_display"):
+        # Evangelion Matisse-inspired high-contrast display serif
+        font.setFamilies([
+            "Century Schoolbook",
+            "Bodoni MT",
+            "Georgia",
+            "Times New Roman",
+            "Palatino Linotype",
+            "DejaVu Serif",
+            "serif",
+        ])
+        # Mechanical compression / tight tracking characteristic of Matisse EB
+        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 96)
+    elif family_preference in ("hud", "hud_telemetry", "condensed"):
+        # Evangelion NERV HUD telemetry style
+        font.setFamilies([
+            "Impact",
+            "DIN Alternate",
+            "Franklin Gothic Medium",
+            "Arial Narrow",
+            "JetBrains Mono",
+            "Inter",
+            "Segoe UI",
+            "sans-serif",
+        ])
+        font.setCapitalization(QFont.Capitalization.AllUppercase)
+        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 110)
+    elif family_preference == "mono":
+        font.setFamilies([
+            "JetBrains Mono",
+            "SF Mono",
+            "Cascadia Code",
+            "Segoe UI",
+            "DejaVu Sans Mono",
+            "Monospace",
+        ])
+    else:  # "sans"
         font.setFamilies([
             "Inter",
             "SF Pro Display",
@@ -88,15 +139,6 @@ def get_modern_font(family_preference: str = "sans", size: int = 14, weight: QFo
             "Helvetica Neue",
             "DejaVu Sans",
             "Arial",
-        ])
-    elif family_preference == "mono":
-        font.setFamilies([
-            "JetBrains Mono",
-            "SF Mono",
-            "Cascadia Code",
-            "Segoe UI",
-            "DejaVu Sans Mono",
-            "Monospace",
         ])
     return font
 

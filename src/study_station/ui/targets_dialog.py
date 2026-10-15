@@ -68,6 +68,11 @@ class TargetsDialog(QDialog):
         container_layout.addWidget(self.ui)
 
         # UI References
+        self.lbl_title: QLabel = self.ui.findChild(QLabel, "lblTitle")
+        if self.lbl_title:
+            self.lbl_title.setText("SUBJECT TARGETS // PROTOCOL CONFIG")
+            self.lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
+
         self.scroll_layout: QVBoxLayout = self.ui.findChild(QVBoxLayout, "subjectsListLayout")
         self.btn_cancel: QPushButton = self.ui.findChild(QPushButton, "btnCancel")
         self.btn_save: QPushButton = self.ui.findChild(QPushButton, "btnSave")
@@ -105,7 +110,7 @@ class TargetsDialog(QDialog):
         # Clean subject name
         clean_name = ScheduleEngine.clean_subject_name(subject_name)
         lbl = QLabel(clean_name)
-        lbl.setFont(get_modern_font("sans", 13, QFont.Weight.Medium))
+        lbl.setFont(get_modern_font("eva_display", 13, QFont.Weight.Medium))
         lbl.setStyleSheet("color: #F4F4F5; border: none; background: transparent;")
         row_layout.addWidget(lbl, 1)
 

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFrame,
     QHBoxLayout,
+    QLabel,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -63,6 +64,11 @@ class ManualLogDialog(QDialog):
         container_layout.addWidget(self.ui)
 
         # Widget references
+        self.lbl_title: QLabel = self.ui.findChild(QLabel, "lblTitle")
+        if self.lbl_title:
+            self.lbl_title.setText("MANUAL LOG // OFFLINE SESSION")
+            self.lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
+
         self.cmb_subject: QComboBox = self.ui.findChild(QComboBox, "cmbSubject")
         self.spn_minutes: QSpinBox = self.ui.findChild(QSpinBox, "spnMinutes")
         self.btn_cancel: QPushButton = self.ui.findChild(QPushButton, "btnCancel")

@@ -16,6 +16,7 @@ class AppSettings:
     theme_id: str = "noir"     # "noir", "slate", "espresso"
     animate_flip: bool = True
     default_focus_minutes: int = 15
+    typography_style: str = "eva"  # "eva" (Matisse Serif + HUD) or "modern" (Swiss Sans)
 
     def to_dict(self) -> dict:
         return asdict(self)

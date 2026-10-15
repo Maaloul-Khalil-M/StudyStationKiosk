@@ -30,7 +30,7 @@ class CustomizationDialog(QDialog):
     def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Clock & Display Customization")
-        self.setFixedSize(480, 560)
+        self.setFixedSize(500, 620)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -164,23 +164,64 @@ class CustomizationDialog(QDialog):
         self.cb_anim.toggled.connect(self._on_anim_toggled)
         content_layout.addWidget(self.cb_anim)
 
+        # Section 2.5: Typography System
+        sec_typo_lbl = QLabel("TYPOGRAPHY SYSTEM")
+        sec_typo_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
+        sec_typo_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
+        content_layout.addWidget(sec_typo_lbl)
+
+        typo_layout = QHBoxLayout()
+        typo_layout.setSpacing(16)
+        typo_group = QButtonGroup(self)
+
+        current_typo = getattr(self._settings, "typography_style", "eva")
+
+        self.rb_typo_eva = QRadioButton("Evangelion / NERV HUD")
+        self.rb_typo_eva.setChecked(current_typo == "eva")
+        self.rb_typo_eva.toggled.connect(lambda c: self._on_typo_toggled(c, "eva"))
+        typo_group.addButton(self.rb_typo_eva)
+        typo_layout.addWidget(self.rb_typo_eva)
+
+        self.rb_typo_modern = QRadioButton("Swiss Modern Sans")
+        self.rb_typo_modern.setChecked(current_typo == "modern")
+        self.rb_typo_modern.toggled.connect(lambda c: self._on_typo_toggled(c, "modern"))
+        typo_group.addButton(self.rb_typo_modern)
+        typo_layout.addWidget(self.rb_typo_modern)
+
+        typo_layout.addStretch()
+        content_layout.addLayout(typo_layout)
+
         # Section 3: Theme Palette
         sec3_lbl = QLabel("CARD THEME")
         sec3_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
         sec3_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
         content_layout.addWidget(sec3_lbl)
 
-        theme_layout = QHBoxLayout()
+        theme_layout = QVBoxLayout()
+        theme_layout.setSpacing(8)
         theme_group = QButtonGroup(self)
-        for theme_key, theme_data in THEMES.items():
+
+        # 2x2 theme layout
+        row1 = QHBoxLayout()
+        row2 = QHBoxLayout()
+        items = list(THEMES.items())
+
+        for idx, (theme_key, theme_data) in enumerate(items):
             rb = QRadioButton(theme_data.name)
             rb.setProperty("theme_key", theme_key)
             if self._settings.theme_id == theme_key:
                 rb.setChecked(True)
             rb.toggled.connect(lambda checked, k=theme_key: self._on_theme_toggled(checked, k))
             theme_group.addButton(rb)
-            theme_layout.addWidget(rb)
-        theme_layout.addStretch()
+            if idx < 2:
+                row1.addWidget(rb)
+            else:
+                row2.addWidget(rb)
+
+        row1.addStretch()
+        row2.addStretch()
+        theme_layout.addLayout(row1)
+        theme_layout.addLayout(row2)
         content_layout.addLayout(theme_layout)
 
         # Section 4: Secondary Tools
@@ -249,6 +290,11 @@ class CustomizationDialog(QDialog):
     def _on_anim_toggled(self, checked: bool) -> None:
         self._settings.animate_flip = checked
         self.settings_changed.emit(self._settings)
+
+    def _on_typo_toggled(self, checked: bool, style: str) -> None:
+        if checked:
+            self._settings.typography_style = style
+            self.settings_changed.emit(self._settings)
 
     def _on_theme_toggled(self, checked: bool, theme_key: str) -> None:
         if checked:

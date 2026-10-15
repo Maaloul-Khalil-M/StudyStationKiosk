@@ -116,23 +116,11 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_subject_name = QLabel("LOADING...")
         self.lbl_subject_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_subject_name.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.lbl_subject_name.setStyleSheet("""
-            QLabel {
-                color: #FFFFFF;
-                font-size: 38px;
-                font-weight: 800;
-                letter-spacing: -0.5px;
-            }
-            QLabel:hover {
-                color: #38BDF8;
-            }
-        """)
         self.lbl_subject_name.mousePressEvent = lambda e: self.open_timetable_requested.emit()
         subject_layout.addWidget(self.lbl_subject_name)
 
         self.lbl_subject_hint = QLabel("▾ Click to open schedule")
         self.lbl_subject_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_subject_hint.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 500;")
         subject_layout.addWidget(self.lbl_subject_hint)
 
         main_layout.addWidget(subject_container)
@@ -267,7 +255,47 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_cycle_progress = QLabel(self)
         self.lbl_cycle_progress.hide()
 
+        self._update_typography()
         self.refresh_dashboard()
+
+    def _update_typography(self) -> None:
+        """Apply either Evangelion Matisse+HUD typography or Swiss Modern Minimal."""
+        is_eva = getattr(self.settings, "typography_style", "eva") == "eva"
+        if is_eva:
+            # Matisse EB inspired editorial display serif with tight tracking
+            self.lbl_subject_name.setFont(get_modern_font("eva_display", 38, QFont.Weight.Bold))
+            self.lbl_subject_name.setStyleSheet("""
+                QLabel {
+                    color: #FFFFFF;
+                    font-size: 38px;
+                    font-weight: 800;
+                    letter-spacing: -0.5px;
+                }
+                QLabel:hover {
+                    color: #FF7700;
+                }
+            """)
+            self.lbl_subject_hint.setText("▼ SELECT MISSION // SCHEDULE GRID")
+            self.lbl_subject_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
+            self.btn_focus_15.setText("▶ ENGAGE FOCUS (Space)")
+            self.btn_focus_25.setText("[ 25M ]")
+        else:
+            self.lbl_subject_name.setFont(get_modern_font("sans", 36, QFont.Weight.Bold))
+            self.lbl_subject_name.setStyleSheet("""
+                QLabel {
+                    color: #FFFFFF;
+                    font-size: 36px;
+                    font-weight: 800;
+                    letter-spacing: -0.5px;
+                }
+                QLabel:hover {
+                    color: #38BDF8;
+                }
+            """)
+            self.lbl_subject_hint.setText("▾ Click to open schedule")
+            self.lbl_subject_hint.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 500;")
+            self.btn_focus_15.setText("▶ START FOCUS (Space)")
+            self.btn_focus_25.setText("25m")
 
     def _create_top_bar(self) -> QWidget:
         bar = QWidget(self)
@@ -371,12 +399,16 @@ class SubjectDashboardWidget(QWidget):
 
     def refresh_dashboard(self) -> None:
         now = datetime.now()
-        date_str = now.strftime("%A, %b %d").upper()
+        is_eva = getattr(self.settings, "typography_style", "eva") == "eva"
+        if is_eva:
+            date_str = f"// {now.strftime('%A, %b %d').upper()}"
+        else:
+            date_str = now.strftime("%A, %b %d").upper()
         self.lbl_date.setText(date_str)
 
         if not self.engine:
             self.lbl_subject_name.setText("STUDY STATION")
-            self._carousel_slides = ["● READY TO FOCUS"]
+            self._carousel_slides = ["● STANDBY // READY TO ENGAGE" if is_eva else "● READY TO FOCUS"]
             self.lbl_carousel_text.setText(self._carousel_slides[0])
             return
 
@@ -401,7 +433,7 @@ class SubjectDashboardWidget(QWidget):
 
         if not summary:
             self.lbl_subject_name.setText("NO ACTIVE CLASSES")
-            self._carousel_slides = ["● ADD SESSIONS IN SCHEDULE GRID"]
+            self._carousel_slides = ["● STANDBY // NO ACTIVE SESSIONS" if is_eva else "● ADD SESSIONS IN SCHEDULE GRID"]
             self.lbl_carousel_text.setText(self._carousel_slides[0])
             return
 
@@ -418,12 +450,20 @@ class SubjectDashboardWidget(QWidget):
         self.lbl_status_badge.setText(f"{tgt} MIN")
         self.lbl_cycle_progress.setText(f"{comp} / {tgt} MIN")
 
-        slide_progress = f"● {comp} / {tgt} MIN COMPLETED · {pct}%"
-        clean_next = summary.next_session_text.replace("📅 ", "").replace("📅", "") if summary.next_session_text else "No upcoming session"
-        slide_next = f"NEXT CLASS · {clean_next}"
-        slide_format = f"FORMAT · {summary.core} · {summary.location or 'Class'}"
-        if summary.is_current_class:
-            slide_progress = f"● IN CLASS NOW · {summary.core}"
+        if is_eva:
+            slide_progress = f"● CYCLE // {comp} / {tgt} MIN [{pct}% COMPLETED]"
+            clean_next = summary.next_session_text.replace("📅 ", "").replace("📅", "") if summary.next_session_text else "STANDBY"
+            slide_next = f"NEXT CLASS // {clean_next}".upper()
+            slide_format = f"FORMAT // {summary.core} · {summary.location or 'CLASS'}".upper()
+            if summary.is_current_class:
+                slide_progress = f"● IN SESSION NOW // {summary.core}".upper()
+        else:
+            slide_progress = f"● {comp} / {tgt} MIN COMPLETED · {pct}%"
+            clean_next = summary.next_session_text.replace("📅 ", "").replace("📅", "") if summary.next_session_text else "No upcoming session"
+            slide_next = f"NEXT CLASS · {clean_next}"
+            slide_format = f"FORMAT · {summary.core} · {summary.location or 'Class'}"
+            if summary.is_current_class:
+                slide_progress = f"● IN CLASS NOW · {summary.core}"
 
         self._carousel_slides = [slide_progress, slide_next, slide_format]
         self._carousel_index = 0
@@ -446,4 +486,5 @@ class SubjectDashboardWidget(QWidget):
     def apply_settings(self, settings: AppSettings) -> None:
         self.settings = settings
         self.clock_widget.apply_settings(settings)
+        self._update_typography()
         self.refresh_dashboard()

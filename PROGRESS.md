@@ -207,6 +207,28 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
     `main_noHover.png`, `main_hover.png`, `schedual.png`, `editSchedual.png`, `focus.png`, `target.png`, `log.png`, `settings.png`.
   - 100% test pass rate: 24/24 unit tests passing.
 
+### Milestone 6.8: Evangelion Typography & NERV HUD System (`/docs/typography Evangelion.md`) `[COMPLETED]`
+- [x] **Typographic Analysis & Dual Typeface Architecture:**
+  - Studied `/docs/typography Evangelion.md` (Peiran Tan's study of Matisse EB display serif + tight-tracked Helvetica/grotesque telemetry).
+  - Expanded `get_modern_font()` in `theme.py` with `eva_display` (high stroke contrast editorial serif with mechanical compression tracking at 96%) and `hud_telemetry` (tracked uppercase monospace/condensed grotesque).
+- [x] **Screen 1 (Ambient Station):**
+  - Subject title transformed into an imposing editorial statement using high-contrast display serif typography.
+  - Telemetry date header (`// THURSDAY, OCT 15`), mission selector hint (`▼ SELECT MISSION // SCHEDULE GRID`), and technical carousel slides (`● CYCLE // 0 / 60 MIN [0% COMPLETED]`, `NEXT CLASS // ...`).
+  - Action button: `▶ ENGAGE FOCUS (Space)` and duration badge `[ 25M ]`.
+- [x] **Screen 2 (Schedule Grid):**
+  - Header: `WEEKLY SCHEDULE // OPERATION GRID` with `SELECT CLASS BLOCK TO ENGAGE SUBJECT · ESC TO RETURN`.
+  - Corner header: `TIME // SLOT` with day columns `// LUN` through `// SAM`.
+  - Course format badges: `[TP]`, `[COURS]`, `[TD]`, `[CI]` with room brackets `[LAB 20]` and real-time `● ACTIVE` glowing highlight.
+- [x] **Screen 3 (Focus Screen):**
+  - Imposing display serif subject title, status badge (`● ACTIVE // FOCUSING` in emerald / `⏸ SUSPENDED // PAUSED` in amber), and telemetry shortcut cue (`SPACE // PAUSE · [+] // +5M · ESC // ABORT`).
+- [x] **Settings & Themes:**
+  - Added new **`NERV Terminal`** theme (`#050507` void canvas, NERV emergency orange/amber `#FF7700` telemetry accents).
+  - Added a **`TYPOGRAPHY SYSTEM`** toggle in Settings allowing instant switching between `Evangelion / NERV HUD` and `Swiss Modern Sans`.
+  - 2x2 theme grid displaying all 4 themes (`Classic Noir`, `Midnight Slate`, `Warm Espresso`, `NERV Terminal`).
+- [x] **Testing & Verification:**
+  - 24/24 unit tests passing cleanly.
+  - Screenshots updated in `docs/screens/` and verified visually with `view_file`.
+
 
 ---
 

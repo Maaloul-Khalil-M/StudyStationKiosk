@@ -39,6 +39,7 @@ from study_station.ui.theme import (
     BUTTON_NAV_STYLE,
     BUTTON_PRIMARY_STYLE,
     BUTTON_SECONDARY_STYLE,
+    get_modern_font,
 )
 
 
@@ -100,7 +101,7 @@ class ClassGridCard(QPushButton):
         header_row = QHBoxLayout()
         header_row.setContentsMargins(0, 0, 0, 0)
 
-        lbl_core = QLabel(core_type)
+        lbl_core = QLabel(f"[{core_type}]")
         lbl_core.setStyleSheet(f"""
             background-color: {bg_badge};
             color: {fg_badge};
@@ -112,19 +113,20 @@ class ClassGridCard(QPushButton):
         header_row.addWidget(lbl_core)
 
         if is_current:
-            lbl_now = QLabel("● NOW")
-            lbl_now.setStyleSheet("color: #10B981; font-size: 10px; font-weight: 700;")
+            lbl_now = QLabel("● ACTIVE")
+            lbl_now.setStyleSheet("color: #10B981; font-size: 10px; font-weight: 700; letter-spacing: 1px;")
             header_row.addWidget(lbl_now)
 
         header_row.addStretch()
 
-        lbl_room = QLabel(room)
+        lbl_room = QLabel(f"[{room}]")
         lbl_room.setStyleSheet("color: #71717A; font-size: 10px; font-weight: 600;")
         header_row.addWidget(lbl_room)
         layout.addLayout(header_row)
 
         # Subject title
         lbl_name = QLabel(clean_name)
+        lbl_name.setFont(get_modern_font("eva_display", 12, QFont.Weight.Bold))
         lbl_name.setWordWrap(True)
         lbl_name.setStyleSheet("color: #F4F4F6; font-size: 12px; font-weight: 700;")
         layout.addWidget(lbl_name)
@@ -133,7 +135,8 @@ class ClassGridCard(QPushButton):
 
         # Time footer
         lbl_time = QLabel(f"{session.time_slot.start} - {session.time_slot.end}")
-        lbl_time.setStyleSheet("color: #52525B; font-size: 10px; font-family: monospace;")
+        lbl_time.setFont(get_modern_font("mono", 10, QFont.Weight.Medium))
+        lbl_time.setStyleSheet("color: #52525B; font-size: 10px;")
         layout.addWidget(lbl_time)
 
         self.clicked.connect(lambda: self.clicked_session.emit(self.session.subject.name))
@@ -196,12 +199,12 @@ class ScheduleScreenWidget(QWidget):
 
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
-        lbl_title = QLabel("WEEKLY SCHEDULE")
-        lbl_title.setStyleSheet("color: #FFFFFF; font-size: 16px; font-weight: 800; letter-spacing: 1.5px;")
+        lbl_title = QLabel("WEEKLY SCHEDULE // OPERATION GRID")
+        lbl_title.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: 800; letter-spacing: 1.5px;")
         title_col.addWidget(lbl_title)
 
-        lbl_sub = QLabel("Click any class block to set active subject · Press Esc to return")
-        lbl_sub.setStyleSheet("color: #71717A; font-size: 12px;")
+        lbl_sub = QLabel("SELECT CLASS BLOCK TO ENGAGE SUBJECT · ESC TO RETURN")
+        lbl_sub.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;")
         title_col.addWidget(lbl_sub)
         header.addLayout(title_col)
 
@@ -304,10 +307,10 @@ class ScheduleScreenWidget(QWidget):
                 w.setParent(None)
                 w.deleteLater()
 
-        # Corner: TIME
-        lbl_corner = QLabel("TIME")
+        # Corner: TIME // SLOT
+        lbl_corner = QLabel("TIME // SLOT")
         lbl_corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl_corner.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 800; letter-spacing: 1px;")
+        lbl_corner.setStyleSheet("color: #52525B; font-size: 10px; font-weight: 800; letter-spacing: 1px;")
         self.grid_layout.addWidget(lbl_corner, 0, 0)
 
         # Day Headers (Col 1..6)
@@ -323,9 +326,9 @@ class ScheduleScreenWidget(QWidget):
             day_box_layout.setContentsMargins(2, 2, 2, 2)
             day_box_layout.setSpacing(0)
 
-            lbl_day = QLabel(day_code.upper())
+            lbl_day = QLabel(f"// {day_code.upper()}")
             lbl_day.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl_day.setStyleSheet(f"{today_color}; font-size: 13px; font-weight: 800;")
+            lbl_day.setStyleSheet(f"{today_color}; font-size: 12px; font-weight: 800; letter-spacing: 1px;")
             day_box_layout.addWidget(lbl_day)
 
             self.grid_layout.addWidget(day_box, 0, col_idx)

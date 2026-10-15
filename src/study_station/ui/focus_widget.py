@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from PySide6.QtCore import QFile, QTimer, Signal
+from PySide6.QtGui import QFont
 from PySide6.QtUiTools import QUiLoader
 from PySide6.QtWidgets import (
     QFrame,
@@ -18,6 +19,7 @@ from study_station.ui.theme import (
     BUTTON_DANGER_STYLE,
     BUTTON_PRIMARY_STYLE,
     BUTTON_SECONDARY_STYLE,
+    get_modern_font,
 )
 
 
@@ -68,7 +70,12 @@ class FocusWidget(QWidget):
         # Apply harmonized theme styles
         self.btn_pause.setStyleSheet(BUTTON_PRIMARY_STYLE)
         self.btn_add_five.setStyleSheet(BUTTON_SECONDARY_STYLE)
+        self.btn_add_five.setText("+5 MIN")
         self.btn_end.setStyleSheet(BUTTON_DANGER_STYLE)
+        self.btn_end.setText("END SESSION")
+        if self.lbl_shortcuts_hint:
+            self.lbl_shortcuts_hint.setText("SPACE // PAUSE · [+] // +5M · ESC // ABORT")
+            self.lbl_shortcuts_hint.setStyleSheet("color: #71717A; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
 
         # Connect controls
         self.btn_pause.clicked.connect(self._on_pause_clicked)
@@ -118,13 +125,23 @@ class FocusWidget(QWidget):
 
         clean_name = ScheduleEngine.clean_subject_name(subject_name)
         self.lbl_subject.setText(clean_name.upper())
+        self.lbl_subject.setFont(get_modern_font("eva_display", 26, QFont.Weight.Bold))
+        self.lbl_subject.setStyleSheet("color: #FFFFFF; letter-spacing: 1px;")
 
-        self.lbl_state.setText("FOCUSING")
-        self.lbl_state.setStyleSheet("color: #10B981; letter-spacing: 2px; font-weight: bold;")
+        self.lbl_state.setText("● ACTIVE // FOCUSING")
+        self.lbl_state.setStyleSheet("""
+            background-color: #064E3B;
+            color: #34D399;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            padding: 4px 14px;
+            border-radius: 10px;
+        """)
         self.btn_pause.setText("Pause")
 
         if cycle_info:
-            self.lbl_cycle.setText(f"{cycle_info} (CYCLE)")
+            self.lbl_cycle.setText(f"{cycle_info} // CYCLE TARGET")
         else:
             self.lbl_cycle.setText("")
 
@@ -152,26 +169,26 @@ class FocusWidget(QWidget):
             self.progress_bar.setValue(min(100, max(0, progress_pct)))
 
         if snap.is_paused:
-            self.lbl_state.setText("⏸ PAUSED")
+            self.lbl_state.setText("⏸ SUSPENDED // PAUSED")
             self.lbl_state.setStyleSheet("""
                 background-color: #38240D;
                 color: #FBBF24;
                 font-size: 11px;
                 font-weight: 700;
-                letter-spacing: 1.5px;
-                padding: 4px 12px;
+                letter-spacing: 2px;
+                padding: 4px 14px;
                 border-radius: 10px;
             """)
             self.btn_pause.setText("Resume")
         else:
-            self.lbl_state.setText("● FOCUSING")
+            self.lbl_state.setText("● ACTIVE // FOCUSING")
             self.lbl_state.setStyleSheet("""
                 background-color: #064E3B;
                 color: #34D399;
                 font-size: 11px;
                 font-weight: 700;
-                letter-spacing: 1.5px;
-                padding: 4px 12px;
+                letter-spacing: 2px;
+                padding: 4px 14px;
                 border-radius: 10px;
             """)
             self.btn_pause.setText("Pause")
