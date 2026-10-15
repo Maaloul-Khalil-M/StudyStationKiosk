@@ -116,6 +116,40 @@ class TestScheduleEngine(unittest.TestCase):
         self.assertIn("Math", names)
 
 
+    def test_calendar_week_dates(self) -> None:
+        # 2026-10-15 is a Thursday
+        d = date(2026, 10, 15)
+        mon = ScheduleEngine.get_week_start(d)
+        self.assertEqual(mon, date(2026, 10, 12))
+
+        # 6-day academic week (Mon-Sat)
+        week_dates = ScheduleEngine.get_week_dates(d, days_count=6)
+        self.assertEqual(len(week_dates), 6)
+        self.assertEqual(week_dates[0], date(2026, 10, 12))
+        self.assertEqual(week_dates[-1], date(2026, 10, 17))
+
+        # Check day date lookup
+        self.assertEqual(ScheduleEngine.get_day_date("Jeu", d), date(2026, 10, 15))
+        self.assertEqual(ScheduleEngine.get_day_date("Lun", d), date(2026, 10, 12))
+        self.assertEqual(ScheduleEngine.get_day_date("Sam", d), date(2026, 10, 17))
+        self.assertIsNone(ScheduleEngine.get_day_date("InvalidDay", d))
+
+    def test_format_week_range(self) -> None:
+        # Same month
+        d1 = date(2026, 10, 15)
+        self.assertEqual(ScheduleEngine.format_week_range(d1), "12 – 17 OCT 2026")
+
+        # Cross month (Sep - Oct)
+        d2 = date(2026, 10, 1)  # Thursday
+        # Mon is Sep 28, Sat is Oct 3
+        self.assertEqual(ScheduleEngine.format_week_range(d2), "28 SEP – 03 OCT 2026")
+
+        # Cross year (Dec 2026 - Jan 2027)
+        d3 = date(2026, 12, 31)  # Thursday
+        # Mon is Dec 28 2026, Sat is Jan 02 2027
+        self.assertEqual(ScheduleEngine.format_week_range(d3), "28 DEC 2026 – 02 JAN 2027")
+
+
 if __name__ == "__main__":
     unittest.main()
 

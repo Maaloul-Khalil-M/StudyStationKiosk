@@ -5,7 +5,7 @@ university schedule (docs/grid.pdf / Google Calendar) with an inline session edi
 Eliminates floating dialog rims, text-peeking, and modal-on-modal stacking.
 """
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from PySide6.QtCore import QPoint, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
@@ -176,6 +176,7 @@ class ScheduleScreenWidget(QWidget):
         self._sessions = list(sessions)
         self._current_subject = current_subject
         self._now = datetime.now()
+        self._current_view_date: date = self._now.date()
 
         self._build_ui()
 
@@ -207,6 +208,83 @@ class ScheduleScreenWidget(QWidget):
         lbl_sub.setStyleSheet("color: #71717A; font-size: 12px;")
         title_col.addWidget(lbl_sub)
         header.addLayout(title_col)
+
+        header.addSpacing(16)
+
+        # Tactile Week Navigator: [ ‹ ] [ 12 – 17 OCT 2026 ] [ › ] [ Today ]
+        self.week_nav_container = QWidget()
+        week_layout = QHBoxLayout(self.week_nav_container)
+        week_layout.setContentsMargins(0, 0, 0, 0)
+        week_layout.setSpacing(6)
+
+        self.btn_prev_week = QPushButton("‹")
+        self.btn_prev_week.setFixedSize(28, 28)
+        self.btn_prev_week.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_prev_week.setStyleSheet("""
+            QPushButton {
+                background: #18181B;
+                color: #A1A1AA;
+                border: 1px solid #27272A;
+                border-radius: 14px;
+                font-size: 16px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background: #27272A;
+                color: #FFFFFF;
+                border-color: #3F3F46;
+            }
+        """)
+        self.btn_prev_week.clicked.connect(self._on_prev_week)
+        week_layout.addWidget(self.btn_prev_week)
+
+        self.lbl_week_range = QLabel(ScheduleEngine.format_week_range(self._current_view_date))
+        self.lbl_week_range.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; padding: 0 4px;")
+        week_layout.addWidget(self.lbl_week_range)
+
+        self.btn_next_week = QPushButton("›")
+        self.btn_next_week.setFixedSize(28, 28)
+        self.btn_next_week.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_next_week.setStyleSheet("""
+            QPushButton {
+                background: #18181B;
+                color: #A1A1AA;
+                border: 1px solid #27272A;
+                border-radius: 14px;
+                font-size: 16px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background: #27272A;
+                color: #FFFFFF;
+                border-color: #3F3F46;
+            }
+        """)
+        self.btn_next_week.clicked.connect(self._on_next_week)
+        week_layout.addWidget(self.btn_next_week)
+
+        self.btn_today = QPushButton("Today")
+        self.btn_today.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_today.setStyleSheet("""
+            QPushButton {
+                background-color: #14221D;
+                color: #34D399;
+                border: 1px solid #059669;
+                border-radius: 12px;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #064E3B;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_today.clicked.connect(self._on_today_clicked)
+        self.btn_today.hide()
+        week_layout.addWidget(self.btn_today)
+
+        header.addWidget(self.week_nav_container)
 
         header.addStretch()
 
@@ -298,7 +376,39 @@ class ScheduleScreenWidget(QWidget):
         scroll.setWidget(self.grid_container)
         return scroll
 
+    def _on_prev_week(self) -> None:
+        self._current_view_date -= timedelta(days=7)
+        self._refresh_calendar_grid()
+
+    def _on_next_week(self) -> None:
+        self._current_view_date += timedelta(days=7)
+        self._refresh_calendar_grid()
+
+    def _on_today_clicked(self) -> None:
+        self._current_view_date = datetime.now().date()
+        self._refresh_calendar_grid()
+
+    @property
+    def current_view_date(self) -> date:
+        return self._current_view_date
+
+    def set_view_date(self, target_date: date) -> None:
+        self._current_view_date = target_date
+        self._refresh_calendar_grid()
+
     def _refresh_calendar_grid(self) -> None:
+        # Update week range label and today button
+        week_str = ScheduleEngine.format_week_range(self._current_view_date)
+        if hasattr(self, "lbl_week_range"):
+            self.lbl_week_range.setText(week_str)
+
+        is_current_week = (
+            ScheduleEngine.get_week_start(self._current_view_date)
+            == ScheduleEngine.get_week_start(datetime.now().date())
+        )
+        if hasattr(self, "btn_today"):
+            self.btn_today.setVisible(not is_current_week)
+
         # Clear existing
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
@@ -313,24 +423,54 @@ class ScheduleScreenWidget(QWidget):
         lbl_corner.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 800; letter-spacing: 1px;")
         self.grid_layout.addWidget(lbl_corner, 0, 0)
 
-        # Day Headers (Col 1..6)
-        current_day_idx = self._now.weekday()
+        # Day Headers (Col 1..6) with Real Dates
+        week_dates = ScheduleEngine.get_week_dates(self._current_view_date, days_count=6)
+        today_date = datetime.now().date()
+
         for col_idx, (day_code, _) in enumerate(self.DAYS, start=1):
-            is_today = (col_idx - 1) == current_day_idx
-            today_color = "color: #10B981;" if is_today else "color: #D4D4D8;"
-            today_bg = "background-color: #14221D; border: 1px solid #059669;" if is_today else "background-color: #121216; border: 1px solid #222228;"
+            col_date = week_dates[col_idx - 1]
+            is_today = (col_date == today_date)
+
+            today_color = "color: #34D399;" if is_today else "color: #D4D4D8;"
+            date_num_color = "color: #10B981;" if is_today else "color: #71717A;"
+            today_bg = (
+                "background-color: #14221D; border: 1px solid #059669;"
+                if is_today
+                else "background-color: #121216; border: 1px solid #222228;"
+            )
 
             day_box = QFrame()
-            day_box.setStyleSheet(f"{today_bg}; border-radius: 6px; padding: 4px 6px;")
+            day_box.setStyleSheet(f"{today_bg}; border-radius: 6px; padding: 4px 8px;")
             day_box_layout = QVBoxLayout(day_box)
-            day_box_layout.setContentsMargins(2, 2, 2, 2)
-            day_box_layout.setSpacing(0)
+            day_box_layout.setContentsMargins(4, 3, 4, 3)
+            day_box_layout.setSpacing(2)
+
+            top_row = QHBoxLayout()
+            top_row.setContentsMargins(0, 0, 0, 0)
 
             lbl_day = QLabel(day_code.upper())
-            lbl_day.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl_day.setStyleSheet(f"{today_color}; font-size: 13px; font-weight: 800;")
-            day_box_layout.addWidget(lbl_day)
+            lbl_day.setStyleSheet(f"{today_color}; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;")
+            top_row.addWidget(lbl_day)
 
+            if is_today:
+                lbl_badge = QLabel("TODAY")
+                lbl_badge.setStyleSheet("""
+                    background-color: #064E3B;
+                    color: #34D399;
+                    font-size: 9px;
+                    font-weight: 800;
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                """)
+                top_row.addWidget(lbl_badge)
+
+            top_row.addStretch()
+
+            lbl_num = QLabel(f"{col_date.day:02d} {col_date.strftime('%b').upper()}")
+            lbl_num.setStyleSheet(f"{date_num_color}; font-size: 11px; font-weight: 700;")
+            top_row.addWidget(lbl_num)
+
+            day_box_layout.addLayout(top_row)
             self.grid_layout.addWidget(day_box, 0, col_idx)
 
         # Slot Rows (Row 1..5)
@@ -342,6 +482,9 @@ class ScheduleScreenWidget(QWidget):
             self.grid_layout.addWidget(time_lbl, row_idx, 0)
 
             for col_idx, (day_code, _) in enumerate(self.DAYS, start=1):
+                col_date = week_dates[col_idx - 1]
+                is_today = (col_date == today_date)
+
                 matching = [
                     s for s in self._sessions
                     if s.day.lower() == day_code.lower()
@@ -350,9 +493,9 @@ class ScheduleScreenWidget(QWidget):
 
                 if matching:
                     session = matching[0]
-                    now_str = self._now.strftime("%H:%M")
+                    now_str = datetime.now().strftime("%H:%M")
                     is_current_session = (
-                        (col_idx - 1) == current_day_idx
+                        is_today
                         and session.time_slot.start <= now_str <= session.time_slot.end
                     )
                     card = ClassGridCard(session, is_current=is_current_session)

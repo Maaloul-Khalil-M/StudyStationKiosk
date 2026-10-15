@@ -80,6 +80,38 @@ class TestSecondaryDialogs(unittest.TestCase):
         dialog._on_delete()
         self.assertEqual(dialog.table.rowCount(), 1)
 
+    def test_schedule_screen_widget_week_navigation(self) -> None:
+        from datetime import date, timedelta
+        from study_station.ui.schedule_screen_widget import ScheduleScreenWidget
+
+        sessions = [
+            AcademicSession(
+                day="Lun",
+                time_slot=TimeSlot("08:00", "09:30"),
+                subject=Subject("Data Vis", "TP"),
+                location="Lab 20",
+            )
+        ]
+        widget = ScheduleScreenWidget(sessions=sessions)
+        initial_date = widget.current_view_date
+        self.assertEqual(initial_date, date.today())
+        self.assertFalse(widget.btn_today.isVisible())
+
+        # Next week navigation
+        widget.btn_next_week.click()
+        self.assertEqual(widget.current_view_date, initial_date + timedelta(days=7))
+        self.assertFalse(widget.btn_today.isHidden())
+
+        # Jump back to Today
+        widget.btn_today.click()
+        self.assertEqual(widget.current_view_date, initial_date)
+        self.assertTrue(widget.btn_today.isHidden())
+
+        # Previous week navigation
+        widget.btn_prev_week.click()
+        self.assertEqual(widget.current_view_date, initial_date - timedelta(days=7))
+        self.assertFalse(widget.btn_today.isHidden())
+
 
 if __name__ == "__main__":
     unittest.main()

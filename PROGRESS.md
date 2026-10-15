@@ -265,7 +265,24 @@ Study Station is a minimalist, schedule-aware study companion for Linux (Fedora 
 - [x] **Verification & Tests:**
   - Added dedicated unit test suite in [`tests/test_focus_ring_gauge.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_focus_ring_gauge.py).
   - 100% test pass rate maintained: 28/28 unit tests passing.
-  - Updated screen capture in [`docs/screens/focus.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/focus.png).
+### Milestone 6.11: Date-Anchored Calendar Grid & Week Navigator (Phase B — Part 1) `[COMPLETED]`
+- [x] **Deterministic Calendar Engine Calculations:**
+  - Added `get_week_start(ref_date)` returning Monday date across months and years.
+  - Added `get_week_dates(ref_date, days_count=6)` computing the 6 academic calendar dates (Monday to Saturday).
+  - Added `format_week_range(ref_date)` producing formatted headers (e.g. `12 – 17 OCT 2026`, `28 SEP – 03 OCT 2026`).
+  - Added `get_day_date(day_code, ref_date)` resolving specific calendar dates for any weekday abbreviation.
+- [x] **Visual Calendar Navigation Bar:**
+  - Added tactical week switcher in the header: `[ ‹ ]`, `12 – 17 OCT 2026`, `[ › ]`.
+  - Added dynamic `[ Today ]` shortcut button that illuminates when looking at past/future weeks and auto-hides when on the current week.
+- [x] **Calendar Day Columns with Real Dates:**
+  - Transformed static day headers into dual-line cards showing Day Code (`LUN`, `MAR`...) and Real Calendar Date (`12 OCT`, `13 OCT`...).
+  - Today's column is highlighted with an emerald glowing border (`border: 1px solid #059669; background: #14221D;`), bright green typography, and an emerald `TODAY` badge.
+  - Active session indicator (`● NOW`) only triggers when viewing the actual current day.
+- [x] **Verification & Test Suite:**
+  - Added unit test coverage for date calculations in [`tests/test_engine.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_engine.py).
+  - Added unit test for week navigation in [`tests/test_secondary_dialogs.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_secondary_dialogs.py).
+  - 100% test pass rate maintained: 31/31 unit tests passing.
+  - Refreshed screen capture in [`docs/screens/grid_schedual.png`](file:///c:/Users/marj/Music/Study%20Station/docs/screens/grid_schedual.png).
 
 ---
 

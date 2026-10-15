@@ -97,6 +97,55 @@ class ScheduleEngine:
         """Return sorted list of distinct subject names in timetable."""
         return sorted({s.subject.name for s in self.sessions})
 
+    @classmethod
+    def get_week_start(cls, ref_date: date | None = None) -> date:
+        """Return the Monday date of the week containing ref_date (defaults to today)."""
+        d = ref_date or date.today()
+        return d - timedelta(days=d.weekday())
+
+    @classmethod
+    def get_week_dates(cls, ref_date: date | None = None, days_count: int = 6) -> list[date]:
+        """Return list of dates for the academic week starting on Monday.
+
+        Args:
+            ref_date: Any date within the target week.
+            days_count: Number of days in academic week (default 6: Monday to Saturday).
+        """
+        monday = cls.get_week_start(ref_date)
+        return [monday + timedelta(days=i) for i in range(days_count)]
+
+    @classmethod
+    def format_week_range(cls, ref_date: date | None = None, days_count: int = 6) -> str:
+        """Return a formatted string representing the week range.
+
+        Examples:
+            "12 – 17 OCT 2026"
+            "28 SEP – 03 OCT 2026"
+            "28 DEC 2026 – 02 JAN 2027"
+        """
+        dates = cls.get_week_dates(ref_date, days_count=days_count)
+        start_d = dates[0]
+        end_d = dates[-1]
+
+        month_start = start_d.strftime("%b").upper()
+        month_end = end_d.strftime("%b").upper()
+
+        if start_d.year != end_d.year:
+            return f"{start_d.day:02d} {month_start} {start_d.year} – {end_d.day:02d} {month_end} {end_d.year}"
+        elif start_d.month != end_d.month:
+            return f"{start_d.day:02d} {month_start} – {end_d.day:02d} {month_end} {start_d.year}"
+        else:
+            return f"{start_d.day:02d} – {end_d.day:02d} {month_start} {start_d.year}"
+
+    @classmethod
+    def get_day_date(cls, day_code: str, ref_date: date | None = None) -> date | None:
+        """Return the specific date for a given day code ('Lun', 'Mar', etc.) in ref_date's week."""
+        idx = DAY_INDEX_MAP.get(day_code.capitalize())
+        if idx is None:
+            return None
+        monday = cls.get_week_start(ref_date)
+        return monday + timedelta(days=idx)
+
     def get_session_datetime(self, session: AcademicSession, ref_date: date) -> tuple[datetime, datetime]:
         """Convert a session to actual start and end datetimes for the week of ref_date."""
         monday = ref_date - timedelta(days=ref_date.weekday())
