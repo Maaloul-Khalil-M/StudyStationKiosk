@@ -461,12 +461,16 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
 - [x] Added dedicated unit test suite in [`tests/test_todo_engine.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_todo_engine.py).
 - [x] **100% test pass rate:** **74/74 unit tests passing** across 12 test suites.
 
-### Milestone 11: Nightly Desk Debrief & Questionnaire
-- [ ] Build `DebriefDialog` (`src/study_station/ui/debrief_dialog.py`) auto-populated with today's attended classes.
-- [ ] Guided multi-step check-in: "What was covered?" + "What must be prepared before next class?".
-- [ ] Automatically calculate default deadline as the exact start datetime of next week's session.
-- [ ] Batch-generate actionable preparation `StudyTodo` items into SQLite.
-- [ ] Unit test suite in `tests/test_debrief_dialog.py`.
+### Milestone 11: Nightly Desk Debrief & Questionnaire `[COMPLETED]`
+- [x] Built [`DebriefDialog`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/debrief_dialog.py) auto-populated with today's attended classes via `ScheduleEngine.get_day_sessions()`.
+- [x] Built focused stepper workflow: steps through today's attended subjects one-by-one to minimize cognitive fatigue at night.
+- [x] Integrated quick-category template buttons (`💻 Lab Fix`, `📖 Slides`, `📝 TD Problem`, `🎯 Exam Prep`, `🚀 Project`).
+- [x] Automatic deadline resolution: calculates next occurrence start datetime via `get_next_class_deadline_for_subject()`, with an optional custom date picker.
+- [x] Support for adding multiple tasks per subject (`+ Add Another Task`) and skipping subjects (`Skip Subject`).
+- [x] Free study day fallback: gracefully handles days with no scheduled classes by offering subject selection from enrolled modules.
+- [x] Connected to [`MainWindow`](file:///c:/Users/marj/Music/Study%20Station/src/study_station/ui/main_window.py): added dedicated keyboard shortcut <kbd>D</kbd> and top bar `[ Debrief ]` button.
+- [x] Added dedicated unit test suite in [`tests/test_debrief_dialog.py`](file:///c:/Users/marj/Music/Study%20Station/tests/test_debrief_dialog.py).
+- [x] **100% test pass rate:** **80/80 unit tests passing** across 13 test suites.
 
 ### Milestone 12: Grid as Main Station (Academic Cockpit)
 - [ ] Set `ScheduleScreenWidget` as the primary main view (`INDEX_MAIN = 0`).

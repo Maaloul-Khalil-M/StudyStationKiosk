@@ -20,6 +20,7 @@ from study_station.persistence.repository import StudyStationRepository
 from study_station.ui.completion_widget import CompletionWidget
 from study_station.ui.customization_dialog import CustomizationDialog
 from study_station.ui.dashboard_widget import SubjectDashboardWidget
+from study_station.ui.debrief_dialog import DebriefDialog
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.history_dialog import HistoryDialog
 from study_station.ui.import_export_dialog import ImportExportDialog
@@ -67,6 +68,7 @@ class MainWindow(QMainWindow):
         self._dashboard_widget.open_targets_requested.connect(self.open_targets_dialog)
         self._dashboard_widget.open_manual_log_requested.connect(self.open_manual_log_dialog)
         self._dashboard_widget.open_history_requested.connect(self.open_history_dialog)
+        self._dashboard_widget.open_debrief_requested.connect(self.open_debrief_dialog)
         self._dashboard_widget.toggle_fullscreen_requested.connect(self.toggle_fullscreen)
         self._stack.addWidget(self._dashboard_widget)
 
@@ -284,6 +286,18 @@ class MainWindow(QMainWindow):
         finally:
             self._hide_scrim()
 
+    def open_debrief_dialog(self, ref_dt: datetime | None = None) -> None:
+        """Open Nightly Desk Debrief questionnaire dialog with dark scrim."""
+        if not self._engine:
+            return
+        self._show_scrim()
+        try:
+            dialog = DebriefDialog(self._engine, ref_dt=ref_dt, parent=self)
+            dialog.debrief_completed.connect(lambda todos: self._dashboard_widget.refresh_dashboard())
+            dialog.exec()
+        finally:
+            self._hide_scrim()
+
     def _on_manual_time_logged(self, subject_name: str, minutes: int) -> None:
         """Handle manual time entry logged away from the computer."""
         self._on_session_finished(subject_name, minutes, source="manual")
@@ -400,6 +414,8 @@ class MainWindow(QMainWindow):
                 self.open_manual_log_dialog()
             elif key == Qt.Key.Key_H:
                 self.open_history_dialog()
+            elif key == Qt.Key.Key_D:
+                self.open_debrief_dialog()
             elif key == Qt.Key.Key_I:
                 self.open_import_export_dialog()
             elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
