@@ -709,11 +709,36 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
   - Synchronized `README.md` test counter badge and summary to 129/129 tests passing.
   - Documented full 3-tier roadmap in [`docs/ROADMAP_TIERS.md`](docs/ROADMAP_TIERS.md).
 
+### Milestone 19: Academic Urgency Engine, Backlog Sorting & Special Period Overrides (Tier 2 Roadmap) `[COMPLETED]`
+- [x] **Tomorrow-Morning Class Proximity Bias (`ScheduleEngine`)**:
+  - Implemented `calculate_todo_urgency_score(todo, current_dt)` prioritizing overdue tasks (score >= 100,000) and tasks due for tomorrow morning's earliest lectures over distant deadlines.
+  - Formula dynamically integrates due date urgency and next class proximity ($Score = \frac{1000}{\Delta t_{due} + 1} + \frac{2500}{\Delta t_{class} + 1}$).
+  - Upgraded `get_priority_study_todo` to automatically rank by urgency score descending.
+- [x] **Special Academic Overrides Engine & Persistence (`SpecialPeriod`)**:
+  - Created `SpecialPeriod` dataclass modeling override periods (`1 Day`, `3 Days`, `1 Week`, `2 Weeks`, custom) covering Exams/DS, Revision/Dead weeks, Intensive Project Sprints, and Breaks.
+  - Added `special_periods` SQLite table with index on date ranges and full CRUD in `StudyStationRepository`.
+  - Added `get_special_period_for_date`, `get_special_periods_for_week`, `is_schedule_overridden` in `ScheduleEngine`.
+- [x] **Academic Period Overrides Modal (`SpecialPeriodDialog`)**:
+  - Developed `SpecialPeriodDialog` with 1-click presets (`1 Day`, `3 Days`, `1 Week`, `2 Weeks`), period type selector, date range pickers with live duration label (`Duration: 1 Week`), and scheduled periods management list.
+- [x] **Weekly Schedule Screen Cockpit Integration (`ScheduleScreenWidget`)**:
+  - Added `[ ⚡ Period Mode ]` / `[ ⚡ 1 WEEK: Devoirs Surveillés ]` trigger button in top bar view tools.
+  - Added prominent `⚡ SPECIAL ACADEMIC PERIOD ACTIVE` banner above calendar grid with `[ Manage Periods ]` and `[ ✕ ]`.
+  - Highlighted calendar day headers (`LUN [ ⚡ EXAM ] 12 OCT`) and session cards (`[ ⚡ OVERRIDDEN ]`) with amber override styling when active.
+- [x] **Multi-Criteria Backlog Sorting & Safe Actions (`TasksDialog`)**:
+  - Added Sort dropdown: `Sort: Deadline (Earliest)`, `Sort: Academic Urgency`, `Sort: Subject (A–Z)`, `Sort: Title (A–Z)`.
+  - Relocated nuclear `[ Empty Tasks ]` button out of the primary header to a guarded footer utility action (`🗑 Clear All Tasks...`) with safe confirmation.
+- [x] **Debrief Wizard Active Template Highlights (`DebriefDialog`)**:
+  - Added dynamic active template pill highlights with emerald border (`#10B981`) and glowing background.
+- [x] **Verification & Test Telemetry**:
+  - 141/141 tests passing across 19 test suites with 100% pass rate.
+  - Added dedicated test suite `tests/test_tier2_special_periods.py` covering model, persistence, urgency heuristic, sorting, and UI presets.
+  - Re-captured and verified all 14 documentation screenshots in `docs/screens/` and `docs/SCREENSS/`.
+
 ---
 
 ## Complete Academic Station Milestone Summary
 
-Study Station is fully realized across 21 comprehensive development milestones:
+Study Station is fully realized across 22 comprehensive development milestones:
 1. **Milestone 1: Project Foundation & Screen Framework** `[COMPLETED]` — Window lifecycle, fullscreen, Linux X11/Xfce support.
 2. **Milestone 2: Ambient Flip Clock & Schedule Engine** `[COMPLETED]` — Retro minimal typography, ScheduleEngine timetable parsing.
 3. **Milestone 2.5: Modern UI Redesign & Calm Discipline** `[COMPLETED]` — 3D flip card animations, auto-hiding action bars.
@@ -735,6 +760,7 @@ Study Station is fully realized across 21 comprehensive development milestones:
 19. **Milestone 16: UI Professionalization, Customization Engine & Academic Sprint Launchpad** `[COMPLETED]` — Mechanical clock overhaul, dynamic UI themes, reclaimed session space, and active task sprint launcher.
 20. **Milestone 17: Multi-User Profile Architecture, Zero-Password Database Isolation & Clean Slate Options** `[COMPLETED]` — Zero-password user switching, isolated SQLite databases, clean slate default with optional template loading, on-demand Empty Schedule & Empty Tasks actions, and top-bar switch button.
 21. **Milestone 18: Immediate UX Polish & Anti-Fatigue Workflows (Tier 1 Roadmap)** `[COMPLETED]` — Top-bar clustering, adaptive exit ticket, priority dismiss, positive clock framing, and test telemetry sync.
+22. **Milestone 19: Academic Urgency Engine, Backlog Sorting & Special Period Overrides (Tier 2 Roadmap)** `[COMPLETED]` — Tomorrow-morning proximity bias, backlog sorting, safe purge, and Special Academic Overrides (day/x days/weeks/x weeks).
 
 
 

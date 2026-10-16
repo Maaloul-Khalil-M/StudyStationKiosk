@@ -117,6 +117,17 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_study_todos_subject ON study_todos(subject_name);
                 CREATE INDEX IF NOT EXISTS idx_study_todos_status ON study_todos(status);
                 CREATE INDEX IF NOT EXISTS idx_study_todos_due ON study_todos(due_date);
+
+                CREATE TABLE IF NOT EXISTS special_periods (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    period_type TEXT NOT NULL DEFAULT 'exam',
+                    start_date TEXT NOT NULL,
+                    end_date TEXT NOT NULL,
+                    overrides_schedule INTEGER NOT NULL DEFAULT 1,
+                    notes TEXT DEFAULT ''
+                );
+                CREATE INDEX IF NOT EXISTS idx_special_periods_dates ON special_periods(start_date, end_date);
             """)
 
             # Run migration for existing databases: check if todo_id exists in study_logs

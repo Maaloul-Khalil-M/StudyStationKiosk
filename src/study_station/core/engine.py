@@ -13,6 +13,7 @@ from typing import Sequence
 from study_station.core.models import (
     AcademicSession,
     DAY_INDEX_MAP,
+    SpecialPeriod,
     StudyCycle,
     StudyLog,
     StudyTodo,
@@ -30,6 +31,7 @@ class ScheduleEngine:
         sessions: Sequence[AcademicSession] | None = None,
         default_target_minutes: int = 60,
         repository: "StudyStationRepository | None" = None,
+        special_periods: Sequence[SpecialPeriod] | None = None,
     ) -> None:
         self.repository = repository
         self.default_target_minutes = default_target_minutes
@@ -40,10 +42,12 @@ class ScheduleEngine:
             self._target_overrides: dict[str, int] = self.repository.get_all_subject_targets()
             self.study_logs: list[StudyLog] = self.repository.get_all_study_logs()
             self.todos: list[StudyTodo] = self.repository.get_all_todos()
+            self.special_periods: list[SpecialPeriod] = self.repository.get_all_special_periods()
         else:
             self.sessions = list(sessions or [])
             self.study_logs = []
             self.todos = []
+            self.special_periods = list(special_periods or [])
             self._target_overrides = {}
 
     @classmethod
@@ -335,19 +339,97 @@ class ScheduleEngine:
             return False
         return not self.is_day_debriefed(now.date())
 
+    def calculate_todo_urgency_score(self, todo: StudyTodo, current_dt: datetime | None = None) -> float:
+        """Calculate dynamic academic urgency score with tomorrow-morning proximity bias.
+
+        Overdue tasks rank highest (score >= 100,000, scaled by overdue duration).
+        Pending tasks with a class occurrence within the next 24 hours (e.g. tomorrow morning)
+        receive heavy class proximity weighting, outranking distant deadlines.
+        """
+        now = current_dt or datetime.now()
+        if todo.is_completed:
+            return -1.0
+
+        if todo.is_overdue(now):
+            overdue_minutes = max(0.0, (now - todo.due_date).total_seconds() / 60.0)
+            return 100_000.0 + overdue_minutes
+
+        # Time remaining until due date in hours
+        due_hours = max(0.01, (todo.due_date - now).total_seconds() / 3600.0)
+        due_score = 1000.0 / (due_hours + 1.0)
+
+        # Class occurrence proximity weighting
+        class_score = 0.0
+        next_info = self.get_next_occurrence_of_subject(todo.subject_name, now)
+        if next_info:
+            _, next_start = next_info
+            class_hours = (next_start - now).total_seconds() / 3600.0
+            if 0.0 <= class_hours <= 24.0:
+                # Class is within next 24 hours (e.g. tomorrow morning 08:00)
+                class_score = 2500.0 / (class_hours + 1.0)
+            elif class_hours > 24.0:
+                class_score = 250.0 / (class_hours + 1.0)
+
+        return due_score + class_score
+
     def get_priority_study_todo(self, current_dt: datetime | None = None) -> StudyTodo | None:
-        """Find the single most urgent pending task for tonight's study session."""
+        """Find the single most urgent pending task for tonight's study session.
+
+        Prioritizes overdue tasks first, followed by tasks whose next class occurrence
+        is tomorrow morning, followed by earliest due dates.
+        """
         now = current_dt or datetime.now()
         pending = self.get_pending_todos()
         if not pending:
             return None
 
-        def sort_key(todo: StudyTodo):
-            is_overdue = todo.is_overdue(now)
-            return (0 if is_overdue else 1, todo.due_date)
-
-        pending.sort(key=sort_key)
+        pending.sort(key=lambda t: self.calculate_todo_urgency_score(t, now), reverse=True)
         return pending[0]
+
+    # -------------------------------------------------------------------------
+    # Special Academic Override Periods (day / x days / weeks / x weeks)
+    # -------------------------------------------------------------------------
+
+    def add_special_period(self, period: SpecialPeriod) -> None:
+        """Register or update a special academic override period."""
+        # Update in-memory list
+        existing_idx = next((i for i, p in enumerate(self.special_periods) if p.id == period.id), None)
+        if existing_idx is not None:
+            self.special_periods[existing_idx] = period
+        else:
+            self.special_periods.append(period)
+        self.special_periods.sort(key=lambda p: p.start_date)
+
+        if self.repository is not None:
+            self.repository.add_special_period(period)
+
+    def delete_special_period(self, period_id: str) -> bool:
+        """Delete a special period by ID."""
+        idx = next((i for i, p in enumerate(self.special_periods) if p.id == period_id), None)
+        if idx is not None:
+            self.special_periods.pop(idx)
+            if self.repository is not None:
+                self.repository.delete_special_period(period_id)
+            return True
+        return False
+
+    def get_special_period_for_date(self, ref_date: date | None = None) -> SpecialPeriod | None:
+        """Return the active SpecialPeriod covering ref_date (defaulting to today), if any."""
+        d = ref_date or date.today()
+        for p in self.special_periods:
+            if p.contains_date(d):
+                return p
+        return None
+
+    def get_special_periods_for_week(self, ref_date: date | None = None) -> list[SpecialPeriod]:
+        """Return all SpecialPeriods that intersect with the week (Mon-Sat) of ref_date."""
+        d = ref_date or date.today()
+        return [p for p in self.special_periods if p.overlaps_week(d)]
+
+    def is_schedule_overridden(self, ref_date: date | None = None) -> bool:
+        """Check if regular timetable is overridden by an active special period on ref_date."""
+        period = self.get_special_period_for_date(ref_date)
+        return bool(period and period.overrides_schedule)
 
     def get_next_class_deadline_for_subject(
         self, subject_name: str, current_dt: datetime

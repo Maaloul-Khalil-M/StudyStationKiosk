@@ -7,6 +7,7 @@ from typing import Sequence
 
 from study_station.core.models import (
     AcademicSession,
+    SpecialPeriod,
     StudyLog,
     StudyTodo,
     Subject,
@@ -536,5 +537,69 @@ class StudyStationRepository:
         with self.db.connection as conn:
             cursor = conn.execute(query, (subject_name, question_text))
             return cursor.rowcount > 0
+
+    # -------------------------------------------------------------------------
+    # Special Academic Periods (Overrides: Day, X Days, 1 Week, X Weeks)
+    # -------------------------------------------------------------------------
+
+    def add_special_period(self, period: SpecialPeriod) -> None:
+        """Insert or replace a special academic override period."""
+        query = """
+            INSERT INTO special_periods (id, name, period_type, start_date, end_date, overrides_schedule, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                period_type = excluded.period_type,
+                start_date = excluded.start_date,
+                end_date = excluded.end_date,
+                overrides_schedule = excluded.overrides_schedule,
+                notes = excluded.notes;
+        """
+        with self.db.connection as conn:
+            conn.execute(
+                query,
+                (
+                    period.id,
+                    period.name,
+                    period.period_type,
+                    period.start_date.isoformat(),
+                    period.end_date.isoformat(),
+                    1 if period.overrides_schedule else 0,
+                    period.notes,
+                ),
+            )
+
+    def get_all_special_periods(self) -> list[SpecialPeriod]:
+        """Fetch all special academic periods ordered chronologically by start_date."""
+        query = "SELECT * FROM special_periods ORDER BY start_date ASC"
+        cursor = self.db.connection.execute(query)
+        return [self._row_to_special_period(row) for row in cursor.fetchall()]
+
+    def get_special_period_by_id(self, period_id: str) -> SpecialPeriod | None:
+        """Fetch a single special period by its UUID."""
+        query = "SELECT * FROM special_periods WHERE id = ?"
+        cursor = self.db.connection.execute(query, (period_id,))
+        row = cursor.fetchone()
+        return self._row_to_special_period(row) if row else None
+
+    def delete_special_period(self, period_id: str) -> bool:
+        """Delete a special period by ID. Returns True if deleted."""
+        with self.db.connection as conn:
+            cursor = conn.execute("DELETE FROM special_periods WHERE id = ?", (period_id,))
+            return cursor.rowcount > 0
+
+    def _row_to_special_period(self, row) -> SpecialPeriod:
+        """Map SQLite row to SpecialPeriod domain model."""
+        start_d = date.fromisoformat(row["start_date"])
+        end_d = date.fromisoformat(row["end_date"])
+        return SpecialPeriod(
+            id=row["id"],
+            name=row["name"],
+            period_type=row["period_type"],
+            start_date=start_d,
+            end_date=end_d,
+            overrides_schedule=bool(row["overrides_schedule"]),
+            notes=row["notes"] or "",
+        )
 
 

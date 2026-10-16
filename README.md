@@ -8,7 +8,7 @@
 [![PySide6 / Qt](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-41CD52?style=flat&logo=qt&logoColor=white)](https://www.qt.io/)
 [![SQLite WAL](https://img.shields.io/badge/Database-SQLite%20(WAL)-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Local-First](https://img.shields.io/badge/Architecture-100%25%20Offline%20%2F%20Local--First-black?style=flat)](#)
-[![Tests Passing](https://img.shields.io/badge/Tests-129%2F129%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
+[![Tests Passing](https://img.shields.io/badge/Tests-141%2F141%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
 [![Zero Cloud](https://img.shields.io/badge/Privacy-Zero%20Cloud%20%2F%20Zero%20Electron-6366F1?style=flat)](#)
 
 </div>
@@ -303,11 +303,11 @@ $env:PYTHONPATH="src"; python -m unittest discover tests
 - **Interactive UI**: Headless verification of `ScheduleScreenWidget`, `SubjectDashboardWidget`, `SplitFlapClockWidget`, `DebriefDialog`, `ExitTicketDialog`, `SubjectPreparationSheet`, `TasksDialog`, and `FocusWidget`.
 
 ```
-.................................................................................................................................
+.............................................................................................................................................
 ----------------------------------------------------------------------
-Ran 129 tests in 14.489s
+Ran 141 tests in 15.540s
 
-OK (100% passing across 18 test suites)
+OK (100% passing across 19 test suites)
 ```
 
 ---
@@ -320,19 +320,20 @@ You can programmatically re-generate all high-resolution documentation screensho
 $env:PYTHONPATH="src"; python scripts/capture_screens.py
 ```
 This script renders and grabs:
-- `docs/screens/grid_schedule.png` (Academic Cockpit Grid)
+- `docs/screens/grid_schedule.png` (Academic Cockpit Grid with Special Period Overrides)
 - `docs/screens/edit_schedule.png` (Full-height class session table)
 - `docs/screens/clock_no_hover.png` (Ambient sprint launchpad in idle mode)
 - `docs/screens/clock_with_hover.png` (Sprint launchpad with active launchers)
 - `docs/screens/focus.png` (Radial focus gauge tethered to task)
 - `docs/screens/add_class.png` (Session creation modal with conflict resolution)
 - `docs/screens/preparation_sheet.png` (Subject tasks checklist drawer & in-class HUD)
-- `docs/screens/debrief_modal.png` (Nightly desk debrief wizard)
+- `docs/screens/debrief_modal.png` (Nightly desk debrief wizard with active template highlights)
 - `docs/screens/import_export.png` (Timetable import/export modal)
-- `docs/screens/tasks_modal.png` (Academic task backlog & KPI telemetry)
+- `docs/screens/tasks_modal.png` (Academic task backlog with multi-criteria sorting)
 - `docs/screens/settings.png` (Theme customization palette & swatches)
 - `docs/screens/exit_ticket.png` (Cognitive exit ticket & question formulation)
 - `docs/screens/switch_user_modal.png` (Kiosk multi-user profile switcher dialog)
+- `docs/screens/special_periods.png` (Academic Period Overrides manager: Day, Days, Weeks)
 
 ---
 
@@ -362,6 +363,7 @@ This script renders and grabs:
 | **16** | UI Professionalization & Sprint Launchpad | Split-flap mechanical clock, dynamic customization engine, active task sprint launcher | `[COMPLETED]` |
 | **17** | Multi-User Profiles & DB Isolation | Zero-password user switching, isolated SQLite databases, instant seeding, and top-bar button | `[COMPLETED]` |
 | **18** | Immediate UX Polish & Anti-Fatigue Workflows | Top-bar clustering, adaptive exit ticket, priority dismiss, positive clock framing | `[COMPLETED]` |
+| **19** | Urgency Engine & Period Overrides | Tomorrow-morning proximity bias, backlog sorting, safe purge, and Special Academic Overrides (day/x days/weeks/x weeks) | `[COMPLETED]` |
 
 ---
 

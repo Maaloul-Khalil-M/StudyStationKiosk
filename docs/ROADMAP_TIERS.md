@@ -1,14 +1,14 @@
 # Study Station: Architectural & UX Enhancement Roadmap
 
 **Date:** October 16, 2026  
-**Status:** In Execution (Tier 1 Active)  
+**Status:** Tier 1 & Tier 2 Completed (Tier 3 Next)  
 **Scope:** Synthesis of UI audits, pedagogical specs, and student workstation workflow optimization.
 
 ---
 
 ## 1. Roadmap Architecture Overview
 
-Study Station has completed its foundational academic pivot (Milestones 1–17: Local SQLite WAL, Academic Cockpit Grid, Nightly Debrief Wizard, Task-Tethered Focus Gauge, In-Class Question HUD, Backlog CRUD, and Zero-Password Multi-User DB Isolation).
+Study Station has completed its foundational academic pivot (Milestones 1–17: Local SQLite WAL, Academic Cockpit Grid, Nightly Debrief Wizard, Task-Tethered Focus Gauge, In-Class Question HUD, Backlog CRUD, and Zero-Password Multi-User DB Isolation), Tier 1 UX Polish (Milestone 18), and Tier 2 Academic Urgency Engine & Special Override Periods (Milestone 19).
 
 This roadmap structures the critique and enhancements into **3 focused tiers**:
 
@@ -16,23 +16,26 @@ This roadmap structures the critique and enhancements into **3 focused tiers**:
 ┌──────────────────────────────────────────────────────────────────────────────────┐
 │                               DEVELOPMENT TIERS                                  │
 ├──────────────────────────────────────────────────────────────────────────────────┤
-│ TIER 1: Immediate UX, Layout Polish & Anti-Fatigue Rituals (ACTIVE)              │
-│ - Fix SettingsDialog container height & vertical clipping                        │
-│ - Implement anti-fatigue conditional exit ticket (instant extend, adaptive Qs)   │
-│ - Reorganize Cockpit Top Bar into 3 balanced visual clusters                     │
-│ - Add dismiss/collapse to Tonight's Priority Task capsule                        │
-│ - Eliminate deficit metric (0% guilt framing) on Ambient Clock                   │
-│ - Fix asset filename typos and sync README test telemetry (129 tests)            │
+│ TIER 1: Immediate UX, Layout Polish & Anti-Fatigue Rituals [COMPLETED]           │
+│ - Fixed SettingsDialog container height & vertical clipping                      │
+│ - Implemented anti-fatigue conditional exit ticket (instant extend, adaptive Qs) │
+│ - Reorganized Cockpit Top Bar into 3 balanced visual clusters                    │
+│ - Added dismiss/collapse to Tonight's Priority Task capsule                      │
+│ - Eliminated deficit metric (0% guilt framing) on Ambient Clock                  │
+│ - Fixed asset filename typos and synced README test telemetry (129 tests)        │
 ├──────────────────────────────────────────────────────────────────────────────────┤
-│ TIER 2: Academic Urgency Engine & Backlog Ergonomics (NEXT)                      │
-│ - Urgency heuristic upgrade: Tomorrow morning (08:00) bias                       │
-│ - Multi-criteria Backlog Sorting (Due Date earliest, Subject A-Z, Urgency)      │
-│ - Relocate nuclear [Empty Tasks] out of primary header                           │
+│ TIER 2: Academic Urgency Engine & Special Override Periods [COMPLETED]           │
+│ - Urgency heuristic upgrade: Tomorrow morning (08:00) lecture bias               │
+│ - Special Academic Override Periods ("day / x days / weeks / x weeks"):         │
+│   • SpecialPeriod model, SQLite table & repository CRUD                          │
+│   • SpecialPeriodDialog with 1-click presets, type chips & overwrite switch      │
+│   • Weekly Schedule hero banner, day header badges & card override indicators    │
+│ - Multi-criteria Backlog Sorting (Deadline, Academic Urgency, Subject, Title)   │
+│ - Relocated nuclear [Empty Tasks] to safe guarded footer utility                 │
 │ - Debrief wizard active template button states & unambiguous step buttons        │
-│ - User profile avatar tokens & inline renaming                                   │
 ├──────────────────────────────────────────────────────────────────────────────────┤
-│ TIER 3: Academic Semester Realities & Dedicated In-Class HUD (FUTURE)            │
-│ - Date-Specific Calendar Overrides (Cancelled classes, Makeups/Rattrapages, DS) │
+│ TIER 3: Academic Semester Realities & Dedicated In-Class HUD [NEXT]              │
+│ - Slot-Specific Calendar Overrides (Cancelled classes, Makeups/Rattrapages)      │
 │ - Fullscreen In-Class Lecture HUD with extra-large [Copy] & [Asked] triggers    │
 │ - Export semester review report & printable revision checklist                   │
 │ - SQLite connection lifecycle audit (zero ResourceWarnings)                      │
@@ -82,22 +85,45 @@ This roadmap structures the critique and enhancements into **3 focused tiers**:
 
 ---
 
-## 3. Tier 2: Academic Urgency Engine & Backlog Ergonomics
+## 3. Tier 2: Academic Urgency Engine & Special Academic Override Periods [COMPLETED]
 
-### 3.1 Academic Urgency Heuristic (Tomorrow Morning Bias)
-- Calculate urgency with class proximity weighting:
-  $$\text{UrgencyScore} = \text{OverdueFactor} \times 1000 + \frac{1}{\Delta t_{\text{next class}} + 1}$$
-- Tasks due for tomorrow morning's 08:00 session automatically outrank tasks due next Thursday, even if created later.
+### 3.1 Academic Urgency Heuristic (Tomorrow-Morning Proximity Bias)
+- **Problem:** Chronological deadlines fail to prioritize urgent academic preparation. A task due tomorrow morning at 08:00 must outrank tasks due later in the week.
+- **Implementation:**
+  - Implemented `calculate_todo_urgency_score(todo, current_dt)` in `ScheduleEngine`.
+  - Overdue items are given priority scores $\ge 100,000$ scaled by elapsed overdue minutes.
+  - Active pending items compute proximity score:
+    $$\text{UrgencyScore} = \frac{1000}{\Delta t_{\text{due}} + 1} + \frac{2500}{\Delta t_{\text{class}} + 1}$$
+  - Connects to `get_priority_study_todo()` so the Weekly Cockpit Priority Card automatically elevates tomorrow morning deliverables.
 
-### 3.2 Backlog Sorting & Safe Actions
-- Add segmented sort pills in `TasksDialog`:
-  - `Sort: Deadline (Earliest)`
-  - `Sort: Subject (A–Z)`
-- Move nuclear `[ Empty Tasks ]` button to an action menu (`...`) with explicit two-step confirmation.
+### 3.2 Special Academic Override Periods ("day / x days / weeks / x weeks")
+- **Problem:** Academic semesters encounter exceptional periods—Devoirs Surveillés (DS week), revision periods, sprint weeks, or holidays—where standard recurring weekly timetables must be overridden or visually contextualized.
+- **Implementation:**
+  - **Data Model & Persistence:** `SpecialPeriod` dataclass with `name`, `period_type` (`exam`, `revision`, `sprint`, `holiday`, `custom`), `start_date`, `end_date`, `overwrite_schedule` (bool), and `notes`.
+  - **Auto-Calculated Durations:** Supports exact day and week labeling (`1 Day`, `X Days`, `1 Week`, `2 Weeks`) handling both 6-day academic and 7-day calendar weeks.
+  - **Dedicated UI (`SpecialPeriodDialog`):**
+    - One-click duration presets: `1 Day (Today)`, `3 Days (Sprint)`, `1 Week (This Week)`, `2 Weeks (Exams)`.
+    - Period type selector chips with distinctive visual badges.
+    - Start & End date pickers with live calculated duration counter.
+    - `Overwrite regular class timetable during this period` toggle.
+    - Active periods list with in-place delete buttons.
+  - **Cockpit Calendar Integration:**
+    - Top-bar trigger pill: `[ ⚡ Period Mode ]` or active summary badge `[ ⚡ 1 WEEK: Devoirs Surveillés (DS Week) ]`.
+    - Amber hero banner above the grid: `⚡ SPECIAL ACADEMIC PERIOD ACTIVE: {name} ({duration}) — Timetable Overwritten`.
+    - Day headers dynamically display badges: e.g., `LUN [ ⚡ EXAM ] 12 OCT`.
+    - When `overwrite_schedule` is active, regular calendar cards render with amber dashed borders and `⚡ OVERRIDDEN` badges.
 
-### 3.3 Debrief Wizard Polish
-- Highlight active template pills (`[ 💻 Lab Fix ]`, `[ 📖 Slides ]`) with emerald border when clicked.
-- Rename bottom stepper button from `Skip Finish` to `Skip Subject` / `Finish Debrief ✓`.
+### 3.3 Backlog Sorting & Guarded Backlog Purge
+- **Problem:** Students with 20+ deliverables had no way to sort tasks, and the destructive `[ Empty Tasks ]` button was dangerously placed in the top header row.
+- **Implementation:**
+  - Added multi-criteria sort dropdown in `TasksDialog`: `Sort: Deadline (Earliest)`, `Sort: Academic Urgency`, `Sort: Subject (A–Z)`, `Sort: Title (A–Z)`.
+  - Moved nuclear clear button out of the top header to a guarded footer utility: `🗑 Clear All Tasks...` with a mandatory two-step confirmation popup.
+
+### 3.4 Debrief Wizard Active Template Highlighting
+- **Problem:** In `DebriefDialog`, students clicking quick template prompts had no visual feedback indicating which template was selected.
+- **Implementation:**
+  - Dynamic emerald styling (`border: 1px solid #10B981; background: #14221D; color: #10B981;`) applied to whichever template matches the input field prefix.
+  - Renamed bottom stepper actions for unambiguous intent (`Finish Debrief ✓`).
 
 ---
 

@@ -101,11 +101,15 @@ class ClassGridCard(QPushButton):
         session: AcademicSession,
         is_current: bool = False,
         engine: ScheduleEngine | None = None,
+        is_overridden: bool = False,
+        override_label: str = "",
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.session = session
         self.is_current = is_current
+        self.is_overridden = is_overridden
+        self.override_label = override_label
         self.engine = engine
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -137,8 +141,15 @@ class ClassGridCard(QPushButton):
         }
         bg_badge, fg_badge = core_colors.get(core_type, ("#1E1E24", "#A1A1AA"))
 
-        current_border = "border: 2px solid #10B981;" if is_current else "border: 1px solid #222228;"
-        current_bg = "background-color: #14221D;" if is_current else "background-color: #121216;"
+        if is_overridden:
+            current_border = "border: 1px dashed #D97706;"
+            current_bg = "background-color: #17130D;"
+        elif is_current:
+            current_border = "border: 2px solid #10B981;"
+            current_bg = "background-color: #14221D;"
+        else:
+            current_border = "border: 1px solid #222228;"
+            current_bg = "background-color: #121216;"
 
         self.setStyleSheet(f"""
             ClassGridCard {{
@@ -176,7 +187,18 @@ class ClassGridCard(QPushButton):
         """)
         header_row.addWidget(lbl_core)
 
-        if is_current:
+        if is_overridden:
+            lbl_ovr = QLabel("⚡ OVERRIDDEN")
+            lbl_ovr.setStyleSheet("""
+                background-color: #78350F;
+                color: #FDE68A;
+                font-size: 8px;
+                font-weight: 800;
+                padding: 1px 4px;
+                border-radius: 3px;
+            """)
+            header_row.addWidget(lbl_ovr)
+        elif is_current:
             lbl_now = QLabel("● NOW")
             lbl_now.setStyleSheet("color: #10B981; font-size: 10px; font-weight: 700;")
             header_row.addWidget(lbl_now)
@@ -503,6 +525,14 @@ class ScheduleScreenWidget(QWidget):
         right_cluster.setContentsMargins(0, 0, 0, 0)
         right_cluster.setSpacing(6)
 
+        # Special Period Override Trigger
+        self.btn_special_period = QPushButton("⚡ Period Mode")
+        self.btn_special_period.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_special_period.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_special_period.setToolTip("Designate special academic periods (day, x days, weeks) that override timetable")
+        self.btn_special_period.clicked.connect(self._open_special_period_dialog)
+        right_cluster.addWidget(self.btn_special_period)
+
         self.btn_ambient = QPushButton("⏱ Clock")
         self.btn_ambient.setStyleSheet(BUTTON_NAV_STYLE)
         self.btn_ambient.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -550,13 +580,16 @@ class ScheduleScreenWidget(QWidget):
         main_layout.addLayout(header)
 
         # ---------------------------------------------------------------------
-        # Cockpit Ambient Banners (Nightly Debrief & Priority Task)
+        # Cockpit Ambient Banners (Nightly Debrief, Priority Task, Special Period)
         # ---------------------------------------------------------------------
         self.debrief_banner = self._create_debrief_banner()
         main_layout.addWidget(self.debrief_banner)
 
         self.priority_task_card = self._create_priority_task_card()
         main_layout.addWidget(self.priority_task_card)
+
+        self.special_period_banner = self._create_special_period_banner()
+        main_layout.addWidget(self.special_period_banner)
 
         # ---------------------------------------------------------------------
         # View Switcher: Stack (0: Visual Grid, 1: Edit Classes)
@@ -776,6 +809,121 @@ class ScheduleScreenWidget(QWidget):
             else:
                 self.priority_task_card.hide()
 
+        # 3. Special Period Banner (Overwrites/Overrides: day / x days / weeks / x weeks)
+        if hasattr(self, "special_period_banner") and not getattr(self, "_special_period_banner_dismissed", False):
+            week_periods = self.engine.get_special_periods_for_week(self._current_view_date)
+            if week_periods:
+                p = week_periods[0]
+                self.lbl_sp_title.setText(f"{p.name.upper()} ({p.duration_label.upper()})")
+                if p.overrides_schedule:
+                    self.lbl_sp_sub.setText(f"Active {p.start_date.strftime('%d %b')} – {p.end_date.strftime('%d %b %Y')} · Standard timetable is overridden during this period.")
+                else:
+                    self.lbl_sp_sub.setText(f"Active {p.start_date.strftime('%d %b')} – {p.end_date.strftime('%d %b %Y')} · Standard timetable in effect.")
+                self.special_period_banner.show()
+            else:
+                self.special_period_banner.hide()
+        elif hasattr(self, "special_period_banner"):
+            self.special_period_banner.hide()
+
+    def _create_special_period_banner(self) -> QFrame:
+        banner = QFrame()
+        banner.setObjectName("specialPeriodBanner")
+        banner.setStyleSheet("""
+            QFrame#specialPeriodBanner {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #271406, stop:0.5 #381E09, stop:1 #12121A);
+                border: 1px solid #D97706;
+                border-radius: 8px;
+            }
+        """)
+        layout = QHBoxLayout(banner)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(10)
+
+        badge = QLabel("⚡ SPECIAL PERIOD")
+        badge.setStyleSheet("""
+            background-color: #78350F;
+            color: #FDE68A;
+            border: 1px solid #D97706;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 6px;
+            letter-spacing: 0.5px;
+        """)
+        layout.addWidget(badge)
+
+        info_col = QVBoxLayout()
+        info_col.setSpacing(1)
+
+        self.lbl_sp_title = QLabel("SPECIAL ACADEMIC PERIOD ACTIVE")
+        self.lbl_sp_title.setStyleSheet("color: #FDE68A; font-size: 12px; font-weight: 800;")
+        info_col.addWidget(self.lbl_sp_title)
+
+        self.lbl_sp_sub = QLabel("Standard timetable is overridden during this period.")
+        self.lbl_sp_sub.setStyleSheet("color: #FCD34D; font-size: 11px;")
+        info_col.addWidget(self.lbl_sp_sub)
+
+        layout.addLayout(info_col, stretch=1)
+
+        btn_manage = QPushButton("Manage Periods")
+        btn_manage.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_manage.setStyleSheet("""
+            QPushButton {
+                background-color: #D97706;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 5px 12px;
+                font-size: 11px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: #B45309;
+            }
+        """)
+        btn_manage.clicked.connect(self._open_special_period_dialog)
+        layout.addWidget(btn_manage)
+
+        btn_dismiss = QPushButton("✕")
+        btn_dismiss.setToolTip("Dismiss special period banner")
+        btn_dismiss.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_dismiss.setFixedSize(24, 24)
+        btn_dismiss.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #FCD34D;
+                border: 1px solid transparent;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #FFFFFF;
+            }
+        """)
+        btn_dismiss.clicked.connect(self._dismiss_special_period_banner)
+        layout.addWidget(btn_dismiss)
+
+        banner.hide()
+        return banner
+
+    def _dismiss_special_period_banner(self) -> None:
+        self._special_period_banner_dismissed = True
+        if hasattr(self, "special_period_banner"):
+            self.special_period_banner.hide()
+
+    def _open_special_period_dialog(self) -> None:
+        from study_station.ui.special_period_dialog import SpecialPeriodDialog
+        dialog = SpecialPeriodDialog(engine=self.engine, initial_date=self._current_view_date, parent=self)
+        dialog.periods_changed.connect(self._on_periods_changed)
+        dialog.exec()
+
+    def _on_periods_changed(self) -> None:
+        self._special_period_banner_dismissed = False
+        self._refresh_calendar_grid()
+        self._refresh_cockpit_banners()
+
     def refresh_cockpit_banners(self) -> None:
         """Public trigger to re-evaluate debrief and priority banners."""
         self._refresh_cockpit_banners()
@@ -886,14 +1034,20 @@ class ScheduleScreenWidget(QWidget):
         for col_idx, (day_code, _) in enumerate(self.DAYS, start=1):
             col_date = week_dates[col_idx - 1]
             is_today = (col_date == today_date)
+            sp = self.engine.get_special_period_for_date(col_date) if self.engine else None
 
-            today_color = "color: #34D399;" if is_today else "color: #D4D4D8;"
-            date_num_color = "color: #10B981;" if is_today else "color: #71717A;"
-            today_bg = (
-                "background-color: #14221D; border: 1px solid #059669;"
-                if is_today
-                else "background-color: #121216; border: 1px solid #222228;"
-            )
+            if sp and sp.overrides_schedule:
+                today_bg = "background-color: #271406; border: 1px solid #D97706;"
+                today_color = "color: #FDE68A;"
+                date_num_color = "color: #FCD34D;"
+            elif is_today:
+                today_color = "color: #34D399;"
+                date_num_color = "color: #10B981;"
+                today_bg = "background-color: #14221D; border: 1px solid #059669;"
+            else:
+                today_color = "color: #D4D4D8;"
+                date_num_color = "color: #71717A;"
+                today_bg = "background-color: #121216; border: 1px solid #222228;"
 
             day_box = QFrame()
             day_box.setStyleSheet(f"{today_bg}; border-radius: 6px; padding: 4px 8px;")
@@ -908,7 +1062,18 @@ class ScheduleScreenWidget(QWidget):
             lbl_day.setStyleSheet(f"{today_color}; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;")
             top_row.addWidget(lbl_day)
 
-            if is_today:
+            if sp:
+                sp_badge = QLabel(f"⚡ {sp.period_type.upper()}")
+                sp_badge.setStyleSheet("""
+                    background-color: #78350F;
+                    color: #FDE68A;
+                    font-size: 8px;
+                    font-weight: 800;
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                """)
+                top_row.addWidget(sp_badge)
+            elif is_today:
                 lbl_badge = QLabel("TODAY")
                 lbl_badge.setStyleSheet("""
                     background-color: #064E3B;
@@ -940,6 +1105,9 @@ class ScheduleScreenWidget(QWidget):
             for col_idx, (day_code, _) in enumerate(self.DAYS, start=1):
                 col_date = week_dates[col_idx - 1]
                 is_today = (col_date == today_date)
+                sp = self.engine.get_special_period_for_date(col_date) if self.engine else None
+                is_overridden = bool(sp and sp.overrides_schedule)
+                override_lbl = sp.name if sp else ""
 
                 matching = [
                     s for s in self._sessions
@@ -954,7 +1122,13 @@ class ScheduleScreenWidget(QWidget):
                         is_today
                         and session.time_slot.start <= now_str <= session.time_slot.end
                     )
-                    card = ClassGridCard(session, is_current=is_current_session, engine=self.engine)
+                    card = ClassGridCard(
+                        session,
+                        is_current=is_current_session,
+                        engine=self.engine,
+                        is_overridden=is_overridden,
+                        override_label=override_lbl,
+                    )
                     card.clicked_session_card.connect(
                         lambda s=session: QTimer.singleShot(0, lambda: self._open_session_manager(s))
                     )
@@ -967,6 +1141,30 @@ class ScheduleScreenWidget(QWidget):
         self.grid_layout.setColumnStretch(0, 1)
         for i in range(1, 7):
             self.grid_layout.setColumnStretch(i, 3)
+
+        if hasattr(self, "btn_special_period") and self.engine is not None:
+            active_periods = self.engine.get_special_periods_for_week(self._current_view_date)
+            if active_periods:
+                p = active_periods[0]
+                self.btn_special_period.setText(f"⚡ {p.duration_label.upper()}: {p.name}")
+                self.btn_special_period.setStyleSheet("""
+                    QPushButton {
+                        background-color: #2D1B06;
+                        color: #FCD34D;
+                        border: 1px solid #D97706;
+                        border-radius: 14px;
+                        padding: 6px 12px;
+                        font-size: 11px;
+                        font-weight: 800;
+                    }
+                    QPushButton:hover {
+                        background-color: #78350F;
+                        color: #FFFFFF;
+                    }
+                """)
+            else:
+                self.btn_special_period.setText("⚡ Period Mode")
+                self.btn_special_period.setStyleSheet(BUTTON_NAV_STYLE)
 
         self._refresh_cockpit_banners()
 

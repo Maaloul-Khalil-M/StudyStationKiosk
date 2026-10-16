@@ -25,6 +25,7 @@ from PySide6.QtWidgets import QApplication
 from study_station.core.engine import ScheduleEngine
 from study_station.core.models import (
     AcademicSession,
+    SpecialPeriod,
     StudyTodo,
     Subject,
     TimeSlot,
@@ -41,6 +42,7 @@ from study_station.ui.exit_ticket_dialog import ExitTicketDialog
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.import_export_dialog import ImportExportDialog
 from study_station.ui.main_window import MainWindow
+from study_station.ui.special_period_dialog import SpecialPeriodDialog
 from study_station.ui.subject_preparation_sheet import SubjectPreparationSheet
 from study_station.ui.tasks_dialog import TasksDialog
 from study_station.ui.user_switch_dialog import UserSwitchDialog
@@ -152,6 +154,18 @@ def main():
     repo.add_todo(todo_sec)
     engine.add_todo(todo_sec)
 
+    # Special Academic Period Override (DS Week)
+    sp = SpecialPeriod(
+        name="Devoirs Surveillés (DS Week)",
+        period_type="exam",
+        start_date=now.date() - timedelta(days=now.date().weekday()),
+        end_date=now.date() - timedelta(days=now.date().weekday()) + timedelta(days=6),
+        overrides_schedule=True,
+        notes="Devoirs Surveillés exams. Standard classes overridden.",
+    )
+    repo.add_special_period(sp)
+    engine.add_special_period(sp)
+
     # 1. Capture MainWindow / Grid Cockpit View (grid_schedual.png / s1 main-grid.png)
     window = MainWindow(repository=repo, engine=engine)
     window.resize(1366, 768)
@@ -159,6 +173,8 @@ def main():
     # Ensure banners are visible
     window._schedule_widget.debrief_banner.show()
     window._schedule_widget.priority_task_card.show()
+    window._schedule_widget.special_period_banner.show()
+    window._schedule_widget._refresh_calendar_grid()
     app.processEvents()
     pix_grid = window.grab()
     save_both(pix_grid, "grid_schedule.png", "s1 main-grid.png")
@@ -211,6 +227,8 @@ def main():
     # 7. Capture Debrief Dialog (debrief_modal.png / s3 start debrief.png)
     debrief_dlg = DebriefDialog(engine=engine, ref_dt=now)
     debrief_dlg.resize(640, 560)
+    if getattr(debrief_dlg, "template_buttons", None):
+        debrief_dlg.template_buttons[0][0].click()
     debrief_dlg.show()
     app.processEvents()
     save_both(debrief_dlg.grab(), "debrief_modal.png", "s3 start debrief.png")
@@ -227,6 +245,10 @@ def main():
     # 9. Capture Academic Task Backlog Dialog (tasks_modal.png / s6 tasks.png)
     tasks_dlg = TasksDialog(engine=engine)
     tasks_dlg.resize(890, 680)
+    if hasattr(tasks_dlg, "combo_sort"):
+        idx_urg = tasks_dlg.combo_sort.findData("urgency")
+        if idx_urg >= 0:
+            tasks_dlg.combo_sort.setCurrentIndex(idx_urg)
     tasks_dlg.show()
     app.processEvents()
     save_both(tasks_dlg.grab(), "tasks_modal.png", "s6 tasks.png")
@@ -264,6 +286,14 @@ def main():
     save_both(user_dlg.grab(), "switch_user_modal.png", "s10 switch_user.png")
     user_dlg.close()
     shutil.rmtree(temp_user_dir, ignore_errors=True)
+
+    # 13. Capture Special Periods Override Modal (special_periods.png / s11 special_periods.png)
+    sp_dlg = SpecialPeriodDialog(engine=engine, initial_date=now.date())
+    sp_dlg.resize(680, 680)
+    sp_dlg.show()
+    app.processEvents()
+    save_both(sp_dlg.grab(), "special_periods.png", "s11 special_periods.png")
+    sp_dlg.close()
 
     # Clean up
     db.close()

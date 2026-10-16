@@ -5,7 +5,7 @@ Preserves separation between timetable facts and study-tracking behaviour.
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 import uuid
 
 
@@ -191,6 +191,61 @@ class ExitTicketResult:
     next_class_question: str = ""
     takeaway_note: str = ""
     extend_minutes: int = 10
+
+
+@dataclass
+class SpecialPeriod:
+    """Represents a designated academic override period (day, x days, 1 week, x weeks).
+
+    Overwrites or modifies normal recurring timetable sessions (e.g. Exam/DS Week,
+    Revision/Dead Week, Intensive Project Sprint, Break/Holiday, or Custom Overwrite).
+    """
+
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = ""
+    period_type: str = "exam"  # "exam", "revision", "intensive", "holiday", "custom"
+    start_date: date = field(default_factory=date.today)
+    end_date: date = field(default_factory=date.today)
+    overrides_schedule: bool = True
+    notes: str = ""
+
+    @property
+    def duration_days(self) -> int:
+        return (self.end_date - self.start_date).days + 1
+
+    @property
+    def duration_label(self) -> str:
+        """Formatted human label matching: day / x days / weeks / x weeks."""
+        days = self.duration_days
+        if days <= 1:
+            return "1 Day"
+        if days in (6, 7):
+            return "1 Week"
+        if days in (13, 14):
+            return "2 Weeks"
+        if days % 7 == 0:
+            return f"{days // 7} Weeks"
+        if days % 6 == 0:
+            return f"{days // 6} Weeks"
+        if days < 7:
+            return f"{days} Days"
+        weeks = days // 7
+        rem = days % 7
+        return f"{days} Days ({weeks}w {rem}d)"
+
+    def contains_date(self, ref_date: date) -> bool:
+        """Check if a specific calendar date falls within this special period."""
+        return self.start_date <= ref_date <= self.end_date
+
+    def is_active_on(self, ref_date: date) -> bool:
+        """Check if period is active on the given date."""
+        return self.contains_date(ref_date)
+
+    def overlaps_week(self, ref_date: date) -> bool:
+        """Check if this period overlaps the academic week (Mon-Sat) containing ref_date."""
+        monday = ref_date - timedelta(days=ref_date.weekday())
+        saturday = monday + timedelta(days=5)
+        return self.start_date <= saturday and self.end_date >= monday
 
 
 

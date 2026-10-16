@@ -138,15 +138,6 @@ class TasksDialog(QDialog):
         self.btn_new_task.clicked.connect(lambda: self._open_create_dialog())
         header.addWidget(self.btn_new_task)
 
-        self.btn_empty_tasks = QPushButton("Empty Tasks")
-        self.btn_empty_tasks.setToolTip("Clear all tasks from the backlog")
-        self.btn_empty_tasks.setStyleSheet(BUTTON_DANGER_STYLE + """
-            QPushButton:disabled { color: #3F3F46; border-color: #1E1E26; background-color: #0E0E12; }
-        """)
-        self.btn_empty_tasks.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_empty_tasks.clicked.connect(self._on_empty_tasks_clicked)
-        header.addWidget(self.btn_empty_tasks)
-
         btn_close = QPushButton("✕")
         btn_close.setToolTip("Close (Esc)")
         btn_close.setFixedSize(30, 30)
@@ -274,6 +265,32 @@ class TasksDialog(QDialog):
         self.combo_subject_filter.currentTextChanged.connect(self._on_subject_filter_changed)
         filter_bar.addWidget(self.combo_subject_filter, stretch=2)
 
+        # Sort Mode Selector
+        self.combo_sort = QComboBox()
+        self.combo_sort.setStyleSheet("""
+            QComboBox {
+                background-color: #18181B;
+                color: #FFFFFF;
+                border: 1px solid #27272A;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            QComboBox::drop-down { border: none; }
+            QComboBox QAbstractItemView {
+                background-color: #18181B;
+                color: #FFFFFF;
+                selection-background-color: #27272A;
+                border: 1px solid #27272A;
+            }
+        """)
+        self.combo_sort.addItem("Sort: Deadline (Earliest)", "due_earliest")
+        self.combo_sort.addItem("Sort: Academic Urgency", "urgency")
+        self.combo_sort.addItem("Sort: Subject (A–Z)", "subject")
+        self.combo_sort.addItem("Sort: Title (A–Z)", "title")
+        self.combo_sort.currentIndexChanged.connect(lambda: self._refresh_tasks_list())
+        filter_bar.addWidget(self.combo_sort, stretch=2)
+
         self.content_layout.addLayout(filter_bar)
 
         # Status Segmented Filter Pills with dynamic counters
@@ -319,6 +336,44 @@ class TasksDialog(QDialog):
         self.tasks_layout.setSpacing(8)
         self.scroll_area.setWidget(self.tasks_container)
         self.content_layout.addWidget(self.scroll_area, stretch=1)
+
+        # ---------------------------------------------------------------------
+        # 6. Footer Utility & Safety Bar
+        # ---------------------------------------------------------------------
+        footer_bar = QHBoxLayout()
+        footer_bar.setContentsMargins(4, 2, 4, 0)
+        footer_bar.setSpacing(8)
+
+        lbl_shortcuts = QLabel("⌨ Shortcuts: [N] New Task  ·  [/] Search  ·  [Esc] Close")
+        lbl_shortcuts.setStyleSheet("color: #52525B; font-size: 11px;")
+        footer_bar.addWidget(lbl_shortcuts)
+
+        footer_bar.addStretch()
+
+        self.btn_empty_tasks = QPushButton("🗑 Clear All Tasks...")
+        self.btn_empty_tasks.setToolTip("Clear all tasks from the backlog (safe 2-step confirmation)")
+        self.btn_empty_tasks.setStyleSheet("""
+            QPushButton {
+                background: #18181B;
+                color: #71717A;
+                border: 1px solid #27272A;
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #201315;
+                color: #FCA5A5;
+                border-color: #5C1D24;
+            }
+            QPushButton:disabled { color: #3F3F46; border-color: #1E1E26; background-color: #0E0E12; }
+        """)
+        self.btn_empty_tasks.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_empty_tasks.clicked.connect(self._on_empty_tasks_clicked)
+        footer_bar.addWidget(self.btn_empty_tasks)
+
+        self.content_layout.addLayout(footer_bar)
 
     def _create_kpi_card(self, title: str, initial_val: str, accent_color: str) -> QFrame:
         card = QFrame()
@@ -618,8 +673,16 @@ class TasksDialog(QDialog):
                 if q in t.title.lower() or q in t.notes.lower() or q in t.subject_name.lower()
             ]
 
-        # Sort: pending first by due date, then completed
-        todos.sort(key=lambda t: (1 if t.is_completed else 0, t.due_date))
+        # Multi-criteria Backlog Sorting (Tier 2)
+        sort_mode = self.combo_sort.currentData() if hasattr(self, "combo_sort") and self.combo_sort.currentData() else "due_earliest"
+        if sort_mode == "urgency":
+            todos.sort(key=lambda t: (1 if t.is_completed else 0, -self.engine.calculate_todo_urgency_score(t, now)))
+        elif sort_mode == "subject":
+            todos.sort(key=lambda t: (1 if t.is_completed else 0, ScheduleEngine.clean_subject_name(t.subject_name).lower(), t.due_date))
+        elif sort_mode == "title":
+            todos.sort(key=lambda t: (1 if t.is_completed else 0, t.title.lower()))
+        else:
+            todos.sort(key=lambda t: (1 if t.is_completed else 0, t.due_date))
 
         if not todos:
             empty_frame = QFrame()

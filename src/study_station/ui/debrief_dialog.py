@@ -302,8 +302,10 @@ class DebriefDialog(QDialog):
         template_layout = QHBoxLayout()
         template_layout.setContentsMargins(0, 0, 0, 0)
         template_layout.setSpacing(6)
+        self.template_buttons: list[tuple[QPushButton, str]] = []
         for label, prefix in self.QUICK_TEMPLATES:
             btn = QPushButton(label)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet("""
                 QPushButton {
                     background: #18181B;
@@ -322,8 +324,10 @@ class DebriefDialog(QDialog):
             """)
             btn.clicked.connect(lambda _, p=prefix: self._apply_template_prefix(p))
             template_layout.addWidget(btn)
+            self.template_buttons.append((btn, prefix))
         template_layout.addStretch()
         self.step_layout.addLayout(template_layout)
+        self.txt_title.textChanged.connect(self._update_template_button_styles)
 
         # Notes / Slide References
         self.txt_notes = QLineEdit()
@@ -418,6 +422,40 @@ class DebriefDialog(QDialog):
 
         container_layout.addLayout(btn_layout)
 
+    def _update_template_button_styles(self) -> None:
+        """Highlight active template pill with emerald border when its prefix matches txt_title."""
+        current_text = self.txt_title.text().strip()
+        for btn, prefix in getattr(self, "template_buttons", []):
+            if current_text and current_text.startswith(prefix.strip()):
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background: #14221D;
+                        color: #10B981;
+                        border: 1px solid #10B981;
+                        border-radius: 12px;
+                        padding: 3px 10px;
+                        font-size: 11px;
+                        font-weight: 700;
+                    }
+                """)
+            else:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background: #18181B;
+                        color: #A1A1AA;
+                        border: 1px solid #27272A;
+                        border-radius: 12px;
+                        padding: 3px 10px;
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+                    QPushButton:hover {
+                        background: #27272A;
+                        color: #FFFFFF;
+                        border-color: #3F3F46;
+                    }
+                """)
+
     def _apply_template_prefix(self, prefix: str) -> None:
         """Insert or set template prefix into title input."""
         current = self.txt_title.text().strip()
@@ -427,6 +465,7 @@ class DebriefDialog(QDialog):
             self.txt_title.setText(f"{prefix}{current}")
         self.txt_title.setFocus()
         self.txt_title.setCursorPosition(len(self.txt_title.text()))
+        self._update_template_button_styles()
 
     def _on_deadline_mode_changed(self) -> None:
         """Toggle custom date edit state."""
