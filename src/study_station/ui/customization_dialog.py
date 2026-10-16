@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from study_station.core.settings import AppSettings
 from study_station.core.sound_manager import SoundManager
+from study_station.ui.kiosk_dialogs import KioskUnlockDialog, SetKioskPasswordDialog
 from study_station.ui.theme import (
     BUTTON_PRIMARY_STYLE,
     BUTTON_SECONDARY_STYLE,
@@ -38,6 +39,7 @@ class CustomizationDialog(QDialog):
     open_targets_requested = Signal()
     open_manual_log_requested = Signal()
     open_import_export_requested = Signal()
+    lock_screen_requested = Signal()
 
     def __init__(self, settings: AppSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -382,6 +384,65 @@ class CustomizationDialog(QDialog):
 
         content_layout.addLayout(tools_layout)
 
+        content_layout.addWidget(self._create_divider())
+
+        # Section 6: Kiosk & Screen Lock
+        sec6_lbl = QLabel("KIOSK & SCREEN LOCK")
+        sec6_lbl.setFont(get_modern_font("sans", 10, QFont.Weight.DemiBold))
+        sec6_lbl.setStyleSheet("color: #71717A; letter-spacing: 1px;")
+        content_layout.addWidget(sec6_lbl)
+
+        kiosk_box = QVBoxLayout()
+        kiosk_box.setSpacing(6)
+
+        self.cb_kiosk = QCheckBox("Enable Kiosk Mode (Exit & Fullscreen Protection)")
+        self.cb_kiosk.setChecked(getattr(self._settings, "kiosk_mode_enabled", False))
+        self.cb_kiosk.toggled.connect(self._on_kiosk_toggled)
+        kiosk_box.addWidget(self.cb_kiosk)
+
+        lbl_kiosk_hint = QLabel("Requires administrator password to exit fullscreen or quit the app.")
+        lbl_kiosk_hint.setFont(get_modern_font("sans", 10))
+        lbl_kiosk_hint.setStyleSheet("color: #71717A; margin-left: 26px;")
+        kiosk_box.addWidget(lbl_kiosk_hint)
+
+        kiosk_btn_row = QHBoxLayout()
+        kiosk_btn_row.setContentsMargins(26, 4, 0, 0)
+        kiosk_btn_row.setSpacing(10)
+
+        pwd_btn_text = "Change Password" if self._settings.has_kiosk_password() else "Set Password"
+        self.btn_kiosk_pwd = QPushButton(pwd_btn_text)
+        self.btn_kiosk_pwd.setFixedHeight(28)
+        self.btn_kiosk_pwd.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_kiosk_pwd.setStyleSheet(BUTTON_SECONDARY_STYLE)
+        self.btn_kiosk_pwd.clicked.connect(self._on_kiosk_pwd_clicked)
+        kiosk_btn_row.addWidget(self.btn_kiosk_pwd)
+
+        self.btn_lock_station = QPushButton("🔒 Lock Station Now")
+        self.btn_lock_station.setFixedHeight(28)
+        self.btn_lock_station.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_lock_station.setStyleSheet("""
+            QPushButton {
+                background-color: #18181D;
+                color: #A1A1AA;
+                border: 1px solid #27272E;
+                border-radius: 14px;
+                padding: 0 12px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #27272E;
+                color: #FFFFFF;
+                border-color: #3F3F4A;
+            }
+        """)
+        self.btn_lock_station.clicked.connect(self._on_lock_station_clicked)
+        kiosk_btn_row.addWidget(self.btn_lock_station)
+        kiosk_btn_row.addStretch()
+
+        kiosk_box.addLayout(kiosk_btn_row)
+        content_layout.addLayout(kiosk_box)
+
         scroll.setWidget(scroll_content)
         container_layout.addWidget(scroll, stretch=1)
 
@@ -617,3 +678,64 @@ class CustomizationDialog(QDialog):
 
     def _on_preview_sound(self) -> None:
         SoundManager.get_instance().play_completion_chime(enabled=True)
+
+    def _on_kiosk_toggled(self, checked: bool) -> None:
+        if checked:
+            if not self._settings.has_kiosk_password():
+                # Must set a password first
+                dlg = SetKioskPasswordDialog(current_hash="", parent=self)
+                if dlg.exec() == QDialog.DialogCode.Accepted and dlg.new_password_hash:
+                    self._settings.kiosk_password_hash = dlg.new_password_hash
+                    self._settings.kiosk_mode_enabled = True
+                    self.btn_kiosk_pwd.setText("Change Password")
+                    self.settings_changed.emit(self._settings)
+                else:
+                    self.cb_kiosk.blockSignals(True)
+                    self.cb_kiosk.setChecked(False)
+                    self.cb_kiosk.blockSignals(False)
+            else:
+                self._settings.kiosk_mode_enabled = True
+                self.settings_changed.emit(self._settings)
+        else:
+            # Turning off kiosk mode requires confirmation if a password exists
+            if self._settings.has_kiosk_password():
+                unlock_dlg = KioskUnlockDialog(
+                    expected_hash=self._settings.kiosk_password_hash,
+                    action_title="Disable Kiosk Mode",
+                    action_desc="Enter the administrator password to disable Kiosk Mode.",
+                    parent=self,
+                )
+                if unlock_dlg.exec() == QDialog.DialogCode.Accepted:
+                    self._settings.kiosk_mode_enabled = False
+                    self.settings_changed.emit(self._settings)
+                else:
+                    self.cb_kiosk.blockSignals(True)
+                    self.cb_kiosk.setChecked(True)
+                    self.cb_kiosk.blockSignals(False)
+            else:
+                self._settings.kiosk_mode_enabled = False
+                self.settings_changed.emit(self._settings)
+
+    def _on_kiosk_pwd_clicked(self) -> None:
+        cur_hash = self._settings.kiosk_password_hash if self._settings.has_kiosk_password() else ""
+        dlg = SetKioskPasswordDialog(current_hash=cur_hash, parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.new_password_hash:
+            self._settings.kiosk_password_hash = dlg.new_password_hash
+            self.btn_kiosk_pwd.setText("Change Password")
+            self.settings_changed.emit(self._settings)
+
+    def _on_lock_station_clicked(self) -> None:
+        if not self._settings.has_kiosk_password():
+            dlg = SetKioskPasswordDialog(current_hash="", parent=self)
+            if dlg.exec() == QDialog.DialogCode.Accepted and dlg.new_password_hash:
+                self._settings.kiosk_password_hash = dlg.new_password_hash
+                self._settings.kiosk_mode_enabled = True
+                self.btn_kiosk_pwd.setText("Change Password")
+                self.cb_kiosk.blockSignals(True)
+                self.cb_kiosk.setChecked(True)
+                self.cb_kiosk.blockSignals(False)
+                self.settings_changed.emit(self._settings)
+            else:
+                return
+        self.accept()
+        self.lock_screen_requested.emit()

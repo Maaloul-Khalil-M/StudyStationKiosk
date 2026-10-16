@@ -25,7 +25,11 @@ class SoundManager:
     _sound_dir: Path | None = None
 
     def __init__(self, sound_dir: Path | None = None) -> None:
-        self.sound_dir = sound_dir or (Path(__file__).resolve().parent.parent / "assets" / "sounds")
+        if sound_dir:
+            self.sound_dir = sound_dir
+        else:
+            from study_station.core.resources import get_writable_sound_dir
+            self.sound_dir = get_writable_sound_dir()
         self.sound_dir.mkdir(parents=True, exist_ok=True)
         self.chime_path = self.sound_dir / "completion_chime.wav"
         self._ensure_chime_asset()

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "study-station"
+version = "1.0.0"
+description = "A Schedule-Aware Academic Preparation Station & Focus Cockpit for University Students"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Study Station Contributors" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Education",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "PySide6-Essentials>=6.5.0",
+    "pypdf>=5.0.0",
+]
+
+[project.scripts]
+study-station = "study_station.main:run"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"study_station.ui" = ["designer/*.ui"]
+"study_station" = ["assets/*"]

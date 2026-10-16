@@ -8,9 +8,15 @@ Tests:
 """
 
 import os
+from pathlib import Path
+import sys
 import tempfile
 import unittest
 from datetime import date, datetime, timedelta
+
+SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel
@@ -224,6 +230,50 @@ class TestGridMainScreen(unittest.TestCase):
         # 6. Return to cockpit after completion dismissal
         window._show_cockpit_screen()
         self.assertEqual(window._stack.currentIndex(), MainWindow.INDEX_GRID)
+
+    def test_pure_cells_grid_without_left_column(self) -> None:
+        """Verify grid layout eliminates left text column and maps 6 days to col 0..5."""
+        widget = ScheduleScreenWidget(sessions=self.sessions, engine=self.engine)
+        
+        # Verify no widget in layout has text "TIME"
+        labels = [w.text() for w in widget.grid_container.findChildren(QLabel)]
+        self.assertNotIn("TIME", labels)
+
+        # Verify Day Headers occupy columns 0 through 5
+        self.assertEqual(widget.grid_layout.columnCount(), 6)
+        for col in range(6):
+            self.assertEqual(widget.grid_layout.columnStretch(col), 1)
+
+    def test_dynamic_time_slots_and_scrollable_container(self) -> None:
+        """Verify dynamic time slot collection and scrollable container height sizing."""
+        extra_session = AcademicSession(
+            day="Lun",
+            time_slot=TimeSlot("17:00", "18:30"),
+            subject=Subject("Machine Learning Lab", "TP"),
+            location="Lab 10",
+        )
+        sessions_with_extra = list(self.sessions) + [extra_session]
+        widget = ScheduleScreenWidget(sessions=sessions_with_extra, engine=self.engine)
+
+        active_slots = widget._get_active_time_slots()
+        # self.sessions contains 1 non-default slot ("10:00 - 11:30") + extra_session ("17:00 - 18:30")
+        self.assertEqual(len(active_slots), len(widget.DEFAULT_TIME_SLOTS) + 2)
+        self.assertTrue(any(s[0] == "17:00" and s[1] == "18:30" for s in active_slots))
+
+        # Check scroll area configuration
+        self.assertEqual(widget.grid_scroll.verticalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.assertEqual(widget.grid_scroll.horizontalScrollBarPolicy(), Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        
+        # Minimum height should comfortably accommodate all slot rows
+        expected_min = 40 + len(active_slots) * (86 + 6) + 10
+        self.assertEqual(widget.grid_container.minimumHeight(), expected_min)
+
+    def test_compact_banner_proportions(self) -> None:
+        """Verify banners are constrained to slim 36px ribbons to preserve screen ratio."""
+        widget = ScheduleScreenWidget(sessions=self.sessions, engine=self.engine)
+        self.assertEqual(widget.debrief_banner.maximumHeight(), 36)
+        self.assertEqual(widget.priority_task_card.maximumHeight(), 36)
+        self.assertEqual(widget.special_period_banner.maximumHeight(), 36)
 
 
 if __name__ == "__main__":

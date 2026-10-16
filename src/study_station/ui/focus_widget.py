@@ -38,7 +38,8 @@ class FocusWidget(QWidget):
         self._theme_id = "noir"
 
         # Load Qt Designer UI
-        ui_path = Path(__file__).resolve().parent / "designer" / "focus_screen.ui"
+        from study_station.core.resources import get_ui_path
+        ui_path = get_ui_path("focus_screen.ui")
         loader = QUiLoader()
         ui_file = QFile(str(ui_path))
         ui_file.open(QFile.ReadOnly)
@@ -148,11 +149,14 @@ class FocusWidget(QWidget):
         self.installEventFilter(self)
 
     def eventFilter(self, watched, event) -> bool:
-        from PySide6.QtCore import QEvent
-        if event.type() in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.KeyPress):
-            self._show_controls()
-            self._inactivity_timer.start()
-        return super().eventFilter(watched, event)
+        try:
+            from PySide6.QtCore import QEvent
+            if event.type() in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.KeyPress):
+                self._show_controls()
+                self._inactivity_timer.start()
+            return super().eventFilter(watched, event)
+        except (RuntimeError, Exception):
+            return False
 
     def _show_controls(self) -> None:
         self.btn_pause.setVisible(True)

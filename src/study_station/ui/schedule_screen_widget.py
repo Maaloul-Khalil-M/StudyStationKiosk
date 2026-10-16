@@ -66,21 +66,37 @@ class EmptyGridSlot(QPushButton):
         self.start_time = start_time
         self.end_time = end_time
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.setMinimumHeight(52)
+        self.setMinimumHeight(56)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setText("+")
+        self.setToolTip(f"{day_code} {start_time} – {end_time} · Click to add class")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 6, 4, 6)
+        layout.setSpacing(2)
+
+        self.lbl_plus = QLabel("+")
+        self.lbl_plus.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_plus.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.lbl_plus.setStyleSheet("color: #27272E; font-size: 16px; font-weight: 400;")
+        layout.addWidget(self.lbl_plus)
+
+        self.lbl_time = QLabel(f"{start_time} – {end_time}")
+        self.lbl_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_time.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.lbl_time.setStyleSheet("color: #3F3F4E; font-size: 10px; font-family: monospace;")
+        layout.addWidget(self.lbl_time)
+
         self.setStyleSheet("""
             EmptyGridSlot {
                 background-color: #0E0E12;
                 border: 1px solid #18181F;
                 border-radius: 8px;
-                color: #27272E;
-                font-size: 18px;
-                font-weight: 400;
             }
             EmptyGridSlot:hover {
                 background-color: #14141C;
                 border: 1px dashed #3F3F4E;
+            }
+            EmptyGridSlot:hover QLabel {
                 color: #10B981;
             }
             EmptyGridSlot:pressed {
@@ -112,6 +128,7 @@ class ClassGridCard(QPushButton):
         self.override_label = override_label
         self.engine = engine
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setMinimumHeight(86)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         clean_name = ScheduleEngine.clean_subject_name(session.subject.name)
@@ -313,14 +330,17 @@ class ScheduleScreenWidget(QWidget):
     timetable_changed = Signal(list)  # list[AcademicSession]
     open_import_export_requested = Signal()
     open_tasks_requested = Signal()
+    open_settings_requested = Signal()
+    lock_requested = Signal()
 
-    TIME_SLOTS = [
-        ("08:00", "09:30", "08h - 09h30"),
-        ("09:40", "11:10", "09h40 - 11h10"),
-        ("11:15", "12:45", "11h15 - 12h45"),
-        ("13:30", "15:00", "13h30 - 15h00"),
-        ("15:10", "16:40", "15h10 - 16h40"),
+    DEFAULT_TIME_SLOTS = [
+        ("08:00", "09:30", "08:00 - 09:30"),
+        ("09:40", "11:10", "09:40 - 11:10"),
+        ("11:15", "12:45", "11:15 - 12:45"),
+        ("13:30", "15:00", "13:30 - 15:00"),
+        ("15:10", "16:40", "15:10 - 16:40"),
     ]
+    TIME_SLOTS = DEFAULT_TIME_SLOTS  # Backward compatibility alias
 
     DAYS = [
         ("Lun", "MONDAY"),
@@ -330,6 +350,19 @@ class ScheduleScreenWidget(QWidget):
         ("Ven", "FRIDAY"),
         ("Sam", "SATURDAY"),
     ]
+
+    def _get_active_time_slots(self) -> list[tuple[str, str, str]]:
+        """Collect all active time slots merging defaults and any extra session times."""
+        slots_dict: dict[str, tuple[str, str, str]] = {
+            s[0]: s for s in self.DEFAULT_TIME_SLOTS
+        }
+        for s in self._sessions:
+            start_t = s.time_slot.start
+            end_t = s.time_slot.end
+            if start_t not in slots_dict:
+                label_t = f"{start_t} - {end_t}"
+                slots_dict[start_t] = (start_t, end_t, label_t)
+        return sorted(slots_dict.values(), key=lambda x: x[0])
 
     def __init__(
         self,
@@ -361,8 +394,8 @@ class ScheduleScreenWidget(QWidget):
 
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 14, 20, 14)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(16, 8, 16, 8)
+        main_layout.setSpacing(6)
 
         # ---------------------------------------------------------------------
         # Top Navigation & Header Bar (3 Balanced Clusters)
@@ -569,12 +602,21 @@ class ScheduleScreenWidget(QWidget):
         self.btn_portability.clicked.connect(self.open_import_export_requested.emit)
         right_cluster.addWidget(self.btn_portability)
 
-        # Original PDF Button
-        btn_pdf = QPushButton("PDF")
-        btn_pdf.setStyleSheet(BUTTON_NAV_STYLE)
-        btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_pdf.clicked.connect(self._open_original_doc)
-        right_cluster.addWidget(btn_pdf)
+        # Settings & Customization Button
+        self.btn_settings = QPushButton("⚙")
+        self.btn_settings.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_settings.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_settings.setToolTip("Settings & Customization")
+        self.btn_settings.clicked.connect(self.open_settings_requested.emit)
+        right_cluster.addWidget(self.btn_settings)
+
+        # Kiosk Lock Button
+        self.btn_lock = QPushButton("🔒")
+        self.btn_lock.setStyleSheet(BUTTON_NAV_STYLE)
+        self.btn_lock.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_lock.setToolTip("Lock Station (<kbd>L</kbd>)")
+        self.btn_lock.clicked.connect(self.lock_requested.emit)
+        right_cluster.addWidget(self.btn_lock)
 
         header.addLayout(right_cluster)
         main_layout.addLayout(header)
@@ -609,29 +651,27 @@ class ScheduleScreenWidget(QWidget):
     def _create_debrief_banner(self) -> QFrame:
         banner = QFrame()
         banner.setObjectName("debriefBanner")
+        banner.setMaximumHeight(36)
         banner.setStyleSheet("""
             QFrame#debriefBanner {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0B291E, stop:0.5 #0F2E23, stop:1 #12121A);
                 border: 1px solid #059669;
-                border-radius: 8px;
+                border-radius: 7px;
             }
         """)
         layout = QHBoxLayout(banner)
-        layout.setContentsMargins(12, 6, 12, 6)
-        layout.setSpacing(10)
-
-        text_col = QVBoxLayout()
-        text_col.setSpacing(1)
+        layout.setContentsMargins(12, 3, 10, 3)
+        layout.setSpacing(8)
 
         self.lbl_debrief_title = QLabel("🌙 NIGHTLY DESK DEBRIEF")
-        self.lbl_debrief_title.setStyleSheet("color: #34D399; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;")
-        text_col.addWidget(self.lbl_debrief_title)
+        self.lbl_debrief_title.setStyleSheet("color: #34D399; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;")
+        layout.addWidget(self.lbl_debrief_title)
 
-        self.lbl_debrief_sub = QLabel("Classes attended today! Capture actionable preparation tasks before next week.")
+        self.lbl_debrief_sub = QLabel("· Classes attended today! Capture actionable preparation tasks before next week.")
         self.lbl_debrief_sub.setStyleSheet("color: #A7F3D0; font-size: 11px;")
-        text_col.addWidget(self.lbl_debrief_sub)
+        layout.addWidget(self.lbl_debrief_sub)
 
-        layout.addLayout(text_col, stretch=1)
+        layout.addStretch(1)
 
         btn_start_debrief = QPushButton("⚡ Start Debrief")
         btn_start_debrief.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -640,8 +680,8 @@ class ScheduleScreenWidget(QWidget):
                 background-color: #10B981;
                 color: #FFFFFF;
                 border: none;
-                border-radius: 6px;
-                padding: 5px 12px;
+                border-radius: 5px;
+                padding: 4px 10px;
                 font-size: 11px;
                 font-weight: 700;
             }
@@ -655,14 +695,14 @@ class ScheduleScreenWidget(QWidget):
         btn_dismiss = QPushButton("✕")
         btn_dismiss.setToolTip("Dismiss for now")
         btn_dismiss.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_dismiss.setFixedSize(24, 24)
+        btn_dismiss.setFixedSize(22, 22)
         btn_dismiss.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 color: #6EE7B7;
                 border: 1px solid transparent;
-                border-radius: 12px;
-                font-size: 12px;
+                border-radius: 11px;
+                font-size: 11px;
                 font-weight: 700;
             }
             QPushButton:hover {
@@ -679,17 +719,18 @@ class ScheduleScreenWidget(QWidget):
     def _create_priority_task_card(self) -> QFrame:
         card = QFrame()
         card.setObjectName("priorityTaskCard")
+        card.setMaximumHeight(36)
         card.setStyleSheet("""
             QFrame#priorityTaskCard {
                 background-color: #121218;
                 border: 1px solid #272736;
                 border-left: 3px solid #6366F1;
-                border-radius: 8px;
+                border-radius: 7px;
             }
         """)
         layout = QHBoxLayout(card)
-        layout.setContentsMargins(12, 6, 12, 6)
-        layout.setSpacing(10)
+        layout.setContentsMargins(12, 3, 10, 3)
+        layout.setSpacing(8)
 
         lbl_badge = QLabel("TONIGHT'S PRIORITY")
         lbl_badge.setStyleSheet("""
@@ -704,18 +745,15 @@ class ScheduleScreenWidget(QWidget):
         """)
         layout.addWidget(lbl_badge)
 
-        info_col = QVBoxLayout()
-        info_col.setSpacing(1)
-
         self.lbl_priority_title = QLabel("")
-        self.lbl_priority_title.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 700;")
-        info_col.addWidget(self.lbl_priority_title)
+        self.lbl_priority_title.setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: 700;")
+        layout.addWidget(self.lbl_priority_title)
 
         self.lbl_priority_due = QLabel("")
         self.lbl_priority_due.setStyleSheet("color: #94A3B8; font-size: 11px;")
-        info_col.addWidget(self.lbl_priority_due)
+        layout.addWidget(self.lbl_priority_due)
 
-        layout.addLayout(info_col, stretch=1)
+        layout.addStretch(1)
 
         self.btn_priority_focus = QPushButton("▶ 15m Focus")
         self.btn_priority_focus.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -724,9 +762,9 @@ class ScheduleScreenWidget(QWidget):
                 background-color: #10B981;
                 color: #FFFFFF;
                 border: none;
-                border-radius: 6px;
-                padding: 6px 14px;
-                font-size: 12px;
+                border-radius: 5px;
+                padding: 4px 10px;
+                font-size: 11px;
                 font-weight: 700;
             }
             QPushButton:hover {
@@ -739,14 +777,14 @@ class ScheduleScreenWidget(QWidget):
         btn_dismiss_prio = QPushButton("✕")
         btn_dismiss_prio.setToolTip("Dismiss priority task capsule")
         btn_dismiss_prio.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_dismiss_prio.setFixedSize(24, 24)
+        btn_dismiss_prio.setFixedSize(22, 22)
         btn_dismiss_prio.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 color: #818CF8;
                 border: 1px solid transparent;
-                border-radius: 12px;
-                font-size: 12px;
+                border-radius: 11px;
+                font-size: 11px;
                 font-weight: 700;
             }
             QPushButton:hover {
@@ -799,9 +837,9 @@ class ScheduleScreenWidget(QWidget):
             if priority_todo is not None and not self._priority_card_dismissed:
                 due_str = priority_todo.due_date.strftime("%a, %b %d at %H:%M")
                 if priority_todo.is_overdue(now):
-                    due_text = f"<span style='color: #EF4444; font-weight: 700;'>⚠️ OVERDUE</span> · Was due: {due_str}"
+                    due_text = f"· <span style='color: #EF4444; font-weight: 700;'>⚠️ OVERDUE</span> (was due: {due_str})"
                 else:
-                    due_text = f"Due before next class: {due_str}"
+                    due_text = f"· Due: {due_str}"
 
                 self.lbl_priority_title.setText(f"{priority_todo.subject_name} · {priority_todo.title}")
                 self.lbl_priority_due.setText(due_text)
@@ -816,9 +854,9 @@ class ScheduleScreenWidget(QWidget):
                 p = week_periods[0]
                 self.lbl_sp_title.setText(f"{p.name.upper()} ({p.duration_label.upper()})")
                 if p.overrides_schedule:
-                    self.lbl_sp_sub.setText(f"Active {p.start_date.strftime('%d %b')} – {p.end_date.strftime('%d %b %Y')} · Standard timetable is overridden during this period.")
+                    self.lbl_sp_sub.setText(f"· Active {p.start_date.strftime('%d %b')} – {p.end_date.strftime('%d %b %Y')} · Timetable overridden")
                 else:
-                    self.lbl_sp_sub.setText(f"Active {p.start_date.strftime('%d %b')} – {p.end_date.strftime('%d %b %Y')} · Standard timetable in effect.")
+                    self.lbl_sp_sub.setText(f"· Active {p.start_date.strftime('%d %b')} – {p.end_date.strftime('%d %b %Y')} · Standard timetable in effect")
                 self.special_period_banner.show()
             else:
                 self.special_period_banner.hide()
@@ -828,16 +866,17 @@ class ScheduleScreenWidget(QWidget):
     def _create_special_period_banner(self) -> QFrame:
         banner = QFrame()
         banner.setObjectName("specialPeriodBanner")
+        banner.setMaximumHeight(36)
         banner.setStyleSheet("""
             QFrame#specialPeriodBanner {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #271406, stop:0.5 #381E09, stop:1 #12121A);
                 border: 1px solid #D97706;
-                border-radius: 8px;
+                border-radius: 7px;
             }
         """)
         layout = QHBoxLayout(banner)
-        layout.setContentsMargins(12, 6, 12, 6)
-        layout.setSpacing(10)
+        layout.setContentsMargins(12, 3, 10, 3)
+        layout.setSpacing(8)
 
         badge = QLabel("⚡ SPECIAL PERIOD")
         badge.setStyleSheet("""
@@ -852,18 +891,15 @@ class ScheduleScreenWidget(QWidget):
         """)
         layout.addWidget(badge)
 
-        info_col = QVBoxLayout()
-        info_col.setSpacing(1)
-
         self.lbl_sp_title = QLabel("SPECIAL ACADEMIC PERIOD ACTIVE")
-        self.lbl_sp_title.setStyleSheet("color: #FDE68A; font-size: 12px; font-weight: 800;")
-        info_col.addWidget(self.lbl_sp_title)
+        self.lbl_sp_title.setStyleSheet("color: #FDE68A; font-size: 11px; font-weight: 800;")
+        layout.addWidget(self.lbl_sp_title)
 
-        self.lbl_sp_sub = QLabel("Standard timetable is overridden during this period.")
+        self.lbl_sp_sub = QLabel("· Standard timetable is overridden during this period.")
         self.lbl_sp_sub.setStyleSheet("color: #FCD34D; font-size: 11px;")
-        info_col.addWidget(self.lbl_sp_sub)
+        layout.addWidget(self.lbl_sp_sub)
 
-        layout.addLayout(info_col, stretch=1)
+        layout.addStretch(1)
 
         btn_manage = QPushButton("Manage Periods")
         btn_manage.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -872,8 +908,8 @@ class ScheduleScreenWidget(QWidget):
                 background-color: #D97706;
                 color: #FFFFFF;
                 border: none;
-                border-radius: 6px;
-                padding: 5px 12px;
+                border-radius: 5px;
+                padding: 4px 10px;
                 font-size: 11px;
                 font-weight: 700;
             }
@@ -887,14 +923,14 @@ class ScheduleScreenWidget(QWidget):
         btn_dismiss = QPushButton("✕")
         btn_dismiss.setToolTip("Dismiss special period banner")
         btn_dismiss.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_dismiss.setFixedSize(24, 24)
+        btn_dismiss.setFixedSize(22, 22)
         btn_dismiss.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 color: #FCD34D;
                 border: 1px solid transparent;
-                border-radius: 12px;
-                font-size: 12px;
+                border-radius: 11px;
+                font-size: 11px;
                 font-weight: 700;
             }
             QPushButton:hover {
@@ -962,13 +998,23 @@ class ScheduleScreenWidget(QWidget):
     def _create_grid_view(self) -> QWidget:
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("background: transparent; border: none;")
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+        """)
 
         self.grid_container = QWidget()
         self.grid_container.setStyleSheet("background: transparent;")
         self.grid_layout = QGridLayout(self.grid_container)
-        self.grid_layout.setContentsMargins(4, 4, 4, 4)
-        self.grid_layout.setSpacing(8)
+        self.grid_layout.setContentsMargins(0, 0, 0, 0)
+        self.grid_layout.setSpacing(6)
 
         self._refresh_calendar_grid()
         scroll.setWidget(self.grid_container)
@@ -1021,18 +1067,12 @@ class ScheduleScreenWidget(QWidget):
                 w.setParent(None)
                 w.deleteLater()
 
-        # Corner: TIME
-        lbl_corner = QLabel("TIME")
-        lbl_corner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl_corner.setStyleSheet("color: #52525B; font-size: 11px; font-weight: 800; letter-spacing: 1px;")
-        self.grid_layout.addWidget(lbl_corner, 0, 0)
-
-        # Day Headers (Col 1..6) with Real Dates
+        # Day Headers (Col 0..5) with Real Dates - Left text column removed
         week_dates = ScheduleEngine.get_week_dates(self._current_view_date, days_count=6)
         today_date = datetime.now().date()
 
-        for col_idx, (day_code, _) in enumerate(self.DAYS, start=1):
-            col_date = week_dates[col_idx - 1]
+        for col_idx, (day_code, _) in enumerate(self.DAYS):
+            col_date = week_dates[col_idx]
             is_today = (col_date == today_date)
             sp = self.engine.get_special_period_for_date(col_date) if self.engine else None
 
@@ -1094,16 +1134,11 @@ class ScheduleScreenWidget(QWidget):
             day_box_layout.addLayout(top_row)
             self.grid_layout.addWidget(day_box, 0, col_idx)
 
-        # Slot Rows (Row 1..5)
-        for row_idx, (start_t, end_t, label_t) in enumerate(self.TIME_SLOTS, start=1):
-            time_lbl = QLabel(label_t)
-            time_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            time_lbl.setStyleSheet("color: #71717A; font-size: 11px; font-family: monospace; font-weight: 600;")
-            time_lbl.setFixedWidth(100)
-            self.grid_layout.addWidget(time_lbl, row_idx, 0)
-
-            for col_idx, (day_code, _) in enumerate(self.DAYS, start=1):
-                col_date = week_dates[col_idx - 1]
+        # Dynamic Slot Rows (Row 1..N) - Pure Cells without left text column
+        active_slots = self._get_active_time_slots()
+        for row_idx, (start_t, end_t, label_t) in enumerate(active_slots, start=1):
+            for col_idx, (day_code, _) in enumerate(self.DAYS):
+                col_date = week_dates[col_idx]
                 is_today = (col_date == today_date)
                 sp = self.engine.get_special_period_for_date(col_date) if self.engine else None
                 is_overridden = bool(sp and sp.overrides_schedule)
@@ -1138,9 +1173,19 @@ class ScheduleScreenWidget(QWidget):
                     empty.clicked_slot.connect(self._open_add_slot_dialog)
                     self.grid_layout.addWidget(empty, row_idx, col_idx)
 
-        self.grid_layout.setColumnStretch(0, 1)
-        for i in range(1, 7):
-            self.grid_layout.setColumnStretch(i, 3)
+        # Equal column distribution across the 6 days
+        for i in range(len(self.DAYS)):
+            self.grid_layout.setColumnStretch(i, 1)
+
+        # Equal row stretch for all slot rows
+        self.grid_layout.setRowStretch(0, 0)
+        for r in range(1, len(active_slots) + 1):
+            self.grid_layout.setRowStretch(r, 1)
+
+        # Maintain minimum comfortable height to enable smooth scrolling when window is constrained
+        min_slot_height = 86
+        min_total_height = 40 + len(active_slots) * (min_slot_height + 6) + 10
+        self.grid_container.setMinimumHeight(min_total_height)
 
         if hasattr(self, "btn_special_period") and self.engine is not None:
             active_periods = self.engine.get_special_periods_for_week(self._current_view_date)
@@ -1680,7 +1725,8 @@ class ScheduleScreenWidget(QWidget):
         self.back_requested.emit()
 
     def _open_original_doc(self) -> None:
-        doc_path = Path(__file__).resolve().parent.parent.parent.parent / "docs" / "grid.pdf"
+        from study_station.core.resources import get_doc_path
+        doc_path = get_doc_path("grid.pdf")
         if doc_path.exists():
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(doc_path)))
 

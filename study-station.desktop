@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Study Station
+GenericName=Academic Preparation Station
+Comment=Schedule-Aware Academic Cockpit & Focus Workstation
+Exec=study-station
+Icon=study-station
+Terminal=false
+Categories=Education;Utility;Office;
+Keywords=study;focus;pomodoro;schedule;timetable;university;academic;
+StartupNotify=true
+StartupWMClass=Study Station

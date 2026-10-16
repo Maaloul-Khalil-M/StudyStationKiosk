@@ -20,6 +20,27 @@ class AppSettings:
     default_focus_minutes: int = 15
     typography_style: str = "eva"  # "eva" (Matisse Serif + HUD) or "modern" (Swiss Sans)
     sound_enabled: bool = True     # Milestone 8: Audio completion chime toggle
+    kiosk_mode_enabled: bool = False  # Password-lock fullscreen and application exit
+    kiosk_password_hash: str = ""     # Salted PBKDF2 hash of administrator password
+
+    def has_kiosk_password(self) -> bool:
+        """Return True if a non-empty kiosk password hash is configured."""
+        return bool(self.kiosk_password_hash and self.kiosk_password_hash.strip())
+
+    def set_kiosk_password(self, password: str) -> None:
+        """Hash and store a new kiosk password."""
+        from study_station.core.security import hash_password
+        self.kiosk_password_hash = hash_password(password)
+
+    def verify_kiosk_password(self, password: str) -> bool:
+        """Verify password against stored kiosk hash."""
+        from study_station.core.security import verify_password
+        return verify_password(self.kiosk_password_hash, password)
+
+    def clear_kiosk_password(self) -> None:
+        """Remove kiosk password and disable kiosk mode."""
+        self.kiosk_password_hash = ""
+        self.kiosk_mode_enabled = False
 
     def to_dict(self) -> dict:
         return asdict(self)

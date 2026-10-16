@@ -558,9 +558,12 @@ class SubjectDashboardWidget(QWidget):
     # -------------------------------------------------------------------------
 
     def eventFilter(self, watched, event: QEvent) -> bool:
-        if event.type() in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.KeyPress):
-            self._on_user_interaction()
-        return super().eventFilter(watched, event)
+        try:
+            if event.type() in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.KeyPress):
+                self._on_user_interaction()
+            return super().eventFilter(watched, event)
+        except (RuntimeError, Exception):
+            return False
 
     def _on_user_interaction(self) -> None:
         if not self._is_interactive:

@@ -10,7 +10,7 @@ Manages transitions between:
 from datetime import datetime, timedelta
 from pathlib import Path
 from PySide6.QtCore import QTimer, Qt
-from PySide6.QtGui import QColor, QKeyEvent, QPalette
+from PySide6.QtGui import QCloseEvent, QColor, QKeyEvent, QPalette
 from PySide6.QtWidgets import QDialog, QMainWindow, QStackedWidget
 
 from study_station.core.engine import ScheduleEngine
@@ -33,6 +33,7 @@ from study_station.ui.exit_ticket_dialog import ExitTicketDialog
 from study_station.ui.focus_widget import FocusWidget
 from study_station.ui.history_dialog import HistoryDialog
 from study_station.ui.import_export_dialog import ImportExportDialog
+from study_station.ui.kiosk_dialogs import KioskLockOverlay, KioskUnlockDialog
 from study_station.ui.manual_log_dialog import ManualLogDialog
 from study_station.ui.schedule_screen_widget import ScheduleScreenWidget
 from study_station.ui.targets_dialog import TargetsDialog
@@ -93,6 +94,8 @@ class MainWindow(QMainWindow):
         self._schedule_widget.timetable_changed.connect(self._on_timetable_updated)
         self._schedule_widget.open_import_export_requested.connect(self.open_import_export_dialog)
         self._schedule_widget.open_tasks_requested.connect(self.open_tasks_dialog)
+        self._schedule_widget.open_settings_requested.connect(self.open_customization_dialog)
+        self._schedule_widget.lock_requested.connect(self.lock_station)
         self._stack.addWidget(self._schedule_widget)
 
         # 2. Focus Screen
@@ -133,6 +136,13 @@ class MainWindow(QMainWindow):
         self._scrim_overlay.setStyleSheet("QFrame#scrimOverlay { background-color: rgba(9, 9, 11, 0.96); border: none; }")
         self._scrim_overlay.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._scrim_overlay.hide()
+
+        # Kiosk Screen Lock Overlay
+        self._kiosk_lock_overlay = KioskLockOverlay(
+            expected_hash_getter=lambda: getattr(self._settings, "kiosk_password_hash", ""),
+            parent=self,
+        )
+        self._kiosk_lock_overlay.hide()
 
         # Default to Weekly Schedule Cockpit screen
         self._stack.setCurrentIndex(self.INDEX_GRID)
@@ -195,13 +205,58 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_scrim_overlay"):
             self._scrim_overlay.setStyleSheet(f"QFrame#scrimOverlay {{ background-color: rgba({bg_color.red()}, {bg_color.green()}, {bg_color.blue()}, 0.96); border: none; }}")
 
+    def _require_kiosk_unlock(self, action_title: str, action_desc: str) -> bool:
+        """Prompt for kiosk administrator password if kiosk mode is active.
+
+        Returns True if action is authorized or kiosk mode is disabled, False otherwise.
+        """
+        if not getattr(self._settings, "kiosk_mode_enabled", False):
+            return True
+        if not self._settings.has_kiosk_password():
+            return True
+
+        self._show_scrim()
+        try:
+            dialog = KioskUnlockDialog(
+                expected_hash=self._settings.kiosk_password_hash,
+                action_title=action_title,
+                action_desc=action_desc,
+                parent=self,
+            )
+            return dialog.exec() == QDialog.DialogCode.Accepted
+        finally:
+            self._hide_scrim()
+
+    def lock_station(self) -> None:
+        """Lock the workstation screen with the KioskLockOverlay."""
+        if not self._settings.has_kiosk_password():
+            self.open_customization_dialog()
+            return
+        self._kiosk_lock_overlay.show_lock()
+
     def toggle_fullscreen(self) -> None:
         """Toggle between Fullscreen and Normal window mode."""
         if self.isFullScreen():
+            if not self._require_kiosk_unlock(
+                "Exit Fullscreen",
+                "Enter administrator password to exit fullscreen mode.",
+            ):
+                return
             self.showNormal()
             self.setCursor(Qt.CursorShape.ArrowCursor)
         else:
             self.showFullScreen()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """Intercept application close to require password if kiosk mode is active."""
+        if not self._require_kiosk_unlock(
+            "Exit Study Station",
+            "Enter administrator password to close Study Station.",
+        ):
+            event.ignore()
+            return
+        event.accept()
+        super().closeEvent(event)
 
     def _show_scrim(self) -> None:
         self._scrim_overlay.setGeometry(self.rect())
@@ -215,6 +270,8 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         if hasattr(self, "_scrim_overlay"):
             self._scrim_overlay.setGeometry(self.rect())
+        if hasattr(self, "_kiosk_lock_overlay"):
+            self._kiosk_lock_overlay.setGeometry(self.rect())
 
     def open_customization_dialog(self) -> None:
         """Open modern customization modal with dark backdrop scrim."""
@@ -222,6 +279,7 @@ class MainWindow(QMainWindow):
         try:
             dialog = CustomizationDialog(self._settings, self)
             dialog.settings_changed.connect(self._on_settings_updated)
+            dialog.lock_screen_requested.connect(self.lock_station)
             dialog.open_timetable_requested.connect(self.open_timetable_editor)
             dialog.open_targets_requested.connect(self.open_targets_dialog)
             dialog.open_manual_log_requested.connect(self.open_manual_log_dialog)
@@ -645,6 +703,10 @@ class MainWindow(QMainWindow):
         current_idx = self._stack.currentIndex()
 
         # Global shortcuts
+        if key == Qt.Key.Key_L and event.modifiers() == Qt.KeyboardModifier.NoModifier:
+            if getattr(self._settings, "kiosk_mode_enabled", False) or self._settings.has_kiosk_password():
+                self.lock_station()
+                return
         if key == Qt.Key.Key_Q and event.modifiers() == Qt.KeyboardModifier.NoModifier:
             self.close()
             return

@@ -53,7 +53,8 @@ class ManualLogDialog(QDialog):
         container_layout.setContentsMargins(0, 0, 0, 0)
 
         # Load UI
-        ui_path = Path(__file__).resolve().parent / "designer" / "manual_log_dialog.ui"
+        from study_station.core.resources import get_ui_path
+        ui_path = get_ui_path("manual_log_dialog.ui")
         loader = QUiLoader()
         ui_file = QFile(str(ui_path))
         ui_file.open(QFile.ReadOnly)

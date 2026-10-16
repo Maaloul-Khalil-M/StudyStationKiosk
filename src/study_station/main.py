@@ -28,7 +28,8 @@ def run() -> int:
 
     # 2. Seed initial timetable from docs/example.json ONLY on initial fresh install of Default user
     if user_manager.is_fresh_install and active_user == UserManager.DEFAULT_USER:
-        sample_timetable = Path(__file__).resolve().parent.parent.parent / "docs" / "example.json"
+        from study_station.core.resources import get_sample_timetable_path
+        sample_timetable = get_sample_timetable_path()
         if sample_timetable.exists():
             repo.seed_timetable_if_empty(sample_timetable)
 

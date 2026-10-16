@@ -362,7 +362,8 @@ class WeeklyScheduleGridDialog(QDialog):
 
     def _open_original_doc(self) -> None:
         """Open docs/grid.pdf in system PDF viewer."""
-        doc_path = Path(__file__).resolve().parent.parent.parent.parent / "docs" / "grid.pdf"
+        from study_station.core.resources import get_doc_path
+        doc_path = get_doc_path("grid.pdf")
         if doc_path.exists():
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(doc_path)))
 

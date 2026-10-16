@@ -15,7 +15,8 @@ class CompletionWidget(QWidget):
         super().__init__(parent)
 
         # Load Qt Designer UI
-        ui_path = Path(__file__).resolve().parent / "designer" / "completion_screen.ui"
+        from study_station.core.resources import get_ui_path
+        ui_path = get_ui_path("completion_screen.ui")
         loader = QUiLoader()
         ui_file = QFile(str(ui_path))
         ui_file.open(QFile.ReadOnly)

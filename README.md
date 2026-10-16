@@ -8,7 +8,7 @@
 [![PySide6 / Qt](https://img.shields.io/badge/GUI-PySide6%20%2F%20Qt6-41CD52?style=flat&logo=qt&logoColor=white)](https://www.qt.io/)
 [![SQLite WAL](https://img.shields.io/badge/Database-SQLite%20(WAL)-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Local-First](https://img.shields.io/badge/Architecture-100%25%20Offline%20%2F%20Local--First-black?style=flat)](#)
-[![Tests Passing](https://img.shields.io/badge/Tests-141%2F141%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
+[![Tests Passing](https://img.shields.io/badge/Tests-162%2F162%20Passing%20(100%25)-10B981?style=flat)](#test-suite--quality-assurance)
 [![Zero Cloud](https://img.shields.io/badge/Privacy-Zero%20Cloud%20%2F%20Zero%20Electron-6366F1?style=flat)](#)
 
 </div>
@@ -279,11 +279,12 @@ Study Station is designed for rapid, keyboard-first workstation operation:
 | <kbd>M</kbd> | Cockpit Grid / Clock | Open **Manual Offline Study Time** logger |
 | <kbd>H</kbd> | Cockpit Grid / Clock | Open **Study History & Logs** viewer |
 | <kbd>T</kbd> | Cockpit Grid / Clock | Open **Academic Task Backlog** dialog |
-| <kbd>F11</kbd> | Any Screen | Toggle **Fullscreen Mode** |
+| <kbd>L</kbd> | Any Screen | **Lock Station Screen** (shield overlay; requires kiosk password) |
+| <kbd>F11</kbd> | Any Screen | Toggle **Fullscreen Mode** (password-protected in Kiosk Mode) |
 | <kbd>Space</kbd> | Focus Screen | **Pause / Resume** active countdown |
 | <kbd>+</kbd> or <kbd>=</kbd> or <kbd>5</kbd> | Focus Screen | **Add +5 Minutes** to active session |
 | <kbd>Esc</kbd> or <kbd>Return</kbd> | Focus Screen | **Finish Focus Session** (opens Exit Ticket) |
-| <kbd>Q</kbd> | Any Screen (Idle) | Cleanly quit Study Station |
+| <kbd>Q</kbd> | Any Screen (Idle) | Cleanly quit Study Station (password-protected in Kiosk Mode) |
 
 ---
 
@@ -292,7 +293,7 @@ Study Station is designed for rapid, keyboard-first workstation operation:
 Study Station is backed by a deterministic, zero-external-dependency test suite running on `unittest`:
 
 ```bash
-# Run all 129 unit tests across all 18 test suites
+# Run all 162 unit tests across all 21 test suites
 $env:PYTHONPATH="src"; python -m unittest discover tests
 ```
 
@@ -300,14 +301,16 @@ $env:PYTHONPATH="src"; python -m unittest discover tests
 - **Engine & Scheduling**: 100% boundary safety on academic week transitions, timezone-free calendar arithmetic, and collision detection.
 - **Persistence & Migrations**: SQLite schema migrations, foreign keys, and sleep/crash recovery verification.
 - **Portability**: PDF grid extraction, CSV parsing with French semicolons and UTF-8 BOM, and JSON round-trips.
+- **Kiosk Security**: PBKDF2 password hashing, salt uniqueness, fullscreen toggle guarding, close interception, and lock overlay shield.
+- **Cross-Platform Resources**: Universal resource resolution across dev source trees, installed packages, and PyInstaller frozen bundles.
 - **Interactive UI**: Headless verification of `ScheduleScreenWidget`, `SubjectDashboardWidget`, `SplitFlapClockWidget`, `DebriefDialog`, `ExitTicketDialog`, `SubjectPreparationSheet`, `TasksDialog`, and `FocusWidget`.
 
 ```
-.............................................................................................................................................
+..................................................................................................................................................................
 ----------------------------------------------------------------------
-Ran 141 tests in 15.540s
+Ran 162 tests in 32.336s
 
-OK (100% passing across 19 test suites)
+OK (100% passing across 21 test suites)
 ```
 
 ---
@@ -364,6 +367,9 @@ This script renders and grabs:
 | **17** | Multi-User Profiles & DB Isolation | Zero-password user switching, isolated SQLite databases, instant seeding, and top-bar button | `[COMPLETED]` |
 | **18** | Immediate UX Polish & Anti-Fatigue Workflows | Top-bar clustering, adaptive exit ticket, priority dismiss, positive clock framing | `[COMPLETED]` |
 | **19** | Urgency Engine & Period Overrides | Tomorrow-morning proximity bias, backlog sorting, safe purge, and Special Academic Overrides (day/x days/weeks/x weeks) | `[COMPLETED]` |
+| **20** | Pure-Cells Grid & Slim Ratio Ribbons | Removed left time column, dynamic time slot row generation, scrollable grid container, and slim 36px banner ribbons | `[COMPLETED]` |
+| **21** | Kiosk Mode & Password Lock | Cryptographic PBKDF2 hashing, exit/fullscreen interception, full-screen lock overlay, settings management | `[COMPLETED]` |
+| **22** | Cross-Platform Packaging & Resource Resolution | pyproject.toml, PyInstaller spec, XDG desktop entry, universal resource locator, and OS-level hardening guide | `[COMPLETED]` |
 
 ---
 

@@ -734,11 +734,71 @@ Based on the architectural pivot documented in [`docs/ACADEMIC_PREPARATION_SPEC.
   - Added dedicated test suite `tests/test_tier2_special_periods.py` covering model, persistence, urgency heuristic, sorting, and UI presets.
   - Re-captured and verified all 14 documentation screenshots in `docs/screens/` and `docs/SCREENSS/`.
 
+### Milestone 20: Scrollable Dynamic Pure-Cells Grid & Slim Ratio Ribbons `[COMPLETED]`
+- [x] **Pure Cells Grid Layout (Left Text Eliminated)**:
+  - Removed column 0 completely (eradicated `lbl_corner = QLabel("TIME")` and left time labels `08h - 09h30`, `09h40 - 11h10`, etc.).
+  - Allocated 100% of horizontal grid width equally to the 6 academic days (`LUN`, `MAR`, `MER`, `JEU`, `VEN`, `SAM`) at columns 0..5.
+  - Enhanced `EmptyGridSlot` with centered `+`, subtle monospace time label (`08:00 – 09:30`), hover color transition to emerald (`#10B981`), and clear contextual tooltip.
+- [x] **Dynamic Time Slot Detection ("Add something that does not fit in the normal grid")**:
+  - Implemented `_get_active_time_slots()` dynamically merging default time slots with any custom session times outside the standard 5 slots (e.g. `10:00 - 11:30`, `17:00 - 18:30`, evening classes).
+  - Automatically sorts all active slots chronologically and generates corresponding grid rows.
+- [x] **Scrollable Grid Container & Aspect Ratio Protection**:
+  - Configured `QScrollArea` with `ScrollBarAsNeeded`, transparent viewport styling, and mouse wheel scrolling.
+  - Dynamically calculates `min_total_height` on `grid_container` ensuring cards maintain comfortable minimum height (86px) and never compress or clip text labels.
+- [x] **Slim Ratio-Preserving Banner Ribbons**:
+  - Redesigned `debrief_banner`, `priority_task_card`, and `special_period_banner` into unified, compact horizontal ribbons with `maximumHeight(36)`.
+  - Reduced outer margins and spacing in `main_layout`, preventing the screen ratio from breaking when multiple banners are active simultaneously.
+- [x] **Verification & Test Telemetry**:
+  - Added unit tests in `tests/test_grid_main_screen.py` verifying pure-cells grid geometry, dynamic slot generation, scrollable container sizing, and banner height constraints.
+  - Full test suite passing at **144/144 tests (100%)** across 19 test suites.
+  - Refreshed all 14 screenshots in `docs/screens/` and `docs/SCREENSS/`.
+
+### Milestone 21: Kiosk Mode & Application-Level Password Lock `[COMPLETED]`
+- [x] **Cryptographic Password Security (`src/study_station/core/security.py`)**:
+  - Implemented `hash_password(password)` using PBKDF2-HMAC-SHA256 with 100,000 iterations and 16-byte random salt (`secrets.token_hex(16)`).
+  - Implemented `verify_password(stored_hash, password)` with constant-time string comparison (`secrets.compare_digest`) to prevent timing attacks.
+  - Zero external dependencies; completely self-contained in standard Python library.
+- [x] **Settings Persistence (`AppSettings`)**:
+  - Added `kiosk_mode_enabled: bool` and `kiosk_password_hash: str` to `AppSettings`.
+  - Added helper methods: `has_kiosk_password()`, `set_kiosk_password(password)`, `verify_kiosk_password(password)`, and `clear_kiosk_password()`.
+  - Fully integrated with SQLite `app_settings` persistence across application runs.
+- [x] **Kiosk Security Dialogs & Lock Overlay (`src/study_station/ui/kiosk_dialogs.py`)**:
+  - `KioskUnlockDialog`: Clean modal styled to the `#09090B` dark palette with password echo toggle (`👁`), inline error messages, and keyboard shortcuts (<kbd>Enter</kbd> to unlock, <kbd>Esc</kbd> to cancel).
+  - `SetKioskPasswordDialog`: Dual-mode dialog supporting initial password setup and existing password change with verification.
+  - `KioskLockOverlay`: Full-screen lock shield with focus trap, password input, and instant station lock/resume.
+- [x] **Event Interception & Protection (`MainWindow`)**:
+  - Intercepted `closeEvent`: Prevents quitting via window manager close signals, Alt+F4, <kbd>Q</kbd>, or <kbd>Esc</kbd> unless unlocked.
+  - Intercepted `toggle_fullscreen()` & <kbd>F11</kbd>: Prevents un-maximizing or windowing the application without entering the administrator password.
+  - Added global shortcut <kbd>L</kbd> and header lock button `[ 🔒 ]` on the Weekly Cockpit to lock station on demand.
+- [x] **Settings & Customization Integration (`CustomizationDialog`)**:
+  - Added Section 6: "KIOSK & SCREEN LOCK" with enable/disable checkbox, "Set/Change Password" button, and "Lock Station Now" action.
+  - Disabling kiosk mode requires password authentication to prevent unauthorized tampering.
+- [x] **Unit Test Suite (`tests/test_kiosk_security.py`)**:
+  - 13 comprehensive unit tests covering PBKDF2 hashing, unique salts, serialization, unlock dialog validation, password change validation, `closeEvent` guarding, and fullscreen interception.
+### Milestone 22: Cross-Platform Packaging & Resource Resolution `[COMPLETED]`
+- [x] **Universal Resource Resolver (`src/study_station/core/resources.py`)**:
+  - Centralized path resolution handling development source trees, wheel/site-packages installations, and PyInstaller frozen single-binary bundles (`sys._MEIPASS`).
+  - Added safe fallbacks for Qt Designer `.ui` files, `example.json` templates, and `grid.pdf` guides.
+  - Writable sound cache: routed synthesized audio assets through `get_writable_sound_dir()` (`~/.local/share/study_station/sounds/` on Linux, `%APPDATA%/study_station/sounds/` on Windows) to prevent read-only filesystem crash upon installation.
+- [x] **Standard PEP 517/518 Packaging (`pyproject.toml`)**:
+  - Configured standardized metadata, versioning, dependencies, and entry-point binary execution (`study-station = study_station.main:run`).
+  - Setuptools package data discovery configured to include all `.ui` designer files and assets.
+- [x] **PyInstaller Cross-Platform Specification (`study_station.spec`)**:
+  - Created standalone freeze spec bundling PySide6 Qt plugins, UI templates, schemas, and documents.
+  - Supports generating standalone binaries on Linux Fedora and Windows without external Python runtime dependencies.
+- [x] **Linux Desktop Integration (`study-station.desktop`)**:
+  - Created standard XDG desktop entry for Linux application menus, docks, and systemd kiosk autostart.
+- [x] **OS-Level Hardening Guide (`docs/OS_LEVEL_HARDENING.md`)**:
+  - Detailed architectural guide covering least-privilege user identity, Wayland kiosk compositors (Cage), TTY virtual terminal suppression, systemd service auto-restart supervision, shortcut masking, and display power discipline.
+- [x] **Unit Test Suite (`tests/test_resources.py`)**:
+  - Verified bundle directory detection, `.ui` template resolution, timetable sample discovery, PDF guide discovery, and writable directory generation.
+  - Test suite passing at **162/162 tests (100%)** across 21 test suites.
+
 ---
 
 ## Complete Academic Station Milestone Summary
 
-Study Station is fully realized across 22 comprehensive development milestones:
+Study Station is fully realized across 25 comprehensive development milestones:
 1. **Milestone 1: Project Foundation & Screen Framework** `[COMPLETED]` — Window lifecycle, fullscreen, Linux X11/Xfce support.
 2. **Milestone 2: Ambient Flip Clock & Schedule Engine** `[COMPLETED]` — Retro minimal typography, ScheduleEngine timetable parsing.
 3. **Milestone 2.5: Modern UI Redesign & Calm Discipline** `[COMPLETED]` — 3D flip card animations, auto-hiding action bars.
@@ -761,6 +821,9 @@ Study Station is fully realized across 22 comprehensive development milestones:
 20. **Milestone 17: Multi-User Profile Architecture, Zero-Password Database Isolation & Clean Slate Options** `[COMPLETED]` — Zero-password user switching, isolated SQLite databases, clean slate default with optional template loading, on-demand Empty Schedule & Empty Tasks actions, and top-bar switch button.
 21. **Milestone 18: Immediate UX Polish & Anti-Fatigue Workflows (Tier 1 Roadmap)** `[COMPLETED]` — Top-bar clustering, adaptive exit ticket, priority dismiss, positive clock framing, and test telemetry sync.
 22. **Milestone 19: Academic Urgency Engine, Backlog Sorting & Special Period Overrides (Tier 2 Roadmap)** `[COMPLETED]` — Tomorrow-morning proximity bias, backlog sorting, safe purge, and Special Academic Overrides (day/x days/weeks/x weeks).
+23. **Milestone 20: Scrollable Dynamic Pure-Cells Grid & Slim Ratio Ribbons** `[COMPLETED]` — Removed left time column, dynamic time slot row generation, scrollable grid container, and slim 36px banner ribbons.
+24. **Milestone 21: Kiosk Mode & Application-Level Password Lock** `[COMPLETED]` — Cryptographic PBKDF2 password hashing, exit/fullscreen interception, full-screen lock overlay, settings management, and <kbd>L</kbd> station lock.
+25. **Milestone 22: Cross-Platform Packaging & Resource Resolution** `[COMPLETED]` — pyproject.toml, PyInstaller spec, XDG desktop entry, universal resource locator, and OS-level hardening guide.
 
 
 
