@@ -45,5 +45,10 @@ def run() -> int:
     return exit_code
 
 
+# Standard entry point alias
+main = run
+
+
 if __name__ == "__main__":
-    sys.exit(run())
+    sys.exit(main())
+

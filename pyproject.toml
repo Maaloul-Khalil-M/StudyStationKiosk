@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "study-station"
-version = "1.0.0"
+version = "0.1.0"
 description = "A Schedule-Aware Academic Preparation Station & Focus Cockpit for University Students"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.scripts]
-study-station = "study_station.main:run"
+study-station = "study_station.main:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
