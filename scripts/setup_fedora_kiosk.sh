@@ -20,8 +20,11 @@ echo -e "${BLUE}======================================================${NC}"
 echo -e "${BLUE}   Study Station — Linux Fedora Kiosk Setup           ${NC}"
 echo -e "${BLUE}======================================================${NC}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+PROJECT_ROOT=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
+fi
 
 # 1. Verify Python & Pip
 echo -e "\n${GREEN}[1/5] Checking Python environment...${NC}"
@@ -49,7 +52,7 @@ install_pkg() {
     fi
 }
 
-if [ -f "${PROJECT_ROOT}/pyproject.toml" ]; then
+if [ -n "${PROJECT_ROOT}" ] && [ -f "${PROJECT_ROOT}/pyproject.toml" ]; then
     echo "Installing from local repository directory..."
     install_pkg "${PROJECT_ROOT}"
 else
@@ -125,8 +128,8 @@ Environment=PYTHONUNBUFFERED=1
 WantedBy=default.target
 EOF
 
-systemctl --user daemon-reload
-systemctl --user enable study-station-kiosk.service
+systemctl --user daemon-reload 2>/dev/null || true
+systemctl --user enable study-station-kiosk.service 2>/dev/null || true
 echo -e "Systemd user service registered & enabled: ${BLUE}${SERVICE_FILE}${NC}"
 
 # 5. Set up XDG Desktop Autostart Entry (Desktop Fallback)
