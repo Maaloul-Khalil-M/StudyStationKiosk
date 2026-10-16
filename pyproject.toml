@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "A Schedule-Aware Academic Preparation Station & Focus Cockpit for University Students"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Study Station Contributors" }
 ]
@@ -17,7 +17,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Topic :: Education",
@@ -39,4 +38,4 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "study_station.ui" = ["designer/*.ui"]
-"study_station" = ["assets/*"]
+"study_station" = ["assets/*", "assets/**/*"]

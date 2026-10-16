@@ -40,12 +40,17 @@ def get_ui_path(filename: str) -> Path:
 
 def get_sample_timetable_path() -> Path:
     """Resolve the path to example.json timetable template."""
-    # 1. Relative to repo root in development
+    # 1. Check packaged assets directory (pip wheel / installed package)
+    pkg_path = Path(__file__).resolve().parent.parent / "assets" / "example.json"
+    if pkg_path.exists():
+        return pkg_path
+
+    # 2. Relative to repo root in development
     dev_path = Path(__file__).resolve().parent.parent.parent.parent / "docs" / "example.json"
     if dev_path.exists():
         return dev_path
 
-    # 2. PyInstaller bundle docs directory
+    # 3. PyInstaller bundle docs directory
     bundle_path = get_bundle_dir() / "docs" / "example.json"
     if bundle_path.exists():
         return bundle_path
@@ -54,22 +59,27 @@ def get_sample_timetable_path() -> Path:
     if alt_path.exists():
         return alt_path
 
-    return dev_path
+    return pkg_path
 
 
 def get_doc_path(filename: str) -> Path:
     """Resolve path to documentation or asset file (e.g. grid.pdf)."""
-    # 1. Development source root
+    # 1. Check packaged assets directory (pip wheel / installed package)
+    pkg_path = Path(__file__).resolve().parent.parent / "assets" / filename
+    if pkg_path.exists():
+        return pkg_path
+
+    # 2. Development source root
     dev_path = Path(__file__).resolve().parent.parent.parent.parent / "docs" / filename
     if dev_path.exists():
         return dev_path
 
-    # 2. PyInstaller bundle
+    # 3. PyInstaller bundle
     bundle_path = get_bundle_dir() / "docs" / filename
     if bundle_path.exists():
         return bundle_path
 
-    return dev_path
+    return pkg_path
 
 
 def get_writable_sound_dir() -> Path:
