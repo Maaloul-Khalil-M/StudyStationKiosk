@@ -35,12 +35,26 @@ echo -e "Found Python ${PYTHON_VER}."
 
 # 2. Install or upgrade study-station via pip
 echo -e "\n${GREEN}[2/5] Installing Study Station via pip...${NC}"
+install_pkg() {
+    local target="$1"
+    if python3 -m pip install --user --upgrade "${target}" 2>/dev/null; then
+        return 0
+    elif python3 -m pip install --user --break-system-packages --upgrade "${target}" 2>/dev/null; then
+        return 0
+    elif command -v pipx >/dev/null 2>&1; then
+        pipx install "${target}" --force
+        return 0
+    else
+        python3 -m pip install --user "${target}"
+    fi
+}
+
 if [ -f "${PROJECT_ROOT}/pyproject.toml" ]; then
     echo "Installing from local repository directory..."
-    python3 -m pip install --user --upgrade "${PROJECT_ROOT}"
+    install_pkg "${PROJECT_ROOT}"
 else
     echo "Installing latest version from PyPI..."
-    python3 -m pip install --user --upgrade study-station
+    install_pkg "study-station"
 fi
 
 # Ensure user binary path is available
